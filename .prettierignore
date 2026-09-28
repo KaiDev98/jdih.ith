@@ -1,0 +1,15 @@
+node_modules
+dist
+.next
+coverage
+*.min.*
+package-lock.json
+database/*.sql
+docs/**/*.docx
+apps/api/src/database/generated
+apps/web/next-env.d.ts
+
+# Dokumentasi perancangan sudah diserahkan dengan tata letak sendiri.
+# Prettier akan meratakan ulang tabel dan mengubah penanda penekanan, yang
+# menimbulkan perubahan besar tanpa manfaat.
+docs/**

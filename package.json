@@ -1,0 +1,51 @@
+{
+  "name": "jdih-ith",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Portal JDIH — Institut Teknologi Bacharuddin Jusuf Habibie (ITH) Parepare",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20.9.0",
+    "npm": ">=10.0.0"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n shared,api,web -c cyan,green,magenta \"npm:dev:shared\" \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:shared": "npm run dev --workspace @jdih/shared",
+    "dev:api": "npm run dev --workspace @jdih/api",
+    "dev:web": "npm run dev --workspace @jdih/web",
+    "build": "npm run build --workspace @jdih/shared && npm run build --workspace @jdih/api && npm run build --workspace @jdih/web",
+    "build:shared": "npm run build --workspace @jdih/shared",
+    "start": "concurrently -k -n api,web -c green,magenta \"npm:start:api\" \"npm:start:web\"",
+    "start:api": "npm run start:prod --workspace @jdih/api",
+    "start:web": "npm run start --workspace @jdih/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint . && npm run lint --workspace @jdih/web",
+    "lint:fix": "eslint . --fix && npm run lint --workspace @jdih/web -- --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "npm run test --workspaces --if-present",
+    "db:import": "node scripts/db-import.mjs",
+    "db:reset": "node scripts/db-import.mjs --drop",
+    "db:pull": "node scripts/db-pull.mjs",
+    "db:studio": "npm run db:studio --workspace @jdih/api",
+    "doctor": "node scripts/doctor.mjs",
+    "clean": "node scripts/clean.mjs",
+    "setup": "node scripts/setup-env.mjs && npm run build:shared",
+    "setup:env": "node scripts/setup-env.mjs",
+    "gen:permissions": "node scripts/gen-permissions.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "concurrently": "^10.0.5",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.9",
+    "typescript": "6.0.3",
+    "typescript-eslint": "^8.70.1"
+  }
+}

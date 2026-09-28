@@ -1,0 +1,7032 @@
+{
+  "id": "00000000-0000-0000-0000-000000000000",
+  "prevId": "",
+  "version": "5",
+  "dialect": "mysql",
+  "tables": {
+    "banner": {
+      "name": "banner",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "judul": {
+          "autoincrement": false,
+          "name": "judul",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subjudul": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "subjudul",
+          "type": "varchar(300)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gambar": {
+          "autoincrement": false,
+          "name": "gambar",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gambar_seluler": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "gambar_seluler",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tautan": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "tautan",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "label_tombol": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "label_tombol",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tanggal_mulai": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "tanggal_mulai",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tanggal_selesai": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "tanggal_selesai",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_aktif": {
+          "default": 1,
+          "autoincrement": false,
+          "name": "is_aktif",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "urutan": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "urutan",
+          "type": "smallint(5) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dibuat_oleh": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "dibuat_oleh",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diperbarui_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diperbarui_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_banner_tampil": {
+          "name": "idx_banner_tampil",
+          "columns": [
+            "is_aktif",
+            "tanggal_mulai",
+            "tanggal_selesai",
+            "urutan"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_banner_dibuat_oleh": {
+          "name": "fk_banner_dibuat_oleh",
+          "tableFrom": "banner",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "dibuat_oleh"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "berita": {
+      "name": "berita",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "judul": {
+          "autoincrement": false,
+          "name": "judul",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "autoincrement": false,
+          "name": "slug",
+          "type": "varchar(275)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipe": {
+          "default": "'''berita'''",
+          "autoincrement": false,
+          "name": "tipe",
+          "type": "enum('berita','artikel_hukum','pengumuman','siaran_pers')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kategori_berita_id": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "kategori_berita_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ringkasan": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "ringkasan",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isi": {
+          "autoincrement": false,
+          "name": "isi",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gambar_utama": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "gambar_utama",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sumber": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "sumber",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "penulis_id": {
+          "autoincrement": false,
+          "name": "penulis_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "penulis_nama_tampil": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "penulis_nama_tampil",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "default": "'''draf'''",
+          "autoincrement": false,
+          "name": "status",
+          "type": "enum('draf','ditinjau','terbit','arsip')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diterbitkan_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diterbitkan_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jumlah_dilihat": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "jumlah_dilihat",
+          "type": "int(10) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_disorot": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "is_disorot",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "meta_judul": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "meta_judul",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "meta_deskripsi": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "meta_deskripsi",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diperbarui_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diperbarui_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dihapus_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "dihapus_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_berita_daftar": {
+          "name": "idx_berita_daftar",
+          "columns": [
+            "status",
+            "tipe",
+            "diterbitkan_pada",
+            "dihapus_pada"
+          ],
+          "isUnique": false
+        },
+        "idx_berita_disorot": {
+          "name": "idx_berita_disorot",
+          "columns": [
+            "is_disorot",
+            "diterbitkan_pada"
+          ],
+          "isUnique": false
+        },
+        "ft_berita_pencarian": {
+          "name": "ft_berita_pencarian",
+          "columns": [
+            "judul",
+            "ringkasan",
+            "isi"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_berita_kategori": {
+          "name": "fk_berita_kategori",
+          "tableFrom": "berita",
+          "tableTo": "kategori_berita",
+          "columnsFrom": [
+            "kategori_berita_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "fk_berita_penulis": {
+          "name": "fk_berita_penulis",
+          "tableFrom": "berita",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "penulis_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {
+        "uq_berita_slug": {
+          "name": "uq_berita_slug",
+          "columns": [
+            "slug"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "berita_dokumen": {
+      "name": "berita_dokumen",
+      "columns": {
+        "berita_id": {
+          "autoincrement": false,
+          "name": "berita_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dokumen_id": {
+          "autoincrement": false,
+          "name": "dokumen_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "keterangan": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "keterangan",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_berita_dokumen_dokumen": {
+          "name": "idx_berita_dokumen_dokumen",
+          "columns": [
+            "dokumen_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_berita_dokumen_berita": {
+          "name": "fk_berita_dokumen_berita",
+          "tableFrom": "berita_dokumen",
+          "tableTo": "berita",
+          "columnsFrom": [
+            "berita_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "fk_berita_dokumen_dokumen": {
+          "name": "fk_berita_dokumen_dokumen",
+          "tableFrom": "berita_dokumen",
+          "tableTo": "dokumen",
+          "columnsFrom": [
+            "dokumen_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "berita_tag": {
+      "name": "berita_tag",
+      "columns": {
+        "berita_id": {
+          "autoincrement": false,
+          "name": "berita_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tag_id": {
+          "autoincrement": false,
+          "name": "tag_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_berita_tag_tag": {
+          "name": "idx_berita_tag_tag",
+          "columns": [
+            "tag_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_berita_tag_berita": {
+          "name": "fk_berita_tag_berita",
+          "tableFrom": "berita_tag",
+          "tableTo": "berita",
+          "columnsFrom": [
+            "berita_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "fk_berita_tag_tag": {
+          "name": "fk_berita_tag_tag",
+          "tableFrom": "berita_tag",
+          "tableTo": "tag",
+          "columnsFrom": [
+            "tag_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "bidang_hukum": {
+      "name": "bidang_hukum",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kode": {
+          "autoincrement": false,
+          "name": "kode",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama": {
+          "autoincrement": false,
+          "name": "nama",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deskripsi": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "deskripsi",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_aktif": {
+          "default": 1,
+          "autoincrement": false,
+          "name": "is_aktif",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "urutan": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "urutan",
+          "type": "smallint(5) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {
+        "uq_bidang_hukum_kode": {
+          "name": "uq_bidang_hukum_kode",
+          "columns": [
+            "kode"
+          ]
+        },
+        "uq_bidang_hukum_nama": {
+          "name": "uq_bidang_hukum_nama",
+          "columns": [
+            "nama"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "dokumen": {
+      "name": "dokumen",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kode_dokumen": {
+          "autoincrement": false,
+          "name": "kode_dokumen",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "autoincrement": false,
+          "name": "slug",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jenis_peraturan_id": {
+          "autoincrement": false,
+          "name": "jenis_peraturan_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nomor": {
+          "autoincrement": false,
+          "name": "nomor",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nomor_normal": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "nomor_normal",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false,
+          "generated": {
+            "as": "ucase(trim(regexp_replace(`nomor`,'[[:space:]]+',' ')))",
+            "type": "stored"
+          }
+        },
+        "nomor_lengkap": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "nomor_lengkap",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tahun": {
+          "autoincrement": false,
+          "name": "tahun",
+          "type": "smallint(5) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "judul": {
+          "autoincrement": false,
+          "name": "judul",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "judul_singkat": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "judul_singkat",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "teu": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "teu",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "teu_manual": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "teu_manual",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tempat_penetapan": {
+          "default": "'''Parepare'''",
+          "autoincrement": false,
+          "name": "tempat_penetapan",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tanggal_penetapan": {
+          "autoincrement": false,
+          "name": "tanggal_penetapan",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tanggal_pengundangan": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "tanggal_pengundangan",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tanggal_berlaku": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "tanggal_berlaku",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tanggal_berakhir": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "tanggal_berakhir",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "penerbit": {
+          "default": "'''Institut Teknologi Bacharuddin Jusuf Habibie'''",
+          "autoincrement": false,
+          "name": "penerbit",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "penandatangan": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "penandatangan",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jabatan_penandatangan": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "jabatan_penandatangan",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sumber": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "sumber",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "unit_kerja_id": {
+          "autoincrement": false,
+          "name": "unit_kerja_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bidang_hukum_id": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "bidang_hukum_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status_dokumen_id": {
+          "autoincrement": false,
+          "name": "status_dokumen_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lingkup": {
+          "default": "'''internal'''",
+          "autoincrement": false,
+          "name": "lingkup",
+          "type": "enum('internal','eksternal')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tingkat_akses": {
+          "default": "'''publik'''",
+          "autoincrement": false,
+          "name": "tingkat_akses",
+          "type": "enum('publik','internal','terbatas','rahasia')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status_publikasi": {
+          "default": "'''draf'''",
+          "autoincrement": false,
+          "name": "status_publikasi",
+          "type": "enum('draf','diajukan','revisi','disetujui','terbit','ditarik')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bahasa": {
+          "default": "'''id'''",
+          "autoincrement": false,
+          "name": "bahasa",
+          "type": "char(2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deskripsi_fisik": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "deskripsi_fisik",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nomor_panggil": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "nomor_panggil",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lokasi_arsip": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "lokasi_arsip",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "abstrak": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "abstrak",
+          "type": "mediumtext",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "catatan": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "catatan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isi_teks": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "isi_teks",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jumlah_dilihat": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "jumlah_dilihat",
+          "type": "int(10) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jumlah_diunduh": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "jumlah_diunduh",
+          "type": "int(10) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_disorot": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "is_disorot",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diterbitkan_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diterbitkan_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dijadwalkan_terbit_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "dijadwalkan_terbit_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "catatan_revisi": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "catatan_revisi",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sinkron_jdihn": {
+          "default": "'''belum'''",
+          "autoincrement": false,
+          "name": "sinkron_jdihn",
+          "type": "enum('belum','tertunda','terkirim','gagal')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jdihn_id": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "jdihn_id",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "disinkron_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "disinkron_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "impor_batch_id": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "impor_batch_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "versi": {
+          "default": 1,
+          "autoincrement": false,
+          "name": "versi",
+          "type": "int(10) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dibuat_oleh": {
+          "autoincrement": false,
+          "name": "dibuat_oleh",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diperiksa_oleh": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diperiksa_oleh",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "diterbitkan_oleh": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diterbitkan_oleh",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "diperbarui_oleh": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diperbarui_oleh",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diperbarui_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diperbarui_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dihapus_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "dihapus_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_dokumen_daftar_publik": {
+          "name": "idx_dokumen_daftar_publik",
+          "columns": [
+            "status_publikasi",
+            "tingkat_akses",
+            "dihapus_pada",
+            "tanggal_penetapan"
+          ],
+          "isUnique": false
+        },
+        "idx_dokumen_jenis_tahun": {
+          "name": "idx_dokumen_jenis_tahun",
+          "columns": [
+            "jenis_peraturan_id",
+            "tahun",
+            "status_publikasi"
+          ],
+          "isUnique": false
+        },
+        "idx_dokumen_unit_status": {
+          "name": "idx_dokumen_unit_status",
+          "columns": [
+            "unit_kerja_id",
+            "status_publikasi",
+            "dihapus_pada"
+          ],
+          "isUnique": false
+        },
+        "idx_dokumen_status_keberlakuan": {
+          "name": "idx_dokumen_status_keberlakuan",
+          "columns": [
+            "status_dokumen_id",
+            "status_publikasi"
+          ],
+          "isUnique": false
+        },
+        "idx_dokumen_bidang": {
+          "name": "idx_dokumen_bidang",
+          "columns": [
+            "bidang_hukum_id"
+          ],
+          "isUnique": false
+        },
+        "idx_dokumen_jadwal": {
+          "name": "idx_dokumen_jadwal",
+          "columns": [
+            "dijadwalkan_terbit_pada"
+          ],
+          "isUnique": false
+        },
+        "idx_dokumen_sinkron": {
+          "name": "idx_dokumen_sinkron",
+          "columns": [
+            "sinkron_jdihn",
+            "tingkat_akses"
+          ],
+          "isUnique": false
+        },
+        "idx_dokumen_populer": {
+          "name": "idx_dokumen_populer",
+          "columns": [
+            "jumlah_diunduh"
+          ],
+          "isUnique": false
+        },
+        "idx_dokumen_disorot": {
+          "name": "idx_dokumen_disorot",
+          "columns": [
+            "is_disorot",
+            "diterbitkan_pada"
+          ],
+          "isUnique": false
+        },
+        "idx_dokumen_diterbitkan": {
+          "name": "idx_dokumen_diterbitkan",
+          "columns": [
+            "diterbitkan_pada"
+          ],
+          "isUnique": false
+        },
+        "idx_dokumen_dibuat_oleh": {
+          "name": "idx_dokumen_dibuat_oleh",
+          "columns": [
+            "dibuat_oleh"
+          ],
+          "isUnique": false
+        },
+        "ft_dokumen_pencarian": {
+          "name": "ft_dokumen_pencarian",
+          "columns": [
+            "judul",
+            "abstrak",
+            "isi_teks"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_dokumen_bidang": {
+          "name": "fk_dokumen_bidang",
+          "tableFrom": "dokumen",
+          "tableTo": "bidang_hukum",
+          "columnsFrom": [
+            "bidang_hukum_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "fk_dokumen_dibuat_oleh": {
+          "name": "fk_dokumen_dibuat_oleh",
+          "tableFrom": "dokumen",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "dibuat_oleh"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "fk_dokumen_diperbarui_oleh": {
+          "name": "fk_dokumen_diperbarui_oleh",
+          "tableFrom": "dokumen",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "diperbarui_oleh"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "fk_dokumen_diperiksa_oleh": {
+          "name": "fk_dokumen_diperiksa_oleh",
+          "tableFrom": "dokumen",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "diperiksa_oleh"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "fk_dokumen_diterbitkan_oleh": {
+          "name": "fk_dokumen_diterbitkan_oleh",
+          "tableFrom": "dokumen",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "diterbitkan_oleh"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "fk_dokumen_impor": {
+          "name": "fk_dokumen_impor",
+          "tableFrom": "dokumen",
+          "tableTo": "impor_batch",
+          "columnsFrom": [
+            "impor_batch_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "fk_dokumen_jenis": {
+          "name": "fk_dokumen_jenis",
+          "tableFrom": "dokumen",
+          "tableTo": "jenis_peraturan",
+          "columnsFrom": [
+            "jenis_peraturan_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "fk_dokumen_status": {
+          "name": "fk_dokumen_status",
+          "tableFrom": "dokumen",
+          "tableTo": "status_dokumen",
+          "columnsFrom": [
+            "status_dokumen_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "fk_dokumen_unit": {
+          "name": "fk_dokumen_unit",
+          "tableFrom": "dokumen",
+          "tableTo": "unit_kerja",
+          "columnsFrom": [
+            "unit_kerja_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {
+        "uq_dokumen_kode": {
+          "name": "uq_dokumen_kode",
+          "columns": [
+            "kode_dokumen"
+          ]
+        },
+        "uq_dokumen_slug": {
+          "name": "uq_dokumen_slug",
+          "columns": [
+            "slug"
+          ]
+        },
+        "uq_dokumen_identitas": {
+          "name": "uq_dokumen_identitas",
+          "columns": [
+            "jenis_peraturan_id",
+            "nomor_normal",
+            "tahun",
+            "unit_kerja_id"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "dokumen_akses": {
+      "name": "dokumen_akses",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dokumen_id": {
+          "autoincrement": false,
+          "name": "dokumen_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subjek_tipe": {
+          "autoincrement": false,
+          "name": "subjek_tipe",
+          "type": "enum('peran','unit_kerja','pengguna')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subjek_id": {
+          "autoincrement": false,
+          "name": "subjek_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "izin": {
+          "default": "'''unduh'''",
+          "autoincrement": false,
+          "name": "izin",
+          "type": "enum('lihat','unduh')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dibuat_oleh": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "dibuat_oleh",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_dokumen_akses_subjek": {
+          "name": "idx_dokumen_akses_subjek",
+          "columns": [
+            "subjek_tipe",
+            "subjek_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_dokumen_akses_dibuat_oleh": {
+          "name": "fk_dokumen_akses_dibuat_oleh",
+          "tableFrom": "dokumen_akses",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "dibuat_oleh"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "fk_dokumen_akses_dokumen": {
+          "name": "fk_dokumen_akses_dokumen",
+          "tableFrom": "dokumen_akses",
+          "tableTo": "dokumen",
+          "columnsFrom": [
+            "dokumen_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {
+        "uq_dokumen_akses": {
+          "name": "uq_dokumen_akses",
+          "columns": [
+            "dokumen_id",
+            "subjek_tipe",
+            "subjek_id",
+            "izin"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "dokumen_alur": {
+      "name": "dokumen_alur",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dokumen_id": {
+          "autoincrement": false,
+          "name": "dokumen_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "konteks": {
+          "default": "'''publikasi'''",
+          "autoincrement": false,
+          "name": "konteks",
+          "type": "enum('publikasi','keberlakuan')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status_dari": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "status_dari",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status_ke": {
+          "autoincrement": false,
+          "name": "status_ke",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "aksi": {
+          "autoincrement": false,
+          "name": "aksi",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "catatan": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "catatan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dokumen_dasar_id": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "dokumen_dasar_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "oleh_id": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "oleh_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "oleh_sistem": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "oleh_sistem",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_dokumen_alur_dokumen": {
+          "name": "idx_dokumen_alur_dokumen",
+          "columns": [
+            "dokumen_id",
+            "konteks",
+            "dibuat_pada"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_dokumen_alur_dasar": {
+          "name": "fk_dokumen_alur_dasar",
+          "tableFrom": "dokumen_alur",
+          "tableTo": "dokumen",
+          "columnsFrom": [
+            "dokumen_dasar_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "fk_dokumen_alur_dokumen": {
+          "name": "fk_dokumen_alur_dokumen",
+          "tableFrom": "dokumen_alur",
+          "tableTo": "dokumen",
+          "columnsFrom": [
+            "dokumen_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "fk_dokumen_alur_oleh": {
+          "name": "fk_dokumen_alur_oleh",
+          "tableFrom": "dokumen_alur",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "oleh_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "dokumen_berkas": {
+      "name": "dokumen_berkas",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dokumen_id": {
+          "autoincrement": false,
+          "name": "dokumen_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jenis_berkas": {
+          "default": "'''dokumen_utama'''",
+          "autoincrement": false,
+          "name": "jenis_berkas",
+          "type": "enum('dokumen_utama','lampiran','abstrak','naskah_akademik','terjemahan','dokumen_pencabut')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama_asli": {
+          "autoincrement": false,
+          "name": "nama_asli",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama_simpan": {
+          "autoincrement": false,
+          "name": "nama_simpan",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "path": {
+          "autoincrement": false,
+          "name": "path",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "disk": {
+          "default": "'''lokal'''",
+          "autoincrement": false,
+          "name": "disk",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mime_type": {
+          "autoincrement": false,
+          "name": "mime_type",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ukuran_bytes": {
+          "autoincrement": false,
+          "name": "ukuran_bytes",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jumlah_halaman": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "jumlah_halaman",
+          "type": "smallint(5) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hash_sha256": {
+          "autoincrement": false,
+          "name": "hash_sha256",
+          "type": "char(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "urutan": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "urutan",
+          "type": "smallint(5) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_publik": {
+          "default": 1,
+          "autoincrement": false,
+          "name": "is_publik",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_pratinjau": {
+          "default": 1,
+          "autoincrement": false,
+          "name": "is_pratinjau",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_versi_aktif": {
+          "default": 1,
+          "autoincrement": false,
+          "name": "is_versi_aktif",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jumlah_diunduh": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "jumlah_diunduh",
+          "type": "int(10) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status_ekstraksi": {
+          "default": "'''menunggu'''",
+          "autoincrement": false,
+          "name": "status_ekstraksi",
+          "type": "enum('menunggu','berhasil','gagal','tidak_perlu')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "keterangan": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "keterangan",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_oleh": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "dibuat_oleh",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diperbarui_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diperbarui_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_dokumen_berkas_dokumen": {
+          "name": "idx_dokumen_berkas_dokumen",
+          "columns": [
+            "dokumen_id",
+            "jenis_berkas",
+            "is_versi_aktif",
+            "urutan"
+          ],
+          "isUnique": false
+        },
+        "idx_dokumen_berkas_hash": {
+          "name": "idx_dokumen_berkas_hash",
+          "columns": [
+            "hash_sha256"
+          ],
+          "isUnique": false
+        },
+        "idx_dokumen_berkas_ekstraksi": {
+          "name": "idx_dokumen_berkas_ekstraksi",
+          "columns": [
+            "status_ekstraksi"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_dokumen_berkas_dibuat_oleh": {
+          "name": "fk_dokumen_berkas_dibuat_oleh",
+          "tableFrom": "dokumen_berkas",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "dibuat_oleh"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "fk_dokumen_berkas_dokumen": {
+          "name": "fk_dokumen_berkas_dokumen",
+          "tableFrom": "dokumen_berkas",
+          "tableTo": "dokumen",
+          "columnsFrom": [
+            "dokumen_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {
+        "uq_dokumen_berkas_path": {
+          "name": "uq_dokumen_berkas_path",
+          "columns": [
+            "path"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "dokumen_kategori": {
+      "name": "dokumen_kategori",
+      "columns": {
+        "dokumen_id": {
+          "autoincrement": false,
+          "name": "dokumen_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kategori_id": {
+          "autoincrement": false,
+          "name": "kategori_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_utama": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "is_utama",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_dokumen_kategori_kategori": {
+          "name": "idx_dokumen_kategori_kategori",
+          "columns": [
+            "kategori_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_dokumen_kategori_dokumen": {
+          "name": "fk_dokumen_kategori_dokumen",
+          "tableFrom": "dokumen_kategori",
+          "tableTo": "dokumen",
+          "columnsFrom": [
+            "dokumen_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "fk_dokumen_kategori_kategori": {
+          "name": "fk_dokumen_kategori_kategori",
+          "tableFrom": "dokumen_kategori",
+          "tableTo": "kategori",
+          "columnsFrom": [
+            "kategori_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "dokumen_relasi": {
+      "name": "dokumen_relasi",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dokumen_id": {
+          "autoincrement": false,
+          "name": "dokumen_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dokumen_terkait_id": {
+          "autoincrement": false,
+          "name": "dokumen_terkait_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jenis_relasi_id": {
+          "autoincrement": false,
+          "name": "jenis_relasi_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "keterangan": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "keterangan",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_oleh": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "dibuat_oleh",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_dokumen_relasi_terkait": {
+          "name": "idx_dokumen_relasi_terkait",
+          "columns": [
+            "dokumen_terkait_id",
+            "jenis_relasi_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_dokumen_relasi_dibuat_oleh": {
+          "name": "fk_dokumen_relasi_dibuat_oleh",
+          "tableFrom": "dokumen_relasi",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "dibuat_oleh"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "fk_dokumen_relasi_dokumen": {
+          "name": "fk_dokumen_relasi_dokumen",
+          "tableFrom": "dokumen_relasi",
+          "tableTo": "dokumen",
+          "columnsFrom": [
+            "dokumen_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "fk_dokumen_relasi_jenis": {
+          "name": "fk_dokumen_relasi_jenis",
+          "tableFrom": "dokumen_relasi",
+          "tableTo": "jenis_relasi",
+          "columnsFrom": [
+            "jenis_relasi_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "fk_dokumen_relasi_terkait": {
+          "name": "fk_dokumen_relasi_terkait",
+          "tableFrom": "dokumen_relasi",
+          "tableTo": "dokumen",
+          "columnsFrom": [
+            "dokumen_terkait_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {
+        "uq_dokumen_relasi": {
+          "name": "uq_dokumen_relasi",
+          "columns": [
+            "dokumen_id",
+            "dokumen_terkait_id",
+            "jenis_relasi_id"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "dokumen_riwayat": {
+      "name": "dokumen_riwayat",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dokumen_id": {
+          "autoincrement": false,
+          "name": "dokumen_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "versi": {
+          "autoincrement": false,
+          "name": "versi",
+          "type": "int(10) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cuplikan_metadata": {
+          "autoincrement": false,
+          "name": "cuplikan_metadata",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cuplikan_berkas": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "cuplikan_berkas",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ringkasan_perubahan": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "ringkasan_perubahan",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "oleh_id": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "oleh_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {},
+      "foreignKeys": {
+        "fk_dokumen_riwayat_dokumen": {
+          "name": "fk_dokumen_riwayat_dokumen",
+          "tableFrom": "dokumen_riwayat",
+          "tableTo": "dokumen",
+          "columnsFrom": [
+            "dokumen_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "fk_dokumen_riwayat_oleh": {
+          "name": "fk_dokumen_riwayat_oleh",
+          "tableFrom": "dokumen_riwayat",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "oleh_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {
+        "uq_dokumen_riwayat_versi": {
+          "name": "uq_dokumen_riwayat_versi",
+          "columns": [
+            "dokumen_id",
+            "versi"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "dokumen_statistik_harian": {
+      "name": "dokumen_statistik_harian",
+      "columns": {
+        "dokumen_id": {
+          "autoincrement": false,
+          "name": "dokumen_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tanggal": {
+          "autoincrement": false,
+          "name": "tanggal",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jumlah_dilihat": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "jumlah_dilihat",
+          "type": "int(10) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jumlah_diunduh": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "jumlah_diunduh",
+          "type": "int(10) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jumlah_dilihat_anonim": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "jumlah_dilihat_anonim",
+          "type": "int(10) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jumlah_diunduh_anonim": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "jumlah_diunduh_anonim",
+          "type": "int(10) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_dokumen_statistik_tanggal": {
+          "name": "idx_dokumen_statistik_tanggal",
+          "columns": [
+            "tanggal"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_dokumen_statistik_dokumen": {
+          "name": "fk_dokumen_statistik_dokumen",
+          "tableFrom": "dokumen_statistik_harian",
+          "tableTo": "dokumen",
+          "columnsFrom": [
+            "dokumen_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "dokumen_tag": {
+      "name": "dokumen_tag",
+      "columns": {
+        "dokumen_id": {
+          "autoincrement": false,
+          "name": "dokumen_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tag_id": {
+          "autoincrement": false,
+          "name": "tag_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_dokumen_tag_tag": {
+          "name": "idx_dokumen_tag_tag",
+          "columns": [
+            "tag_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_dokumen_tag_dokumen": {
+          "name": "fk_dokumen_tag_dokumen",
+          "tableFrom": "dokumen_tag",
+          "tableTo": "dokumen",
+          "columnsFrom": [
+            "dokumen_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "fk_dokumen_tag_tag": {
+          "name": "fk_dokumen_tag_tag",
+          "tableFrom": "dokumen_tag",
+          "tableTo": "tag",
+          "columnsFrom": [
+            "tag_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "faq": {
+      "name": "faq",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pertanyaan": {
+          "autoincrement": false,
+          "name": "pertanyaan",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jawaban": {
+          "autoincrement": false,
+          "name": "jawaban",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kelompok": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "kelompok",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_aktif": {
+          "default": 1,
+          "autoincrement": false,
+          "name": "is_aktif",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "urutan": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "urutan",
+          "type": "smallint(5) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diperbarui_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diperbarui_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_faq_kelompok": {
+          "name": "idx_faq_kelompok",
+          "columns": [
+            "kelompok",
+            "is_aktif",
+            "urutan"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "halaman": {
+      "name": "halaman",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "judul": {
+          "autoincrement": false,
+          "name": "judul",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "autoincrement": false,
+          "name": "slug",
+          "type": "varchar(220)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "isi": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "isi",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "induk_id": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "induk_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "templat": {
+          "default": "'''baku'''",
+          "autoincrement": false,
+          "name": "templat",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "default": "'''draf'''",
+          "autoincrement": false,
+          "name": "status",
+          "type": "enum('draf','terbit')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_sistem": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "is_sistem",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "urutan": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "urutan",
+          "type": "smallint(5) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "meta_judul": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "meta_judul",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "meta_deskripsi": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "meta_deskripsi",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "disusun_oleh": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "disusun_oleh",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diperbarui_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diperbarui_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_halaman_status": {
+          "name": "idx_halaman_status",
+          "columns": [
+            "status",
+            "urutan"
+          ],
+          "isUnique": false
+        },
+        "idx_halaman_induk": {
+          "name": "idx_halaman_induk",
+          "columns": [
+            "induk_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_halaman_induk": {
+          "name": "fk_halaman_induk",
+          "tableFrom": "halaman",
+          "tableTo": "halaman",
+          "columnsFrom": [
+            "induk_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "fk_halaman_penyusun": {
+          "name": "fk_halaman_penyusun",
+          "tableFrom": "halaman",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "disusun_oleh"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {
+        "uq_halaman_slug": {
+          "name": "uq_halaman_slug",
+          "columns": [
+            "slug"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "impor_batch": {
+      "name": "impor_batch",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama_berkas": {
+          "autoincrement": false,
+          "name": "nama_berkas",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "path": {
+          "autoincrement": false,
+          "name": "path",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mode": {
+          "default": "'''buat'''",
+          "autoincrement": false,
+          "name": "mode",
+          "type": "enum('buat','perbarui')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "total_baris": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "total_baris",
+          "type": "int(10) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jumlah_berhasil": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "jumlah_berhasil",
+          "type": "int(10) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jumlah_gagal": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "jumlah_gagal",
+          "type": "int(10) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "baris_terakhir": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "baris_terakhir",
+          "type": "int(10) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "default": "'''pravalidasi'''",
+          "autoincrement": false,
+          "name": "status",
+          "type": "enum('pravalidasi','menunggu','berjalan','selesai','gagal','dibatalkan')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "laporan": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "laporan",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "oleh_id": {
+          "autoincrement": false,
+          "name": "oleh_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diperbarui_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diperbarui_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "selesai_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "selesai_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_impor_batch_status": {
+          "name": "idx_impor_batch_status",
+          "columns": [
+            "status",
+            "dibuat_pada"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_impor_batch_oleh": {
+          "name": "fk_impor_batch_oleh",
+          "tableFrom": "impor_batch",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "oleh_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "izin": {
+      "name": "izin",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kode": {
+          "autoincrement": false,
+          "name": "kode",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama": {
+          "autoincrement": false,
+          "name": "nama",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "modul": {
+          "autoincrement": false,
+          "name": "modul",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deskripsi": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "deskripsi",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_berdampak_tinggi": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "is_berdampak_tinggi",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_sistem": {
+          "default": 1,
+          "autoincrement": false,
+          "name": "is_sistem",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "urutan": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "urutan",
+          "type": "smallint(5) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_izin_modul": {
+          "name": "idx_izin_modul",
+          "columns": [
+            "modul",
+            "urutan"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "uniqueConstraints": {
+        "uq_izin_kode": {
+          "name": "uq_izin_kode",
+          "columns": [
+            "kode"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "jenis_peraturan": {
+      "name": "jenis_peraturan",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kode": {
+          "autoincrement": false,
+          "name": "kode",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama": {
+          "autoincrement": false,
+          "name": "nama",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bentuk_singkat": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "bentuk_singkat",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lingkup": {
+          "default": "'''internal'''",
+          "autoincrement": false,
+          "name": "lingkup",
+          "type": "enum('internal','eksternal')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tingkat_hierarki": {
+          "default": 50,
+          "autoincrement": false,
+          "name": "tingkat_hierarki",
+          "type": "tinyint(3) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lingkup_penomoran": {
+          "default": "'''institut'''",
+          "autoincrement": false,
+          "name": "lingkup_penomoran",
+          "type": "enum('institut','unit')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pola_nomor": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "pola_nomor",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deskripsi": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "deskripsi",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_aktif": {
+          "default": 1,
+          "autoincrement": false,
+          "name": "is_aktif",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "urutan": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "urutan",
+          "type": "smallint(5) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diperbarui_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diperbarui_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_jenis_peraturan_lingkup": {
+          "name": "idx_jenis_peraturan_lingkup",
+          "columns": [
+            "lingkup",
+            "is_aktif",
+            "urutan"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "uniqueConstraints": {
+        "uq_jenis_peraturan_kode": {
+          "name": "uq_jenis_peraturan_kode",
+          "columns": [
+            "kode"
+          ]
+        },
+        "uq_jenis_peraturan_nama": {
+          "name": "uq_jenis_peraturan_nama",
+          "columns": [
+            "nama"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "jenis_relasi": {
+      "name": "jenis_relasi",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kode": {
+          "autoincrement": false,
+          "name": "kode",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama": {
+          "autoincrement": false,
+          "name": "nama",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama_kebalikan": {
+          "autoincrement": false,
+          "name": "nama_kebalikan",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kode_kebalikan": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "kode_kebalikan",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_simetris": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "is_simetris",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_mengubah_status": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "is_mengubah_status",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status_akibat_id": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "status_akibat_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_sistem": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "is_sistem",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "urutan": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "urutan",
+          "type": "smallint(5) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {},
+      "foreignKeys": {
+        "fk_jenis_relasi_status_akibat": {
+          "name": "fk_jenis_relasi_status_akibat",
+          "tableFrom": "jenis_relasi",
+          "tableTo": "status_dokumen",
+          "columnsFrom": [
+            "status_akibat_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {
+        "uq_jenis_relasi_kode": {
+          "name": "uq_jenis_relasi_kode",
+          "columns": [
+            "kode"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "kategori": {
+      "name": "kategori",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kode": {
+          "autoincrement": false,
+          "name": "kode",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama": {
+          "autoincrement": false,
+          "name": "nama",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "autoincrement": false,
+          "name": "slug",
+          "type": "varchar(140)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "induk_id": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "induk_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jalur": {
+          "default": "''''''",
+          "autoincrement": false,
+          "name": "jalur",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kedalaman": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "kedalaman",
+          "type": "tinyint(3) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deskripsi": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "deskripsi",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ikon": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "ikon",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jumlah_dokumen": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "jumlah_dokumen",
+          "type": "int(10) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_aktif": {
+          "default": 1,
+          "autoincrement": false,
+          "name": "is_aktif",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "urutan": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "urutan",
+          "type": "smallint(5) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diperbarui_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diperbarui_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_kategori_jalur": {
+          "name": "idx_kategori_jalur",
+          "columns": [
+            "jalur"
+          ],
+          "isUnique": false
+        },
+        "idx_kategori_induk": {
+          "name": "idx_kategori_induk",
+          "columns": [
+            "induk_id"
+          ],
+          "isUnique": false
+        },
+        "idx_kategori_aktif": {
+          "name": "idx_kategori_aktif",
+          "columns": [
+            "is_aktif",
+            "urutan"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_kategori_induk": {
+          "name": "fk_kategori_induk",
+          "tableFrom": "kategori",
+          "tableTo": "kategori",
+          "columnsFrom": [
+            "induk_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {
+        "uq_kategori_kode": {
+          "name": "uq_kategori_kode",
+          "columns": [
+            "kode"
+          ]
+        },
+        "uq_kategori_slug": {
+          "name": "uq_kategori_slug",
+          "columns": [
+            "slug"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "kategori_berita": {
+      "name": "kategori_berita",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama": {
+          "autoincrement": false,
+          "name": "nama",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "autoincrement": false,
+          "name": "slug",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deskripsi": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "deskripsi",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_aktif": {
+          "default": 1,
+          "autoincrement": false,
+          "name": "is_aktif",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "urutan": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "urutan",
+          "type": "smallint(5) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diperbarui_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diperbarui_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {
+        "uq_kategori_berita_nama": {
+          "name": "uq_kategori_berita_nama",
+          "columns": [
+            "nama"
+          ]
+        },
+        "uq_kategori_berita_slug": {
+          "name": "uq_kategori_berita_slug",
+          "columns": [
+            "slug"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "koleksi_pengguna": {
+      "name": "koleksi_pengguna",
+      "columns": {
+        "pengguna_id": {
+          "autoincrement": false,
+          "name": "pengguna_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dokumen_id": {
+          "autoincrement": false,
+          "name": "dokumen_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "catatan": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "catatan",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_koleksi_dokumen": {
+          "name": "idx_koleksi_dokumen",
+          "columns": [
+            "dokumen_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_koleksi_pengguna_dokumen": {
+          "name": "fk_koleksi_pengguna_dokumen",
+          "tableFrom": "koleksi_pengguna",
+          "tableTo": "dokumen",
+          "columnsFrom": [
+            "dokumen_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "fk_koleksi_pengguna_pengguna": {
+          "name": "fk_koleksi_pengguna_pengguna",
+          "tableFrom": "koleksi_pengguna",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "pengguna_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "layanan_hukum": {
+      "name": "layanan_hukum",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kode": {
+          "autoincrement": false,
+          "name": "kode",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama": {
+          "autoincrement": false,
+          "name": "nama",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deskripsi": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "deskripsi",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sla_hari": {
+          "default": 14,
+          "autoincrement": false,
+          "name": "sla_hari",
+          "type": "smallint(5) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "definisi_formulir": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "definisi_formulir",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "unit_penanggung_jawab_id": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "unit_penanggung_jawab_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_aktif": {
+          "default": 1,
+          "autoincrement": false,
+          "name": "is_aktif",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "urutan": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "urutan",
+          "type": "smallint(5) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diperbarui_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diperbarui_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {},
+      "foreignKeys": {
+        "fk_layanan_hukum_unit": {
+          "name": "fk_layanan_hukum_unit",
+          "tableFrom": "layanan_hukum",
+          "tableTo": "unit_kerja",
+          "columnsFrom": [
+            "unit_penanggung_jawab_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {
+        "uq_layanan_hukum_kode": {
+          "name": "uq_layanan_hukum_kode",
+          "columns": [
+            "kode"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "log_aktivitas": {
+      "name": "log_aktivitas",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pengguna_id": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "pengguna_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pelaku_nama": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "pelaku_nama",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "peran_saat_itu": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "peran_saat_itu",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "aksi": {
+          "autoincrement": false,
+          "name": "aksi",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entitas": {
+          "autoincrement": false,
+          "name": "entitas",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entitas_id": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "entitas_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deskripsi": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "deskripsi",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "data_lama": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "data_lama",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "data_baru": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "data_baru",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ip_hash": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "ip_hash",
+          "type": "char(64)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "agen_ringkas": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "agen_ringkas",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_log_aktivitas_entitas": {
+          "name": "idx_log_aktivitas_entitas",
+          "columns": [
+            "entitas",
+            "entitas_id",
+            "dibuat_pada"
+          ],
+          "isUnique": false
+        },
+        "idx_log_aktivitas_pelaku": {
+          "name": "idx_log_aktivitas_pelaku",
+          "columns": [
+            "pengguna_id",
+            "dibuat_pada"
+          ],
+          "isUnique": false
+        },
+        "idx_log_aktivitas_aksi": {
+          "name": "idx_log_aktivitas_aksi",
+          "columns": [
+            "aksi",
+            "dibuat_pada"
+          ],
+          "isUnique": false
+        },
+        "idx_log_aktivitas_waktu": {
+          "name": "idx_log_aktivitas_waktu",
+          "columns": [
+            "dibuat_pada"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_log_aktivitas_pengguna": {
+          "name": "fk_log_aktivitas_pengguna",
+          "tableFrom": "log_aktivitas",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "pengguna_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "log_autentikasi": {
+      "name": "log_autentikasi",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pengguna_id": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "pengguna_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email_dicoba": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "email_dicoba",
+          "type": "varchar(190)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "aksi": {
+          "autoincrement": false,
+          "name": "aksi",
+          "type": "enum('login_berhasil','login_gagal','logout','terkunci','reset_diminta','reset_berhasil','2fa_gagal','2fa_berhasil')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "keterangan": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "keterangan",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ip_hash": {
+          "autoincrement": false,
+          "name": "ip_hash",
+          "type": "char(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agen_ringkas": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "agen_ringkas",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_log_autentikasi_email": {
+          "name": "idx_log_autentikasi_email",
+          "columns": [
+            "email_dicoba",
+            "dibuat_pada"
+          ],
+          "isUnique": false
+        },
+        "idx_log_autentikasi_ip": {
+          "name": "idx_log_autentikasi_ip",
+          "columns": [
+            "ip_hash",
+            "dibuat_pada"
+          ],
+          "isUnique": false
+        },
+        "idx_log_autentikasi_aksi": {
+          "name": "idx_log_autentikasi_aksi",
+          "columns": [
+            "aksi",
+            "dibuat_pada"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_log_autentikasi_pengguna": {
+          "name": "fk_log_autentikasi_pengguna",
+          "tableFrom": "log_autentikasi",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "pengguna_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "log_pencarian": {
+      "name": "log_pencarian",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kata_kunci": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "kata_kunci",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "filter": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "filter",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jumlah_hasil": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "jumlah_hasil",
+          "type": "int(10) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pengguna_id": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "pengguna_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ip_hash": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "ip_hash",
+          "type": "char(64)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_log_pencarian_kata": {
+          "name": "idx_log_pencarian_kata",
+          "columns": [
+            "kata_kunci",
+            "dibuat_pada"
+          ],
+          "isUnique": false
+        },
+        "idx_log_pencarian_waktu": {
+          "name": "idx_log_pencarian_waktu",
+          "columns": [
+            "dibuat_pada"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_log_pencarian_pengguna": {
+          "name": "fk_log_pencarian_pengguna",
+          "tableFrom": "log_pencarian",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "pengguna_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "log_sinkronisasi_jdihn": {
+      "name": "log_sinkronisasi_jdihn",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dokumen_id": {
+          "autoincrement": false,
+          "name": "dokumen_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "arah": {
+          "default": "'''kirim'''",
+          "autoincrement": false,
+          "name": "arah",
+          "type": "enum('kirim','perbarui','hapus')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "muatan": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "muatan",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kode_respons": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "kode_respons",
+          "type": "smallint(5) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pesan_respons": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "pesan_respons",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "autoincrement": false,
+          "name": "status",
+          "type": "enum('berhasil','gagal')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "percobaan_ke": {
+          "default": 1,
+          "autoincrement": false,
+          "name": "percobaan_ke",
+          "type": "tinyint(3) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "durasi_ms": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "durasi_ms",
+          "type": "int(10) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_log_sinkronisasi_dokumen": {
+          "name": "idx_log_sinkronisasi_dokumen",
+          "columns": [
+            "dokumen_id",
+            "dibuat_pada"
+          ],
+          "isUnique": false
+        },
+        "idx_log_sinkronisasi_status": {
+          "name": "idx_log_sinkronisasi_status",
+          "columns": [
+            "status",
+            "dibuat_pada"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_log_sinkronisasi_dokumen": {
+          "name": "fk_log_sinkronisasi_dokumen",
+          "tableFrom": "log_sinkronisasi_jdihn",
+          "tableTo": "dokumen",
+          "columnsFrom": [
+            "dokumen_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "media": {
+      "name": "media",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama_asli": {
+          "autoincrement": false,
+          "name": "nama_asli",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama_simpan": {
+          "autoincrement": false,
+          "name": "nama_simpan",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "path": {
+          "autoincrement": false,
+          "name": "path",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "disk": {
+          "default": "'''lokal'''",
+          "autoincrement": false,
+          "name": "disk",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mime_type": {
+          "autoincrement": false,
+          "name": "mime_type",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ukuran_bytes": {
+          "autoincrement": false,
+          "name": "ukuran_bytes",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lebar": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "lebar",
+          "type": "smallint(5) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tinggi": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "tinggi",
+          "type": "smallint(5) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "teks_alternatif": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "teks_alternatif",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "folder": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "folder",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hash_sha256": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "hash_sha256",
+          "type": "char(64)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "diunggah_oleh": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diunggah_oleh",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_media_folder": {
+          "name": "idx_media_folder",
+          "columns": [
+            "folder",
+            "dibuat_pada"
+          ],
+          "isUnique": false
+        },
+        "idx_media_hash": {
+          "name": "idx_media_hash",
+          "columns": [
+            "hash_sha256"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_media_pengunggah": {
+          "name": "fk_media_pengunggah",
+          "tableFrom": "media",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "diunggah_oleh"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {
+        "uq_media_path": {
+          "name": "uq_media_path",
+          "columns": [
+            "path"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "menu": {
+      "name": "menu",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kode": {
+          "autoincrement": false,
+          "name": "kode",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama": {
+          "autoincrement": false,
+          "name": "nama",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lokasi": {
+          "default": "'''header'''",
+          "autoincrement": false,
+          "name": "lokasi",
+          "type": "enum('header','footer','sidebar','kaki_kolom_1','kaki_kolom_2')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diperbarui_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diperbarui_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {
+        "uq_menu_kode": {
+          "name": "uq_menu_kode",
+          "columns": [
+            "kode"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "menu_item": {
+      "name": "menu_item",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "menu_id": {
+          "autoincrement": false,
+          "name": "menu_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "induk_id": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "induk_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "label": {
+          "autoincrement": false,
+          "name": "label",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipe_target": {
+          "default": "'''url'''",
+          "autoincrement": false,
+          "name": "tipe_target",
+          "type": "enum('beranda','halaman','jenis_peraturan','kategori','berita','url','pencarian')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_id": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "target_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "url": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "url",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ikon": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "ikon",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "target_jendela": {
+          "default": "'''sama'''",
+          "autoincrement": false,
+          "name": "target_jendela",
+          "type": "enum('sama','baru')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_aktif": {
+          "default": 1,
+          "autoincrement": false,
+          "name": "is_aktif",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "urutan": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "urutan",
+          "type": "smallint(5) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diperbarui_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diperbarui_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_menu_item_susunan": {
+          "name": "idx_menu_item_susunan",
+          "columns": [
+            "menu_id",
+            "induk_id",
+            "urutan"
+          ],
+          "isUnique": false
+        },
+        "idx_menu_item_aktif": {
+          "name": "idx_menu_item_aktif",
+          "columns": [
+            "is_aktif"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_menu_item_induk": {
+          "name": "fk_menu_item_induk",
+          "tableFrom": "menu_item",
+          "tableTo": "menu_item",
+          "columnsFrom": [
+            "induk_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "fk_menu_item_menu": {
+          "name": "fk_menu_item_menu",
+          "tableFrom": "menu_item",
+          "tableTo": "menu",
+          "columnsFrom": [
+            "menu_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "notifikasi": {
+      "name": "notifikasi",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pengguna_id": {
+          "autoincrement": false,
+          "name": "pengguna_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipe": {
+          "autoincrement": false,
+          "name": "tipe",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "judul": {
+          "autoincrement": false,
+          "name": "judul",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pesan": {
+          "autoincrement": false,
+          "name": "pesan",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tautan": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "tautan",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "entitas": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "entitas",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "entitas_id": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "entitas_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibaca_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "dibaca_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_notifikasi_penerima": {
+          "name": "idx_notifikasi_penerima",
+          "columns": [
+            "pengguna_id",
+            "dibaca_pada",
+            "dibuat_pada"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_notifikasi_pengguna": {
+          "name": "fk_notifikasi_pengguna",
+          "tableFrom": "notifikasi",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "pengguna_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "pengaturan": {
+      "name": "pengaturan",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kunci": {
+          "autoincrement": false,
+          "name": "kunci",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nilai": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "nilai",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tipe": {
+          "default": "'''teks'''",
+          "autoincrement": false,
+          "name": "tipe",
+          "type": "enum('teks','angka','boolean','json','berkas','teks_panjang')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "grup": {
+          "default": "'''umum'''",
+          "autoincrement": false,
+          "name": "grup",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "label": {
+          "autoincrement": false,
+          "name": "label",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deskripsi": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "deskripsi",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_publik": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "is_publik",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_terenkripsi": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "is_terenkripsi",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "urutan": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "urutan",
+          "type": "smallint(5) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diperbarui_oleh": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diperbarui_oleh",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "diperbarui_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diperbarui_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_pengaturan_grup": {
+          "name": "idx_pengaturan_grup",
+          "columns": [
+            "grup",
+            "urutan"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_pengaturan_pengubah": {
+          "name": "fk_pengaturan_pengubah",
+          "tableFrom": "pengaturan",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "diperbarui_oleh"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {
+        "uq_pengaturan_kunci": {
+          "name": "uq_pengaturan_kunci",
+          "columns": [
+            "kunci"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "pengguna": {
+      "name": "pengguna",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama_lengkap": {
+          "autoincrement": false,
+          "name": "nama_lengkap",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "autoincrement": false,
+          "name": "email",
+          "type": "varchar(190)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nip_nidn": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "nip_nidn",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kata_sandi": {
+          "autoincrement": false,
+          "name": "kata_sandi",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "no_telepon": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "no_telepon",
+          "type": "varchar(25)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "unit_kerja_id": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "unit_kerja_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jabatan": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "jabatan",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "foto": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "foto",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "default": "'''menunggu_verifikasi'''",
+          "autoincrement": false,
+          "name": "status",
+          "type": "enum('menunggu_verifikasi','aktif','nonaktif','ditangguhkan')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email_terverifikasi_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "email_terverifikasi_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_2fa_aktif": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "is_2fa_aktif",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rahasia_2fa": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "rahasia_2fa",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kode_pemulihan_2fa": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "kode_pemulihan_2fa",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jumlah_gagal_login": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "jumlah_gagal_login",
+          "type": "tinyint(3) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dikunci_hingga": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "dikunci_hingga",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "terakhir_login_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "terakhir_login_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "terakhir_login_ip": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "terakhir_login_ip",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sumber_akun": {
+          "default": "'''lokal'''",
+          "autoincrement": false,
+          "name": "sumber_akun",
+          "type": "enum('lokal','sso')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sso_subject": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "sso_subject",
+          "type": "varchar(190)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preferensi": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "preferensi",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "diverifikasi_oleh": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diverifikasi_oleh",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "diverifikasi_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diverifikasi_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "token_ingat": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "token_ingat",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_oleh": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "dibuat_oleh",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diperbarui_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diperbarui_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dihapus_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "dihapus_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_pengguna_status_unit": {
+          "name": "idx_pengguna_status_unit",
+          "columns": [
+            "status",
+            "unit_kerja_id"
+          ],
+          "isUnique": false
+        },
+        "idx_pengguna_nama": {
+          "name": "idx_pengguna_nama",
+          "columns": [
+            "nama_lengkap"
+          ],
+          "isUnique": false
+        },
+        "idx_pengguna_dihapus": {
+          "name": "idx_pengguna_dihapus",
+          "columns": [
+            "dihapus_pada"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_pengguna_dibuat_oleh": {
+          "name": "fk_pengguna_dibuat_oleh",
+          "tableFrom": "pengguna",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "dibuat_oleh"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "fk_pengguna_diverifikasi_oleh": {
+          "name": "fk_pengguna_diverifikasi_oleh",
+          "tableFrom": "pengguna",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "diverifikasi_oleh"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "fk_pengguna_unit": {
+          "name": "fk_pengguna_unit",
+          "tableFrom": "pengguna",
+          "tableTo": "unit_kerja",
+          "columnsFrom": [
+            "unit_kerja_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {
+        "uq_pengguna_email": {
+          "name": "uq_pengguna_email",
+          "columns": [
+            "email"
+          ]
+        },
+        "uq_pengguna_nip": {
+          "name": "uq_pengguna_nip",
+          "columns": [
+            "nip_nidn"
+          ]
+        },
+        "uq_pengguna_sso": {
+          "name": "uq_pengguna_sso",
+          "columns": [
+            "sso_subject"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "pengguna_izin": {
+      "name": "pengguna_izin",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pengguna_id": {
+          "autoincrement": false,
+          "name": "pengguna_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "izin_id": {
+          "autoincrement": false,
+          "name": "izin_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mode": {
+          "default": "'''berikan'''",
+          "autoincrement": false,
+          "name": "mode",
+          "type": "enum('berikan','cabut')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "berlaku_hingga": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "berlaku_hingga",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "alasan": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "alasan",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ditetapkan_oleh": {
+          "autoincrement": false,
+          "name": "ditetapkan_oleh",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_pengguna_izin_berlaku": {
+          "name": "idx_pengguna_izin_berlaku",
+          "columns": [
+            "berlaku_hingga"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_pengguna_izin_izin": {
+          "name": "fk_pengguna_izin_izin",
+          "tableFrom": "pengguna_izin",
+          "tableTo": "izin",
+          "columnsFrom": [
+            "izin_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "fk_pengguna_izin_penetap": {
+          "name": "fk_pengguna_izin_penetap",
+          "tableFrom": "pengguna_izin",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "ditetapkan_oleh"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "fk_pengguna_izin_pengguna": {
+          "name": "fk_pengguna_izin_pengguna",
+          "tableFrom": "pengguna_izin",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "pengguna_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {
+        "uq_pengguna_izin": {
+          "name": "uq_pengguna_izin",
+          "columns": [
+            "pengguna_id",
+            "izin_id"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "pengguna_peran": {
+      "name": "pengguna_peran",
+      "columns": {
+        "pengguna_id": {
+          "autoincrement": false,
+          "name": "pengguna_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "peran_id": {
+          "autoincrement": false,
+          "name": "peran_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ditetapkan_oleh": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "ditetapkan_oleh",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_pengguna_peran_peran": {
+          "name": "idx_pengguna_peran_peran",
+          "columns": [
+            "peran_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_pengguna_peran_penetap": {
+          "name": "fk_pengguna_peran_penetap",
+          "tableFrom": "pengguna_peran",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "ditetapkan_oleh"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "fk_pengguna_peran_pengguna": {
+          "name": "fk_pengguna_peran_pengguna",
+          "tableFrom": "pengguna_peran",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "pengguna_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "fk_pengguna_peran_peran": {
+          "name": "fk_pengguna_peran_peran",
+          "tableFrom": "pengguna_peran",
+          "tableTo": "peran",
+          "columnsFrom": [
+            "peran_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "pengguna_unit_akses": {
+      "name": "pengguna_unit_akses",
+      "columns": {
+        "pengguna_id": {
+          "autoincrement": false,
+          "name": "pengguna_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unit_kerja_id": {
+          "autoincrement": false,
+          "name": "unit_kerja_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "termasuk_bawahan": {
+          "default": 1,
+          "autoincrement": false,
+          "name": "termasuk_bawahan",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ditetapkan_oleh": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "ditetapkan_oleh",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_pengguna_unit_akses_unit": {
+          "name": "idx_pengguna_unit_akses_unit",
+          "columns": [
+            "unit_kerja_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_pengguna_unit_akses_penetap": {
+          "name": "fk_pengguna_unit_akses_penetap",
+          "tableFrom": "pengguna_unit_akses",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "ditetapkan_oleh"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "fk_pengguna_unit_akses_pengguna": {
+          "name": "fk_pengguna_unit_akses_pengguna",
+          "tableFrom": "pengguna_unit_akses",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "pengguna_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "fk_pengguna_unit_akses_unit": {
+          "name": "fk_pengguna_unit_akses_unit",
+          "tableFrom": "pengguna_unit_akses",
+          "tableTo": "unit_kerja",
+          "columnsFrom": [
+            "unit_kerja_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "peran": {
+      "name": "peran",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kode": {
+          "autoincrement": false,
+          "name": "kode",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama": {
+          "autoincrement": false,
+          "name": "nama",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deskripsi": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "deskripsi",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tingkat": {
+          "default": 9,
+          "autoincrement": false,
+          "name": "tingkat",
+          "type": "tinyint(3) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_sistem": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "is_sistem",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_anonim": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "is_anonim",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_wajib_2fa": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "is_wajib_2fa",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_lingkup_unit": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "is_lingkup_unit",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diperbarui_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diperbarui_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {
+        "uq_peran_kode": {
+          "name": "uq_peran_kode",
+          "columns": [
+            "kode"
+          ]
+        },
+        "uq_peran_nama": {
+          "name": "uq_peran_nama",
+          "columns": [
+            "nama"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "peran_izin": {
+      "name": "peran_izin",
+      "columns": {
+        "peran_id": {
+          "autoincrement": false,
+          "name": "peran_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "izin_id": {
+          "autoincrement": false,
+          "name": "izin_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diberikan_oleh": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diberikan_oleh",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_peran_izin_izin": {
+          "name": "idx_peran_izin_izin",
+          "columns": [
+            "izin_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_peran_izin_izin": {
+          "name": "fk_peran_izin_izin",
+          "tableFrom": "peran_izin",
+          "tableTo": "izin",
+          "columnsFrom": [
+            "izin_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "fk_peran_izin_pemberi": {
+          "name": "fk_peran_izin_pemberi",
+          "tableFrom": "peran_izin",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "diberikan_oleh"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "fk_peran_izin_peran": {
+          "name": "fk_peran_izin_peran",
+          "tableFrom": "peran_izin",
+          "tableTo": "peran",
+          "columnsFrom": [
+            "peran_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "permintaan_akses": {
+      "name": "permintaan_akses",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dokumen_id": {
+          "autoincrement": false,
+          "name": "dokumen_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pengguna_id": {
+          "autoincrement": false,
+          "name": "pengguna_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "alasan": {
+          "autoincrement": false,
+          "name": "alasan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "default": "'''menunggu'''",
+          "autoincrement": false,
+          "name": "status",
+          "type": "enum('menunggu','disetujui','ditolak','kedaluwarsa')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diputuskan_oleh": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diputuskan_oleh",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "catatan_keputusan": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "catatan_keputusan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "diputuskan_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diputuskan_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "berlaku_hingga": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "berlaku_hingga",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kunci_menunggu": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "kunci_menunggu",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false,
+          "generated": {
+            "as": "if(`status` = 'menunggu',concat(`dokumen_id`,'-',`pengguna_id`),NULL)",
+            "type": "stored"
+          }
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diperbarui_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diperbarui_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_permintaan_akses_status": {
+          "name": "idx_permintaan_akses_status",
+          "columns": [
+            "status",
+            "dibuat_pada"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_permintaan_akses_dokumen": {
+          "name": "fk_permintaan_akses_dokumen",
+          "tableFrom": "permintaan_akses",
+          "tableTo": "dokumen",
+          "columnsFrom": [
+            "dokumen_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "fk_permintaan_akses_pemutus": {
+          "name": "fk_permintaan_akses_pemutus",
+          "tableFrom": "permintaan_akses",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "diputuskan_oleh"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "fk_permintaan_akses_pengguna": {
+          "name": "fk_permintaan_akses_pengguna",
+          "tableFrom": "permintaan_akses",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "pengguna_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {
+        "uq_permintaan_akses_menunggu": {
+          "name": "uq_permintaan_akses_menunggu",
+          "columns": [
+            "kunci_menunggu"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "permintaan_layanan": {
+      "name": "permintaan_layanan",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nomor_tiket": {
+          "autoincrement": false,
+          "name": "nomor_tiket",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "layanan_hukum_id": {
+          "autoincrement": false,
+          "name": "layanan_hukum_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pemohon_id": {
+          "autoincrement": false,
+          "name": "pemohon_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unit_kerja_id": {
+          "autoincrement": false,
+          "name": "unit_kerja_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "judul": {
+          "autoincrement": false,
+          "name": "judul",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uraian": {
+          "autoincrement": false,
+          "name": "uraian",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "data_formulir": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "data_formulir",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "default": "'''baru'''",
+          "autoincrement": false,
+          "name": "status",
+          "type": "enum('baru','ditelaah','butuh_info','selesai','ditolak','dibatalkan')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prioritas": {
+          "default": "'''normal'''",
+          "autoincrement": false,
+          "name": "prioritas",
+          "type": "enum('rendah','normal','tinggi','segera')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ditugaskan_ke": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "ditugaskan_ke",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tenggat": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "tenggat",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hasil_telaah": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "hasil_telaah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dokumen_hasil_id": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "dokumen_hasil_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "diselesaikan_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diselesaikan_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diperbarui_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diperbarui_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_permintaan_layanan_status": {
+          "name": "idx_permintaan_layanan_status",
+          "columns": [
+            "status",
+            "tenggat"
+          ],
+          "isUnique": false
+        },
+        "idx_permintaan_layanan_pemohon": {
+          "name": "idx_permintaan_layanan_pemohon",
+          "columns": [
+            "pemohon_id",
+            "dibuat_pada"
+          ],
+          "isUnique": false
+        },
+        "idx_permintaan_layanan_penelaah": {
+          "name": "idx_permintaan_layanan_penelaah",
+          "columns": [
+            "ditugaskan_ke",
+            "status"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_permintaan_layanan_dokumen": {
+          "name": "fk_permintaan_layanan_dokumen",
+          "tableFrom": "permintaan_layanan",
+          "tableTo": "dokumen",
+          "columnsFrom": [
+            "dokumen_hasil_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "fk_permintaan_layanan_layanan": {
+          "name": "fk_permintaan_layanan_layanan",
+          "tableFrom": "permintaan_layanan",
+          "tableTo": "layanan_hukum",
+          "columnsFrom": [
+            "layanan_hukum_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "fk_permintaan_layanan_pemohon": {
+          "name": "fk_permintaan_layanan_pemohon",
+          "tableFrom": "permintaan_layanan",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "pemohon_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "fk_permintaan_layanan_penelaah": {
+          "name": "fk_permintaan_layanan_penelaah",
+          "tableFrom": "permintaan_layanan",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "ditugaskan_ke"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "fk_permintaan_layanan_unit": {
+          "name": "fk_permintaan_layanan_unit",
+          "tableFrom": "permintaan_layanan",
+          "tableTo": "unit_kerja",
+          "columnsFrom": [
+            "unit_kerja_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {
+        "uq_permintaan_layanan_tiket": {
+          "name": "uq_permintaan_layanan_tiket",
+          "columns": [
+            "nomor_tiket"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "permintaan_layanan_berkas": {
+      "name": "permintaan_layanan_berkas",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "permintaan_layanan_id": {
+          "autoincrement": false,
+          "name": "permintaan_layanan_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jenis": {
+          "default": "'''lampiran_pemohon'''",
+          "autoincrement": false,
+          "name": "jenis",
+          "type": "enum('lampiran_pemohon','hasil_telaah','dokumen_pendukung')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama_asli": {
+          "autoincrement": false,
+          "name": "nama_asli",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "path": {
+          "autoincrement": false,
+          "name": "path",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "disk": {
+          "default": "'''lokal'''",
+          "autoincrement": false,
+          "name": "disk",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mime_type": {
+          "autoincrement": false,
+          "name": "mime_type",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ukuran_bytes": {
+          "autoincrement": false,
+          "name": "ukuran_bytes",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hash_sha256": {
+          "autoincrement": false,
+          "name": "hash_sha256",
+          "type": "char(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diunggah_oleh": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diunggah_oleh",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_pl_berkas_permintaan": {
+          "name": "idx_pl_berkas_permintaan",
+          "columns": [
+            "permintaan_layanan_id",
+            "jenis"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_pl_berkas_pengunggah": {
+          "name": "fk_pl_berkas_pengunggah",
+          "tableFrom": "permintaan_layanan_berkas",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "diunggah_oleh"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "fk_pl_berkas_permintaan": {
+          "name": "fk_pl_berkas_permintaan",
+          "tableFrom": "permintaan_layanan_berkas",
+          "tableTo": "permintaan_layanan",
+          "columnsFrom": [
+            "permintaan_layanan_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {
+        "uq_permintaan_layanan_berkas_path": {
+          "name": "uq_permintaan_layanan_berkas_path",
+          "columns": [
+            "path"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "permintaan_layanan_log": {
+      "name": "permintaan_layanan_log",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "permintaan_layanan_id": {
+          "autoincrement": false,
+          "name": "permintaan_layanan_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status_dari": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "status_dari",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status_ke": {
+          "autoincrement": false,
+          "name": "status_ke",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "aksi": {
+          "autoincrement": false,
+          "name": "aksi",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "catatan": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "catatan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_terlihat_pemohon": {
+          "default": 1,
+          "autoincrement": false,
+          "name": "is_terlihat_pemohon",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "oleh_id": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "oleh_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_pl_log_permintaan": {
+          "name": "idx_pl_log_permintaan",
+          "columns": [
+            "permintaan_layanan_id",
+            "dibuat_pada"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_pl_log_oleh": {
+          "name": "fk_pl_log_oleh",
+          "tableFrom": "permintaan_layanan_log",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "oleh_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "fk_pl_log_permintaan": {
+          "name": "fk_pl_log_permintaan",
+          "tableFrom": "permintaan_layanan_log",
+          "tableTo": "permintaan_layanan",
+          "columnsFrom": [
+            "permintaan_layanan_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "pesan_kontak": {
+      "name": "pesan_kontak",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama": {
+          "autoincrement": false,
+          "name": "nama",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "autoincrement": false,
+          "name": "email",
+          "type": "varchar(190)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "no_telepon": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "no_telepon",
+          "type": "varchar(25)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subjek": {
+          "autoincrement": false,
+          "name": "subjek",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pesan": {
+          "autoincrement": false,
+          "name": "pesan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "default": "'''baru'''",
+          "autoincrement": false,
+          "name": "status",
+          "type": "enum('baru','diproses','selesai','spam')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ditangani_oleh": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "ditangani_oleh",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "catatan_penanganan": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "catatan_penanganan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ditangani_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "ditangani_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ip_hash": {
+          "autoincrement": false,
+          "name": "ip_hash",
+          "type": "char(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_pesan_kontak_status": {
+          "name": "idx_pesan_kontak_status",
+          "columns": [
+            "status",
+            "dibuat_pada"
+          ],
+          "isUnique": false
+        },
+        "idx_pesan_kontak_ip_waktu": {
+          "name": "idx_pesan_kontak_ip_waktu",
+          "columns": [
+            "ip_hash",
+            "dibuat_pada"
+          ],
+          "isUnique": false
+        },
+        "idx_pesan_kontak_email": {
+          "name": "idx_pesan_kontak_email",
+          "columns": [
+            "email"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_pesan_kontak_penangan": {
+          "name": "fk_pesan_kontak_penangan",
+          "tableFrom": "pesan_kontak",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "ditangani_oleh"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "status_dokumen": {
+      "name": "status_dokumen",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kode": {
+          "autoincrement": false,
+          "name": "kode",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama": {
+          "autoincrement": false,
+          "name": "nama",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "warna": {
+          "default": "'''#6B7280'''",
+          "autoincrement": false,
+          "name": "warna",
+          "type": "char(7)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deskripsi": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "deskripsi",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_berlaku_efektif": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "is_berlaku_efektif",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_sistem": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "is_sistem",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "urutan": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "urutan",
+          "type": "smallint(5) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {
+        "uq_status_dokumen_kode": {
+          "name": "uq_status_dokumen_kode",
+          "columns": [
+            "kode"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "tag": {
+      "name": "tag",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama": {
+          "autoincrement": false,
+          "name": "nama",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "autoincrement": false,
+          "name": "slug",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jumlah_pakai": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "jumlah_pakai",
+          "type": "int(10) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dibuat_oleh": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "dibuat_oleh",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_tag_populer": {
+          "name": "idx_tag_populer",
+          "columns": [
+            "jumlah_pakai"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_tag_dibuat_oleh": {
+          "name": "fk_tag_dibuat_oleh",
+          "tableFrom": "tag",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "dibuat_oleh"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {
+        "uq_tag_nama": {
+          "name": "uq_tag_nama",
+          "columns": [
+            "nama"
+          ]
+        },
+        "uq_tag_slug": {
+          "name": "uq_tag_slug",
+          "columns": [
+            "slug"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "tautan_terkait": {
+      "name": "tautan_terkait",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama": {
+          "autoincrement": false,
+          "name": "nama",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url": {
+          "autoincrement": false,
+          "name": "url",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "logo": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "logo",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kelompok": {
+          "default": "'''lainnya'''",
+          "autoincrement": false,
+          "name": "kelompok",
+          "type": "enum('jdihn','kementerian','perguruan_tinggi','internal','lainnya')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deskripsi": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "deskripsi",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_aktif": {
+          "default": 1,
+          "autoincrement": false,
+          "name": "is_aktif",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "urutan": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "urutan",
+          "type": "smallint(5) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diperbarui_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diperbarui_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_tautan_terkait_kelompok": {
+          "name": "idx_tautan_terkait_kelompok",
+          "columns": [
+            "kelompok",
+            "is_aktif",
+            "urutan"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "uniqueConstraints": {
+        "uq_tautan_terkait_url": {
+          "name": "uq_tautan_terkait_url",
+          "columns": [
+            "url"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "token_reset_sandi": {
+      "name": "token_reset_sandi",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pengguna_id": {
+          "autoincrement": false,
+          "name": "pengguna_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token_hash": {
+          "autoincrement": false,
+          "name": "token_hash",
+          "type": "char(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kedaluwarsa_pada": {
+          "autoincrement": false,
+          "name": "kedaluwarsa_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dipakai_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "dipakai_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ip_hash": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "ip_hash",
+          "type": "char(64)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_token_reset_kedaluwarsa": {
+          "name": "idx_token_reset_kedaluwarsa",
+          "columns": [
+            "kedaluwarsa_pada"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_token_reset_pengguna": {
+          "name": "fk_token_reset_pengguna",
+          "tableFrom": "token_reset_sandi",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "pengguna_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {
+        "uq_token_reset_hash": {
+          "name": "uq_token_reset_hash",
+          "columns": [
+            "token_hash"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "unduhan": {
+      "name": "unduhan",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dokumen_id": {
+          "autoincrement": false,
+          "name": "dokumen_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dokumen_berkas_id": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "dokumen_berkas_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pengguna_id": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "pengguna_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "peran_saat_unduh": {
+          "default": "'''pengunjung'''",
+          "autoincrement": false,
+          "name": "peran_saat_unduh",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ip_hash": {
+          "autoincrement": false,
+          "name": "ip_hash",
+          "type": "char(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agen_ringkas": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "agen_ringkas",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "perujuk": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "perujuk",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_unduhan_dokumen_tanggal": {
+          "name": "idx_unduhan_dokumen_tanggal",
+          "columns": [
+            "dokumen_id",
+            "dibuat_pada"
+          ],
+          "isUnique": false
+        },
+        "idx_unduhan_ip_waktu": {
+          "name": "idx_unduhan_ip_waktu",
+          "columns": [
+            "ip_hash",
+            "dibuat_pada"
+          ],
+          "isUnique": false
+        },
+        "idx_unduhan_pengguna_waktu": {
+          "name": "idx_unduhan_pengguna_waktu",
+          "columns": [
+            "pengguna_id",
+            "dibuat_pada"
+          ],
+          "isUnique": false
+        },
+        "idx_unduhan_waktu": {
+          "name": "idx_unduhan_waktu",
+          "columns": [
+            "dibuat_pada"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_unduhan_berkas": {
+          "name": "fk_unduhan_berkas",
+          "tableFrom": "unduhan",
+          "tableTo": "dokumen_berkas",
+          "columnsFrom": [
+            "dokumen_berkas_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "fk_unduhan_dokumen": {
+          "name": "fk_unduhan_dokumen",
+          "tableFrom": "unduhan",
+          "tableTo": "dokumen",
+          "columnsFrom": [
+            "dokumen_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "fk_unduhan_pengguna": {
+          "name": "fk_unduhan_pengguna",
+          "tableFrom": "unduhan",
+          "tableTo": "pengguna",
+          "columnsFrom": [
+            "pengguna_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "unit_kerja": {
+      "name": "unit_kerja",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kode": {
+          "autoincrement": false,
+          "name": "kode",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama": {
+          "autoincrement": false,
+          "name": "nama",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "singkatan": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "singkatan",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jenis": {
+          "default": "'''unit'''",
+          "autoincrement": false,
+          "name": "jenis",
+          "type": "enum('institut','senat','rektorat','biro','fakultas','jurusan','prodi','lembaga','upt','satuan','unit','eksternal')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "induk_id": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "induk_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jalur": {
+          "default": "''''''",
+          "autoincrement": false,
+          "name": "jalur",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kedalaman": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "kedalaman",
+          "type": "tinyint(3) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kepala_unit": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "kepala_unit",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email_unit": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "email_unit",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_aktif": {
+          "default": 1,
+          "autoincrement": false,
+          "name": "is_aktif",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "urutan": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "urutan",
+          "type": "smallint(5) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dibuat_pada": {
+          "default": "'current_timestamp()'",
+          "autoincrement": false,
+          "name": "dibuat_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diperbarui_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diperbarui_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {
+        "idx_unit_kerja_jalur": {
+          "name": "idx_unit_kerja_jalur",
+          "columns": [
+            "jalur"
+          ],
+          "isUnique": false
+        },
+        "idx_unit_kerja_induk": {
+          "name": "idx_unit_kerja_induk",
+          "columns": [
+            "induk_id"
+          ],
+          "isUnique": false
+        },
+        "idx_unit_kerja_aktif_jenis": {
+          "name": "idx_unit_kerja_aktif_jenis",
+          "columns": [
+            "is_aktif",
+            "jenis"
+          ],
+          "isUnique": false
+        },
+        "idx_unit_kerja_nama": {
+          "name": "idx_unit_kerja_nama",
+          "columns": [
+            "nama"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_unit_kerja_induk": {
+          "name": "fk_unit_kerja_induk",
+          "tableFrom": "unit_kerja",
+          "tableTo": "unit_kerja",
+          "columnsFrom": [
+            "induk_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {
+        "uq_unit_kerja_kode": {
+          "name": "uq_unit_kerja_kode",
+          "columns": [
+            "kode"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    }
+  },
+  "views": {
+    "v_dokumen_publik": {
+      "columns": {
+        "id": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kode_dokumen": {
+          "autoincrement": false,
+          "name": "kode_dokumen",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "autoincrement": false,
+          "name": "slug",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "judul": {
+          "autoincrement": false,
+          "name": "judul",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nomor": {
+          "autoincrement": false,
+          "name": "nomor",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nomor_lengkap": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "nomor_lengkap",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tahun": {
+          "autoincrement": false,
+          "name": "tahun",
+          "type": "smallint(5) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tanggal_penetapan": {
+          "autoincrement": false,
+          "name": "tanggal_penetapan",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tingkat_akses": {
+          "default": "'''publik'''",
+          "autoincrement": false,
+          "name": "tingkat_akses",
+          "type": "enum('publik','internal','terbatas','rahasia')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "abstrak": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "abstrak",
+          "type": "mediumtext",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jumlah_dilihat": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "jumlah_dilihat",
+          "type": "int(10) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jumlah_diunduh": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "jumlah_diunduh",
+          "type": "int(10) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diterbitkan_pada": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "diterbitkan_pada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_disorot": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "is_disorot",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jenis_peraturan": {
+          "autoincrement": false,
+          "name": "jenis_peraturan",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bentuk_singkat": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "bentuk_singkat",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "unit_kerja": {
+          "autoincrement": false,
+          "name": "unit_kerja",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unit_jalur": {
+          "default": "''''''",
+          "autoincrement": false,
+          "name": "unit_jalur",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status_keberlakuan": {
+          "autoincrement": false,
+          "name": "status_keberlakuan",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status_warna": {
+          "default": "'''#6B7280'''",
+          "autoincrement": false,
+          "name": "status_warna",
+          "type": "char(7)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bidang_hukum": {
+          "autoincrement": false,
+          "name": "bidang_hukum",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "isExisting": false,
+      "name": "v_dokumen_publik",
+      "algorithm": "undefined",
+      "definition": "select `d`.`id` AS `id`,`d`.`kode_dokumen` AS `kode_dokumen`,`d`.`slug` AS `slug`,`d`.`judul` AS `judul`,`d`.`nomor` AS `nomor`,`d`.`nomor_lengkap` AS `nomor_lengkap`,`d`.`tahun` AS `tahun`,`d`.`tanggal_penetapan` AS `tanggal_penetapan`,`d`.`tingkat_akses` AS `tingkat_akses`,`d`.`abstrak` AS `abstrak`,`d`.`jumlah_dilihat` AS `jumlah_dilihat`,`d`.`jumlah_diunduh` AS `jumlah_diunduh`,`d`.`diterbitkan_pada` AS `diterbitkan_pada`,`d`.`is_disorot` AS `is_disorot`,`jp`.`nama` AS `jenis_peraturan`,`jp`.`bentuk_singkat` AS `bentuk_singkat`,`uk`.`nama` AS `unit_kerja`,`uk`.`jalur` AS `unit_jalur`,`sd`.`nama` AS `status_keberlakuan`,`sd`.`warna` AS `status_warna`,`bh`.`nama` AS `bidang_hukum` from ((((`jdih_ith__introspeksi`.`dokumen` `d` join `jdih_ith__introspeksi`.`jenis_peraturan` `jp` on(`jp`.`id` = `d`.`jenis_peraturan_id`)) join `jdih_ith__introspeksi`.`unit_kerja` `uk` on(`uk`.`id` = `d`.`unit_kerja_id`)) join `jdih_ith__introspeksi`.`status_dokumen` `sd` on(`sd`.`id` = `d`.`status_dokumen_id`)) left join `jdih_ith__introspeksi`.`bidang_hukum` `bh` on(`bh`.`id` = `d`.`bidang_hukum_id`)) where `d`.`status_publikasi` = 'terbit' and `d`.`tingkat_akses` <> 'rahasia' and `d`.`dihapus_pada` is null",
+      "sqlSecurity": "definer"
+    },
+    "v_dokumen_relasi_dua_arah": {
+      "columns": {
+        "dokumen_id": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "dokumen_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dokumen_lain_id": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "dokumen_lain_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "label_relasi": {
+          "default": "''''''",
+          "autoincrement": false,
+          "name": "label_relasi",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "urutan": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "urutan",
+          "type": "smallint(5) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "arah": {
+          "default": "''''''",
+          "autoincrement": false,
+          "name": "arah",
+          "type": "varchar(5)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "keterangan": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "keterangan",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "isExisting": false,
+      "name": "v_dokumen_relasi_dua_arah",
+      "algorithm": "undefined",
+      "definition": "select `dr`.`dokumen_id` AS `dokumen_id`,`dr`.`dokumen_terkait_id` AS `dokumen_lain_id`,`jr`.`nama` AS `label_relasi`,`jr`.`urutan` AS `urutan`,'aktif' AS `arah`,`dr`.`keterangan` AS `keterangan` from (`jdih_ith__introspeksi`.`dokumen_relasi` `dr` join `jdih_ith__introspeksi`.`jenis_relasi` `jr` on(`jr`.`id` = `dr`.`jenis_relasi_id`)) union all select `dr`.`dokumen_terkait_id` AS `dokumen_id`,`dr`.`dokumen_id` AS `dokumen_lain_id`,`jr`.`nama_kebalikan` AS `label_relasi`,`jr`.`urutan` AS `urutan`,'pasif' AS `arah`,`dr`.`keterangan` AS `keterangan` from (`jdih_ith__introspeksi`.`dokumen_relasi` `dr` join `jdih_ith__introspeksi`.`jenis_relasi` `jr` on(`jr`.`id` = `dr`.`jenis_relasi_id`)) where `jr`.`is_simetris` = 0",
+      "sqlSecurity": "definer"
+    },
+    "v_rekap_dokumen_unit": {
+      "columns": {
+        "unit_kerja_id": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "unit_kerja_id",
+          "type": "bigint(20) unsigned",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unit_kerja": {
+          "autoincrement": false,
+          "name": "unit_kerja",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jalur": {
+          "default": "''''''",
+          "autoincrement": false,
+          "name": "jalur",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "total": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "total",
+          "type": "bigint(21)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "terbit": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "terbit",
+          "type": "decimal(23,0)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "draf": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "draf",
+          "type": "decimal(23,0)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "menunggu_verifikasi": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "menunggu_verifikasi",
+          "type": "decimal(23,0)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "perlu_revisi": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "perlu_revisi",
+          "type": "decimal(23,0)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "publik": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "publik",
+          "type": "decimal(23,0)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "total_unduhan": {
+          "default": "'NULL'",
+          "autoincrement": false,
+          "name": "total_unduhan",
+          "type": "decimal(32,0)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "isExisting": false,
+      "name": "v_rekap_dokumen_unit",
+      "algorithm": "undefined",
+      "definition": "select `uk`.`id` AS `unit_kerja_id`,`uk`.`nama` AS `unit_kerja`,`uk`.`jalur` AS `jalur`,count(`d`.`id`) AS `total`,sum(`d`.`status_publikasi` = 'terbit') AS `terbit`,sum(`d`.`status_publikasi` = 'draf') AS `draf`,sum(`d`.`status_publikasi` = 'diajukan') AS `menunggu_verifikasi`,sum(`d`.`status_publikasi` = 'revisi') AS `perlu_revisi`,sum(`d`.`tingkat_akses` = 'publik' and `d`.`status_publikasi` = 'terbit') AS `publik`,sum(`d`.`jumlah_diunduh`) AS `total_unduhan` from (`jdih_ith__introspeksi`.`unit_kerja` `uk` left join `jdih_ith__introspeksi`.`dokumen` `d` on(`d`.`unit_kerja_id` = `uk`.`id` and `d`.`dihapus_pada` is null)) group by `uk`.`id`,`uk`.`nama`,`uk`.`jalur`",
+      "sqlSecurity": "definer"
+    }
+  },
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "tables": {},
+    "indexes": {}
+  }
+}

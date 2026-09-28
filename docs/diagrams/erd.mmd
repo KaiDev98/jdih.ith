@@ -1,0 +1,102 @@
+%% =============================================================================
+%%  ERD LENGKAP — PORTAL JDIH ITH PAREPARE
+%%  Render: ekstensi "Markdown Preview Mermaid Support" (VS Code),
+%%          atau https://mermaid.live
+%%  Dokumentasi relasi: docs/03-erd.md § C.7
+%%  Catatan: atribut per entitas tersedia pada docs/03-erd.md § C.3–C.6;
+%%           berkas ini menyajikan peta relasi lengkap tanpa detail atribut
+%%           agar dapat dirender dalam satu tampilan.
+%% =============================================================================
+erDiagram
+    %% ---------- MASTER DATA DAN REFERENSI ----------
+    UNIT_KERJA      ||--o{ UNIT_KERJA      : "menaungi"
+    KATEGORI        ||--o{ KATEGORI        : "menaungi"
+    JENIS_RELASI    }o--|| STATUS_DOKUMEN  : "status akibat"
+
+    %% ---------- DOKUMEN HUKUM: KLASIFIKASI ----------
+    JENIS_PERATURAN ||--o{ DOKUMEN         : "mengklasifikasikan"
+    UNIT_KERJA      ||--o{ DOKUMEN         : "mengelola"
+    STATUS_DOKUMEN  ||--o{ DOKUMEN         : "menyatakan keberlakuan"
+    BIDANG_HUKUM    |o--o{ DOKUMEN         : "membidangi"
+    DOKUMEN         ||--o{ DOKUMEN_KATEGORI : ""
+    KATEGORI        ||--o{ DOKUMEN_KATEGORI : ""
+    DOKUMEN         ||--o{ DOKUMEN_TAG      : ""
+    TAG             ||--o{ DOKUMEN_TAG      : ""
+
+    %% ---------- DOKUMEN HUKUM: BERKAS DAN RELASI ----------
+    DOKUMEN         ||--o{ DOKUMEN_BERKAS  : "memiliki"
+    DOKUMEN         ||--o{ DOKUMEN_RELASI  : "sebagai sumber"
+    DOKUMEN         ||--o{ DOKUMEN_RELASI  : "sebagai sasaran"
+    JENIS_RELASI    ||--o{ DOKUMEN_RELASI  : "menentukan jenis"
+
+    %% ---------- DOKUMEN HUKUM: AKSES, ALUR, RIWAYAT ----------
+    DOKUMEN         ||--o{ DOKUMEN_AKSES   : "membatasi"
+    DOKUMEN         ||--o{ DOKUMEN_ALUR    : "mencatat transisi"
+    DOKUMEN         |o--o{ DOKUMEN_ALUR    : "menjadi dokumen dasar"
+    DOKUMEN         ||--o{ DOKUMEN_RIWAYAT : "menyimpan versi"
+    DOKUMEN         ||--o{ PERMINTAAN_AKSES : "dimohonkan"
+
+    %% ---------- DOKUMEN HUKUM: STATISTIK DAN LOG ----------
+    DOKUMEN         ||--o{ DOKUMEN_STATISTIK_HARIAN : "meringkas"
+    DOKUMEN         ||--o{ UNDUHAN         : "diunduh pada"
+    DOKUMEN_BERKAS  |o--o{ UNDUHAN         : "berkas terunduh"
+    DOKUMEN         ||--o{ LOG_SINKRONISASI_JDIHN : "disinkronkan"
+    IMPOR_BATCH     |o--o{ DOKUMEN         : "menghasilkan"
+
+    %% ---------- PENGGUNA DAN OTORISASI ----------
+    UNIT_KERJA      ||--o{ PENGGUNA        : "menaungi"
+    PENGGUNA        |o--o{ PENGGUNA        : "memverifikasi akun"
+    PENGGUNA        ||--o{ PENGGUNA_PERAN  : ""
+    PERAN           ||--o{ PENGGUNA_PERAN  : ""
+    PERAN           ||--o{ PERAN_IZIN      : ""
+    IZIN            ||--o{ PERAN_IZIN      : ""
+    PENGGUNA        ||--o{ PENGGUNA_IZIN   : "diberi/dicabut langsung"
+    IZIN            ||--o{ PENGGUNA_IZIN   : ""
+    PENGGUNA        ||--o{ PENGGUNA_UNIT_AKSES : ""
+    UNIT_KERJA      ||--o{ PENGGUNA_UNIT_AKSES : ""
+    PENGGUNA        ||--o{ TOKEN_RESET_SANDI : "memohon"
+
+    %% ---------- PENGGUNA: JEJAK PADA DOKUMEN ----------
+    PENGGUNA        ||--o{ DOKUMEN         : "membuat"
+    PENGGUNA        |o--o{ DOKUMEN         : "memverifikasi"
+    PENGGUNA        |o--o{ DOKUMEN         : "menerbitkan"
+    PENGGUNA        |o--o{ UNDUHAN         : "mengunduh"
+    PENGGUNA        ||--o{ PERMINTAAN_AKSES : "mengajukan"
+    PENGGUNA        ||--o{ KOLEKSI_PENGGUNA : ""
+    DOKUMEN         ||--o{ KOLEKSI_PENGGUNA : ""
+    PENGGUNA        ||--o{ IMPOR_BATCH     : "menjalankan"
+    PENGGUNA        |o--o{ TAG             : "membuat"
+
+    %% ---------- KONTEN INFORMASI HUKUM ----------
+    KATEGORI_BERITA |o--o{ BERITA          : "mengelompokkan"
+    PENGGUNA        ||--o{ BERITA          : "menulis"
+    BERITA          ||--o{ BERITA_TAG      : ""
+    TAG             ||--o{ BERITA_TAG      : ""
+    BERITA          ||--o{ BERITA_DOKUMEN  : ""
+    DOKUMEN         ||--o{ BERITA_DOKUMEN  : "dirujuk"
+    HALAMAN         ||--o{ HALAMAN         : "menaungi"
+    PENGGUNA        |o--o{ HALAMAN         : "menyusun"
+    MENU            ||--o{ MENU_ITEM       : "memuat"
+    MENU_ITEM       ||--o{ MENU_ITEM       : "menaungi"
+    PENGGUNA        |o--o{ MEDIA           : "mengunggah"
+    PENGGUNA        |o--o{ BANNER          : "mengelola"
+
+    %% ---------- INTERAKSI PUBLIK ----------
+    PENGGUNA        |o--o{ PESAN_KONTAK    : "menangani"
+    PENGGUNA        |o--o{ LOG_PENCARIAN   : "melakukan"
+
+    %% ---------- SISTEM, AUDIT, NOTIFIKASI ----------
+    PENGGUNA        |o--o{ PENGATURAN      : "memperbarui"
+    PENGGUNA        |o--o{ LOG_AKTIVITAS   : "melakukan"
+    PENGGUNA        |o--o{ LOG_AUTENTIKASI : "menghasilkan"
+    PENGGUNA        ||--o{ NOTIFIKASI      : "menerima"
+
+    %% ---------- LAYANAN HUKUM (OPSIONAL, FASE 3) ----------
+    LAYANAN_HUKUM   ||--o{ PERMINTAAN_LAYANAN : "melayani"
+    UNIT_KERJA      ||--o{ LAYANAN_HUKUM   : "bertanggung jawab"
+    PENGGUNA        ||--o{ PERMINTAAN_LAYANAN : "mengajukan"
+    PENGGUNA        |o--o{ PERMINTAAN_LAYANAN : "ditugaskan menangani"
+    UNIT_KERJA      ||--o{ PERMINTAAN_LAYANAN : "asal pemohon"
+    DOKUMEN         |o--o| PERMINTAAN_LAYANAN : "produk hukum hasil"
+    PERMINTAAN_LAYANAN ||--o{ PERMINTAAN_LAYANAN_BERKAS : "melampirkan"
+    PERMINTAAN_LAYANAN ||--o{ PERMINTAAN_LAYANAN_LOG    : "mencatat"

@@ -1,0 +1,297 @@
+@startuml jdih-ith-use-case-umum
+' =============================================================================
+'  DIAGRAM USE CASE — PORTAL JDIH ITH PAREPARE (GAMBARAN UMUM)
+'  Render: ekstensi PlantUML pada VS Code, atau https://www.plantuml.com/plantuml
+'  Dokumentasi: docs/02-use-case.md
+' =============================================================================
+!theme plain
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam actorStyle awesome
+skinparam usecase {
+    BackgroundColor #F8FAFC
+    BorderColor #475569
+    ArrowColor #475569
+}
+title Diagram Use Case — Portal JDIH ITH Parepare
+
+actor "Pengunjung Publik\n(Mahasiswa)"  as A1
+actor "Dosen/Staf"                      as A2
+actor "Admin"                           as A3
+actor "Admin Verifikator"               as A3a
+actor "Superadmin"                      as A4
+
+' Generalisasi aktor: aktor turunan mewarisi seluruh use case induknya
+A1 <|-- A2
+A2 <|-- A3
+A3 <|-- A3a
+A3 <|-- A4
+
+actor "Sistem JDIHN"      as S1 #LightGray
+actor "Layanan Surel"     as S2 #LightGray
+actor "Penjadwal Tugas"   as S3 #LightGray
+actor "Penyedia SSO ITH"  as S4 #LightGray
+actor "Mesin Pencari"     as S5 #LightGray
+
+rectangle "SISTEM PORTAL JDIH ITH PAREPARE" {
+
+    package "PKG-1  Portal dan Penelusuran Publik" {
+        usecase "UC-01 Melihat Beranda Portal"                    as UC01
+        usecase "UC-02 Melakukan Pencarian Sederhana"             as UC02
+        usecase "UC-03 Melakukan Pencarian Lanjutan"              as UC03
+        usecase "UC-04..07 Menelusuri Dokumen\n(jenis/unit/tahun/kategori)" as UC04
+        usecase "UC-08 Melihat Detail Metadata Dokumen"           as UC08
+        usecase "UC-09 Melihat Relasi dan Riwayat Peraturan"      as UC09
+        usecase "UC-10 Melihat Pratinjau Berkas PDF"              as UC10
+        usecase "UC-11 Mengunduh Dokumen Publik"                  as UC11
+        usecase "UC-12 Menyalin Sitasi dan Membagikan"            as UC12
+        usecase "UC-13 Membaca Berita dan Artikel Hukum"          as UC13
+        usecase "UC-14 Melihat Halaman Statis dan Profil"         as UC14
+        usecase "UC-15 Melihat Statistik Publik"                  as UC15
+        usecase "UC-16 Mengirim Pesan atau Masukan"               as UC16
+        usecase "UC-18 Mengakses API Publik Baca-Saja"            as UC18
+    }
+
+    package "PKG-2  Autentikasi dan Akun" {
+        usecase "UC-19 Melakukan Login"                  as UC19
+        usecase "UC-21 Mendaftarkan Akun Mandiri"        as UC21
+        usecase "UC-22 Memulihkan Kata Sandi"            as UC22
+        usecase "UC-24 Mengelola Profil Pribadi"         as UC24
+        usecase "UC-25 Mengaktifkan Autentikasi 2 Faktor" as UC25
+        usecase "UC-26 Login melalui SSO Institusi"      as UC26
+    }
+
+    package "PKG-3  Akses Dokumen Terautentikasi" {
+        usecase "UC-28 Mengunduh Dokumen Internal"          as UC28
+        usecase "UC-29 Mengunduh Dokumen Terbatas"          as UC29
+        usecase "UC-30 Mengajukan Permintaan Akses Dokumen" as UC30
+        usecase "UC-31 Mengelola Koleksi Dokumen Pribadi"   as UC31
+    }
+
+    package "PKG-4  Manajemen Dokumen Hukum" {
+        usecase "UC-33 Membuat Draf dan Input Metadata"   as UC33
+        usecase "UC-34 Mengunggah dan Mengelola Berkas"   as UC34
+        usecase "UC-35 Mengubah Metadata Dokumen"         as UC35
+        usecase "UC-36 Mengelola Relasi Antarperaturan"   as UC36
+        usecase "UC-37 Mengubah Status Keberlakuan"       as UC37
+        usecase "UC-38 Menetapkan Tingkat Akses Dokumen"  as UC38
+        usecase "UC-39 Mengajukan Dokumen untuk Verifikasi" as UC39
+        usecase "UC-40 Memverifikasi dan Menyetujui Dokumen" as UC40
+        usecase "UC-41 Mempublikasikan Dokumen"           as UC41
+        usecase "UC-42 Menarik Dokumen Terbit"            as UC42
+        usecase "UC-43 Menghapus dan Memulihkan Dokumen"  as UC43
+        usecase "UC-45 Melakukan Impor Massal Metadata"   as UC45
+        usecase "UC-48 Memutuskan Permintaan Akses"       as UC48
+        usecase "UC-49 Melihat Antrean Kerja"             as UC49
+    }
+
+    package "PKG-5  Manajemen Konten" {
+        usecase "UC-50 Mengelola Berita dan Artikel Hukum" as UC50
+        usecase "UC-51 Mengelola Halaman Statis"           as UC51
+        usecase "UC-53 Mengelola Pustaka Media"            as UC53
+        usecase "UC-55 Menanggapi Pesan Kontak"            as UC55
+    }
+
+    package "PKG-6  Master Data, Administrasi, dan Integrasi" {
+        usecase "UC-56..59 Mengelola Master Data"        as UC56
+        usecase "UC-60 Mengelola Akun Pengguna"          as UC60
+        usecase "UC-61 Memverifikasi Pendaftaran Akun"   as UC61
+        usecase "UC-62 Mengelola Peran dan Hak Akses"    as UC62
+        usecase "UC-64 Mengelola Konfigurasi Sistem"     as UC64
+        usecase "UC-65 Melihat Log Aktivitas dan Keamanan" as UC65
+        usecase "UC-66 Mengelola Pencadangan"            as UC66
+        usecase "UC-67 Mengelola Sinkronisasi JDIHN"     as UC67
+        usecase "UC-68 Melihat Dasbor Statistik"         as UC68
+    }
+
+    package "Use Case Terinklusi" {
+        usecase "INC-01 Memvalidasi Metadata"        as INC01
+        usecase "INC-02 Memvalidasi dan Simpan Berkas" as INC02
+        usecase "INC-03 Memeriksa Hak Akses Dokumen" as INC03
+        usecase "INC-04 Mencatat Jejak Audit"        as INC04
+        usecase "INC-05 Mengirim Notifikasi"         as INC05
+        usecase "INC-06 Memutakhirkan Indeks Pencarian" as INC06
+    }
+}
+
+' --- Asosiasi aktor utama ---------------------------------------------------
+A1 -- UC01
+A1 -- UC02
+A1 -- UC04
+A1 -- UC08
+A1 -- UC11
+A1 -- UC13
+A1 -- UC14
+A1 -- UC15
+A1 -- UC16
+A1 -- UC18
+A1 -- UC21
+A1 -- UC22
+
+A2 -- UC19
+A2 -- UC24
+A2 -- UC28
+A2 -- UC29
+A2 -- UC30
+A2 -- UC31
+
+A3 -- UC33
+A3 -- UC34
+A3 -- UC35
+A3 -- UC36
+A3 -- UC39
+A3 -- UC43
+A3 -- UC48
+A3 -- UC49
+A3 -- UC53
+A3 -- UC68
+
+A3a -- UC37
+A3a -- UC38
+A3a -- UC40
+A3a -- UC41
+A3a -- UC42
+A3a -- UC45
+
+A4 -- UC50
+A4 -- UC51
+A4 -- UC55
+A4 -- UC56
+A4 -- UC60
+A4 -- UC61
+A4 -- UC62
+A4 -- UC64
+A4 -- UC65
+A4 -- UC66
+A4 -- UC67
+
+' --- Aktor sistem ----------------------------------------------------------
+UC67 -- S1
+UC21 -- S2
+UC22 -- S2
+UC40 -- S2
+UC37 -- S3
+UC41 -- S3
+UC26 -- S4
+UC02 -- S5
+UC03 -- S5
+INC06 -- S5
+
+' --- Relasi include -------------------------------------------------------
+UC33 ..> INC01 : <<include>>
+UC33 ..> INC04 : <<include>>
+UC33 ..> INC06 : <<include>>
+UC34 ..> INC02 : <<include>>
+UC34 ..> INC04 : <<include>>
+UC35 ..> INC01 : <<include>>
+UC35 ..> INC06 : <<include>>
+UC39 ..> INC01 : <<include>>
+UC39 ..> INC05 : <<include>>
+UC40 ..> INC04 : <<include>>
+UC40 ..> INC05 : <<include>>
+UC41 ..> INC01 : <<include>>
+UC41 ..> INC05 : <<include>>
+UC41 ..> INC06 : <<include>>
+UC45 ..> INC01 : <<include>>
+UC45 ..> INC02 : <<include>>
+UC02 ..> INC03 : <<include>>
+UC08 ..> INC03 : <<include>>
+UC10 ..> INC03 : <<include>>
+UC11 ..> INC03 : <<include>>
+UC28 ..> INC03 : <<include>>
+UC29 ..> INC03 : <<include>>
+UC62 ..> INC04 : <<include>>
+
+' --- Relasi extend --------------------------------------------------------
+UC03 ..> UC02 : <<extend>>
+UC09 ..> UC08 : <<extend>>
+UC10 ..> UC08 : <<extend>>
+UC12 ..> UC08 : <<extend>>
+UC25 ..> UC19 : <<extend>>
+UC26 ..> UC19 : <<extend>>
+UC30 ..> UC11 : <<extend>>
+UC37 ..> UC36 : <<extend>>
+UC34 ..> UC39 : <<extend>>
+UC67 ..> UC41 : <<extend>>
+UC53 ..> UC50 : <<extend>>
+UC61 ..> UC60 : <<extend>>
+
+@enduml
+
+
+@startuml jdih-ith-use-case-alur-publikasi
+' =============================================================================
+'  DIAGRAM ALUR STATUS PUBLIKASI DOKUMEN (STATE MACHINE)
+'  Penegakan aturan bisnis BR-06 (transisi status yang sah)
+' =============================================================================
+!theme plain
+skinparam shadowing false
+title Alur Status Publikasi Dokumen — BR-06
+
+[*] --> Draf : UC-33 Admin membuat dokumen
+
+Draf      --> Diajukan  : UC-39 ajukan\n[metadata wajib lengkap\n+ berkas utama ada]
+Diajukan  --> Revisi    : UC-40 minta revisi\n[catatan revisi wajib]
+Diajukan  --> Disetujui : UC-40 setujui\n[bukan pembuat sendiri — BR-08]
+Revisi    --> Diajukan  : UC-39 ajukan ulang
+Disetujui --> Terbit    : UC-41 publikasikan\n[BR-04, BR-05 terpenuhi]
+Disetujui --> Terbit    : penjadwal (publikasi terjadwal)
+Terbit    --> Ditarik   : UC-42 tarik\n[alasan wajib]
+Ditarik   --> Disetujui : pemulihan untuk publikasi ulang
+
+Draf      --> [*] : UC-43 hapus (soft delete)
+Revisi    --> [*] : UC-43 hapus (soft delete)
+
+note right of Terbit
+  Hanya status **Terbit** yang tampil
+  pada kanal publik: portal, indeks
+  pencarian, sitemap.xml, RSS, dan
+  API publik  (BR-09)
+end note
+
+note right of Disetujui
+  Dokumen publik yang diterbitkan
+  otomatis masuk antrean
+  sinkronisasi JDIHN  (BR-32)
+end note
+
+@enduml
+
+
+@startuml jdih-ith-use-case-alur-keberlakuan
+' =============================================================================
+'  DIAGRAM ALUR STATUS KEBERLAKUAN PERATURAN
+' =============================================================================
+!theme plain
+skinparam shadowing false
+title Alur Status Keberlakuan Peraturan
+
+[*] --> BelumBerlaku : tanggal_berlaku di masa depan
+[*] --> Berlaku      : tanggal_berlaku <= hari ini
+
+BelumBerlaku --> Berlaku : penjadwal harian\n[tanggal_berlaku tercapai — BR-22]
+
+Berlaku --> Diubah           : relasi "diubah oleh"\ndibuat  (UC-36 / UC-37)
+Berlaku --> DicabutSebagian  : relasi "dicabut sebagian oleh"
+Berlaku --> Dicabut          : relasi "dicabut oleh"
+Berlaku --> TidakBerlaku     : tanggal_berakhir terlampaui
+
+Diubah          --> Diubah   : perubahan berikutnya
+Diubah          --> Dicabut  : relasi "dicabut oleh"
+DicabutSebagian --> Dicabut  : relasi "dicabut oleh"
+
+note bottom of Dicabut
+  Dokumen berstatus **Dicabut** tetap
+  dapat diakses sebagai dokumentasi
+  historis dan tidak boleh dihapus
+  (BR-21)
+end note
+
+note bottom of Diubah
+  Setiap perubahan status wajib
+  tercatat pada dokumen_alur beserta
+  alasan dan dokumen dasarnya (BR-23)
+end note
+
+@enduml

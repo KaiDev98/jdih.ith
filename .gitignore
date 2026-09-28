@@ -1,0 +1,60 @@
+# Dependensi
+node_modules/
+.pnp
+.pnp.js
+
+# Hasil build
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Variabel lingkungan — JANGAN pernah dikomit
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Log
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Pengujian
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+
+# Berkas unggahan pengguna (disimpan di luar repositori)
+storage/
+uploads/
+public/uploads/
+
+# Cadangan basis data
+*.sql.gz
+*.dump
+backups/
+
+# Perkakas editor dan sistem operasi
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+.idea/
+*.swp
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+~$*
+
+# Cache
+.eslintcache
+.cache/
+.turbo/
+.swc/

@@ -1,0 +1,28 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+
+    /* NestJS memakai dekorator gaya lama beserta metadata tipenya untuk
+       menyuntikkan dependensi. Keduanya wajib menyala. */
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    "outDir": "./dist",
+    "declaration": false,
+    "removeComments": false,
+    "tsBuildInfoFile": "dist/.tsbuildinfo",
+
+    /* Properti yang diisi kerangka kerja lewat dekorator tidak diinisialisasi
+       di konstruktor, sehingga pemeriksaan ini akan salah menandainya. */
+    "strictPropertyInitialization": false
+
+    /* Sengaja TIDAK memakai alias jalur (paths). Alias membuat hasil kompilasi
+       memuat require("@/...") yang tidak dikenali Node saat produksi, sehingga
+       memerlukan tsconfig-paths atau tsc-alias. Impor relatif menghilangkan
+       seluruh golongan masalah itu tanpa mengorbankan apa pun. */
+  },
+  "include": ["src/**/*.ts", "*.config.ts", "*.config.mts", "drizzle.config.ts"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -1,0 +1,30 @@
+{
+  "name": "@jdih/shared",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Kontrak bersama Portal JDIH ITH: enum, kode izin, tipe, dan skema validasi Zod yang dipakai API dan aplikasi web",
+  "license": "UNLICENSED",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
+    "typecheck": "tsc -p tsconfig.json --noEmit --declaration false --declarationMap false",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3"
+  }
+}
