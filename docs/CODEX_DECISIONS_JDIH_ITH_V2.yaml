@@ -1,0 +1,244 @@
+project:
+  name: "JDIH ITH Parepare"
+  institution: "Institut Teknologi Bacharuddin Jusuf Habibie"
+  repo: "KaiDev98/jdih.ith"
+  target_architecture: "modular-monolith"
+  language: "id"
+
+stack:
+  backend: "NestJS + TypeScript"
+  frontend: "Next.js + React + TypeScript"
+  api: "REST /api/v1"
+  validation: "Zod shared contracts"
+  orm: "Drizzle"
+  database: "MySQL 8"
+  local_db_port: 3307
+  storage_v1: "local"
+  storage_future:
+    - "S3"
+    - "MinIO"
+
+public_navigation:
+  - "Beranda"
+  - "Profil"
+  - "Produk Hukum"
+  - "Format Persuratan"
+  - "Masuk"
+
+public_home:
+  statistics: false
+  latest_public_document: true
+  profile_scope: "Tentang ITH"
+
+auth:
+  provider: "Google OAuth/OIDC"
+  staff_domain: "@ith.ac.id"
+  student_domain: "@mahasiswa.ith.ac.id"
+  local_password_v1: false
+  new_staff_status: "MENUNGGU_VERIFIKASI"
+  admin_approval_required: true
+  admin_accounts_preprovisioned: true
+  allow_admin_creation_in_ui: false
+  allow_admin_promotion_in_ui: false
+  registration_fields:
+    - "Google identity"
+    - "unit"
+  nip_nidn_required: false
+  allow_manual_unit_proposal: true
+
+roles:
+  canonical:
+    - "SUPERADMIN"
+    - "ADMIN"
+    - "DOSEN_STAF"
+    - "PENGUNJUNG"
+  verifier: "ADMIN with verification permission"
+
+document_access:
+  levels:
+    - "publik"
+    - "internal"
+    - "rahasia"
+  removed_levels:
+    - "terbatas"
+  publik:
+    anonymous_search: "full summary"
+    anonymous_detail: true
+    anonymous_download: true
+  internal:
+    anonymous_search: "title + INTERNAL badge"
+    anonymous_detail: false
+    anonymous_download: false
+    active_staff_detail: true
+    active_staff_download: true
+    unit_scoped: false
+  rahasia:
+    anonymous_search: false
+    public_discoverable: false
+    active_staff_requires_explicit_grant: true
+    unauthorized_direct_response: 404
+    audit_sensitive_access: true
+
+document_workflow:
+  states:
+    - "DRAF"
+    - "DIAJUKAN"
+    - "REVISI"
+    - "DISETUJUI"
+    - "TERBIT"
+    - "DITARIK"
+  rejected_state: false
+  author_can_approve_own_version: false
+  return_revision_requires_note: true
+  publish_transactional: true
+  write_actions_require_confirmation_popup: true
+
+legal:
+  statuses:
+    - "BERLAKU"
+    - "DIUBAH"
+    - "DICABUT"
+  relations:
+    - "MENGUBAH"
+    - "MENCABUT"
+    - "DASAR_HUKUM"
+    - "TERKAIT"
+  relation_status_impact:
+    MENGUBAH: "DIUBAH"
+    MENCABUT: "DICABUT"
+    DASAR_HUKUM: null
+    TERKAIT: null
+  auto_apply_without_human_confirmation: false
+  withdrawal_rolls_back_target_status: false
+
+product_types:
+  - "Peraturan Rektor"
+  - "SK Rektor"
+  - "Instruksi Rektor"
+  - "Surat Edaran Rektor"
+  - "SOP"
+
+sop_initial_categories:
+  - "Jurusan Sains"
+  - "Jurusan TPI"
+  - "Perpustakaan"
+  - "TIK"
+  - "Akademik & Kemahasiswaan"
+  - "BMN"
+  - "Kepegawaian"
+  - "Keuangan"
+  - "LPPM"
+
+search_v1:
+  keyword_fields:
+    - "judul"
+    - "nomor"
+    - "tahun"
+    - "jenis"
+    - "kategori"
+    - "tag"
+  filters:
+    - "jenis"
+    - "tahun"
+    - "unit"
+    - "kategori"
+    - "status_hukum"
+  pdf_fulltext: false
+  ocr: false
+  meilisearch: false
+
+document_files:
+  main_file_required: true
+  multiple_attachments: true
+  access_recheck_on_download: true
+  checksum: true
+  stream_download: true
+
+versioning:
+  stable_entity: "dokumen"
+  version_entity: "dokumen_versi"
+  current_pointer: "dokumen.current_published_version_id"
+  keep_old_versions: true
+  supersede_old_version: true
+  draft_revision_replaces_public_immediately: false
+
+letter_templates:
+  module: "Format Persuratan"
+  primary_format_v1: ".docx"
+  access_levels:
+    - "PUBLIK"
+    - "INTERNAL"
+  versioning: true
+  old_version_behavior: "ARCHIVED"
+  hard_delete_normal_history: false
+
+popup_rule:
+  write_actions_require_confirmation: true
+  success_feedback: true
+  error_feedback: true
+  navigation_requires_confirmation: false
+  search_requires_confirmation: false
+
+database_v2:
+  tables:
+    - "unit_kerja"
+    - "pengguna"
+    - "peran"
+    - "izin"
+    - "pengguna_peran"
+    - "peran_izin"
+    - "pengguna_izin"
+    - "sesi_pengguna"
+    - "jenis_dokumen"
+    - "kategori"
+    - "tag"
+    - "dokumen"
+    - "dokumen_versi"
+    - "dokumen_versi_kategori"
+    - "dokumen_versi_tag"
+    - "dokumen_berkas"
+    - "dokumen_relasi"
+    - "dokumen_akses_rahasia"
+    - "dokumen_workflow"
+    - "dokumen_status_hukum_riwayat"
+    - "template_surat"
+    - "template_surat_versi"
+    - "audit_log"
+  legacy_50_table_schema_is_final: false
+  sql_first: true
+
+backend_modules:
+  - "auth"
+  - "users"
+  - "authorization"
+  - "units"
+  - "master"
+  - "documents"
+  - "document-files"
+  - "workflow"
+  - "legal-relations"
+  - "secret-access"
+  - "search"
+  - "letter-templates"
+  - "dashboard"
+  - "audit"
+
+deferred_v1:
+  - "full-text PDF search"
+  - "OCR"
+  - "Meilisearch"
+  - "JDIHN sync"
+  - "external public API for third parties"
+  - "news"
+  - "articles"
+  - "banner CMS"
+  - "FAQ"
+  - "dynamic menu CMS"
+  - "contact/messages module"
+  - "personal collections"
+  - "public statistics page"
+  - "legal services module"
+  - "electronic signatures"
+  - "collaborative drafting"
+  - "e-office numbering"
+  - "microservices"

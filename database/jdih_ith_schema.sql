@@ -1,3 +1,9 @@
+-- LEGACY SCHEMA / SEED — BUKAN SUMBER KEBENARAN JDIH ITH V2.
+-- Schema 50 tabel dan seed di bawah hanya referensi historis, bukan target final V2.
+-- Rujukan dari root repository: docs/CODEX_CONTEXT_JDIH_ITH_V2.md
+-- Rujukan relatif dari file ini: ../docs/CODEX_CONTEXT_JDIH_ITH_V2.md
+-- Phase 0 hanya menambahkan komentar ini; DDL/DML historis tidak diubah.
+
 -- =============================================================================
 --  PORTAL JDIH ITH PAREPARE — SKEMA BASIS DATA
 --  Jaringan Dokumentasi dan Informasi Hukum

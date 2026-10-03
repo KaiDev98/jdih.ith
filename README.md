@@ -1,5 +1,40 @@
 # Portal JDIH ITH Parepare
 
+## Status aktif — JDIH ITH V2
+
+Stack aktif adalah **NestJS + Next.js + TypeScript**, dengan shared Zod dan
+Drizzle SQL-first. Sumber kebenaran desain terbaru adalah
+[docs/CODEX_CONTEXT_JDIH_ITH_V2.md](docs/CODEX_CONTEXT_JDIH_ITH_V2.md).
+Semua implementasi baru harus mengikuti V2 dan instruksi eksplisit pengguna.
+
+Baca berurutan:
+
+1. [AGENTS.md](AGENTS.md).
+2. [CODEX_START_HERE.md](CODEX_START_HERE.md).
+3. [Konteks lengkap V2](docs/CODEX_CONTEXT_JDIH_ITH_V2.md).
+4. [Keputusan V2](docs/CODEX_DECISIONS_JDIH_ITH_V2.yaml).
+5. [Rencana implementasi](docs/CODEX_IMPLEMENTATION_PLAN.md).
+6. [Audit dan alignment Phase 0](docs/CODEX_AUDIT_V2.md).
+
+**Schema 50 tabel dalam `database/jdih_ith_schema.sql` dan seed pasangannya adalah
+LEGACY REFERENCE, bukan target final V2.** Delapan dokumen desain lama, diagram
+lama, dan dokumen Word pada indeks docs merupakan arsip historis. Rekomendasi
+Laravel/Blade/Livewire/Filament telah digantikan oleh NestJS + Next.js.
+
+Phase 0 hanya menyelaraskan dokumentasi. Source aplikasi dan database aktif
+belum dimigrasikan. Rancangan 23 tabel V2 masih perlu desain fisik dan review
+pada Phase 1; file SQL V2 belum dibuat. Target development V2 adalah MySQL 8
+melalui Docker Compose pada host port `3307`, yang juga belum dibuat di Phase 0.
+
+## Catatan foundation sebelumnya — referensi historis
+
+> Bagian 1–8 di bawah dipertahankan sebagai catatan setup foundation lama,
+> bukan petunjuk implementasi V2. Klaim sumber kebenaran schema, hasil pengujian,
+> opsi integrasi, dan roadmap di bagian ini berlaku pada snapshot legacy.
+> Perintah `db:import`, `db:reset`, dan `db:pull` masih mengarah ke alur legacy;
+> jangan gunakan untuk menyiapkan V2. `db:reset` menghapus database.
+> Flag konfigurasi SSO/storage/search tidak membuktikan modulnya sudah tersedia.
+
 Jaringan Dokumentasi dan Informasi Hukum — Institut Teknologi Bacharuddin Jusuf Habibie, Parepare.
 
 Monorepo berisi peladen API, aplikasi web, dan paket kontrak bersama. Perancangan

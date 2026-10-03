@@ -1,4 +1,33 @@
-# Dokumen Perancangan Sistem — Portal JDIH ITH Parepare
+# Dokumentasi Aktif — JDIH ITH V2
+
+Stack aktif: **NestJS + Next.js + TypeScript**. Sumber kebenaran desain terbaru
+untuk seluruh implementasi baru adalah
+[docs/CODEX_CONTEXT_JDIH_ITH_V2.md](CODEX_CONTEXT_JDIH_ITH_V2.md).
+
+| Dokumen aktif | Tujuan |
+| --- | --- |
+| [AGENTS.md](../AGENTS.md) | Aturan kerja dan prioritas sumber kebenaran |
+| [CODEX_START_HERE.md](../CODEX_START_HERE.md) | Panduan membaca context pack |
+| [CODEX_CONTEXT_JDIH_ITH_V2.md](CODEX_CONTEXT_JDIH_ITH_V2.md) | Baseline desain dan aturan bisnis V2 |
+| [CODEX_DECISIONS_JDIH_ITH_V2.yaml](CODEX_DECISIONS_JDIH_ITH_V2.yaml) | Ringkasan keputusan terstruktur |
+| [CODEX_IMPLEMENTATION_PLAN.md](CODEX_IMPLEMENTATION_PLAN.md) | Rencana implementasi bertahap |
+| [CODEX_AUDIT_V2.md](CODEX_AUDIT_V2.md) | Audit source, konflik legacy, batas Phase 0, dan usulan Phase 1/2 |
+
+**Database 50 tabel lama adalah LEGACY SCHEMA / LEGACY REFERENCE, bukan target
+final V2.** Phase 0 hanya menyelaraskan dokumentasi; belum ada schema fisik V2,
+migrasi database, atau implementasi modul domain. MySQL 8 dengan Docker Compose
+port `3307` adalah target fase berikutnya, bukan fasilitas yang sudah tersedia.
+
+## Arsip desain sebelum V2
+
+> **LEGACY DESIGN — BUKAN SUMBER KEBENARAN V2.** Seluruh bagian 1–7, tabel indeks,
+> diagram, SQL, dan dokumen Word yang tercantum di bawah merupakan sejarah
+> rancangan lama. Klaim validasi adalah hasil historis, bukan hasil pengujian V2.
+> Rekomendasi Laravel/Blade/Livewire/Filament, termasuk diagram arsitektur di
+> bagian 7, sudah digantikan oleh **NestJS + Next.js + TypeScript**.
+> Baca konteks V2 di atas sebelum menggunakan kembali gagasan dari arsip ini.
+
+# Dokumen Perancangan Sistem — Portal JDIH ITH Parepare (Legacy)
 
 **Nama Sistem** : JDIH ITH — Jaringan Dokumentasi dan Informasi Hukum
 **Institusi** : Institut Teknologi Bacharuddin Jusuf Habibie (ITH), Parepare, Sulawesi Selatan

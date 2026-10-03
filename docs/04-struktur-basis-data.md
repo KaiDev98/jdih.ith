@@ -1,3 +1,9 @@
+> **LEGACY DESIGN — BUKAN SUMBER KEBENARAN JDIH ITH V2.**
+> Isi historis di bawah dipertahankan sebagai referensi, bukan target implementasi baru.
+> Sumber kebenaran terbaru: [docs/CODEX_CONTEXT_JDIH_ITH_V2.md](CODEX_CONTEXT_JDIH_ITH_V2.md).
+> Stack aktif adalah **NestJS + Next.js + TypeScript**. Rekomendasi Laravel/Blade/Livewire/Filament
+> dalam dokumen lama telah digantikan dan hanya merupakan catatan historis.
+
 # D. STRUKTUR TABEL BASIS DATA
 
 Portal JDIH ITH Parepare
