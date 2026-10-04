@@ -115,6 +115,10 @@ describe('AppModule HTTP security wiring (no database/network provider)', () => 
     auth('AKTIF', ['users.read']);
     expect((await fetch(base + '/api/v1/admin/users', { headers })).status).toBe(200);
   });
+  it('mounts Core Backend below the single global /api/v1 prefix and keeps it closed', async () => {
+    expect((await fetch(base + '/api/v1/admin/master/jenis_dokumen')).status).toBe(401);
+    expect((await fetch(base + '/api/v1/admin/documents/test-id')).status).toBe(401);
+  });
   it('logout requires CSRF proof and clears HttpOnly cookie', async () => {
     auth();
     const headers = { cookie: 'jdih_session=' + token, origin: 'http://localhost:3000' };

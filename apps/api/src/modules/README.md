@@ -2,13 +2,15 @@
 
 > **V2 aktif:** modul `identity/` mengimplementasikan Identity & Security sesuai
 > [catatan implementasi](../../../../docs/IDENTITY_SECURITY_V2.md).
-> Daftar/aturan lama di bawah adalah **LEGACY**, termasuk password/2FA, unit-scoped
-> access, CMS, dan request-access. Gunakan context V2 untuk modul baru.
+> Modul `core-backend/` menjalankan backend dokumen inti sesuai
+> [catatan Core Backend](../../../../docs/CORE_BACKEND_V2.md). Daftar/aturan lama
+> di bawah adalah **LEGACY**, termasuk password/2FA, unit-scoped access, CMS, dan
+> request-access. Gunakan context V2 untuk modul baru.
 
-Direktori ini menampung modul-modul fungsional API. Direktori sengaja dibiarkan
-kosong pada tahap setup: yang sudah ditetapkan adalah **batas tanggung jawabnya**,
-bukan isinya. Menentukan batas lebih dahulu mencegah modul saling menempel
-sehingga sulit dipisahkan kemudian.
+Direktori ini menampung modul-modul fungsional API. `identity/` dan
+`core-backend/` adalah implementasi aktif. Core backend memisahkan controller
+master, documents, legal-relations, secret-access serta alur workflow; service
+menampung aturan domain dan repository menampung transaksi/kueri MySQL.
 
 ## Batas Modul yang Direncanakan
 

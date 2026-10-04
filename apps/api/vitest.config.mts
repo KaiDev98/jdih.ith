@@ -14,6 +14,8 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    // MySQL integration suites intentionally share one isolated test database.
+    fileParallelism: false,
     include: ['src/**/*.spec.ts', 'test/**/*.e2e-spec.ts'],
     coverage: {
       provider: 'v8',

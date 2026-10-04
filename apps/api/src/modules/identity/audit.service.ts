@@ -22,6 +22,15 @@ export interface SecurityAudit {
   afterStatus?: string;
   reason?: string;
 }
+export interface DomainAudit {
+  module: 'master' | 'documents' | 'workflow' | 'legal-relations' | 'secret-access';
+  action: string;
+  entityType: string;
+  entityId: string;
+  actorId: string;
+  before?: Readonly<Record<string, string | number | boolean | null>>;
+  after?: Readonly<Record<string, string | number | boolean | null>>;
+}
 /** Allowlisted fields only. Never accept raw request, token, cookie, provider errors or arbitrary JSON. */
 @Injectable()
 export class AuditService {
@@ -44,6 +53,47 @@ export class AuditService {
             ...(event.reason ? { alasan: event.reason.slice(0, 1000) } : {}),
           })
         : null,
+      randomUUID(),
+    ]);
+  }
+
+  async recordDomain(event: DomainAudit, db: Connection = this.repo.pool) {
+    // Accept only explicit allowlisted scalar projections. Secrets, tokens and arbitrary request
+    // bodies are never passed through to the audit log.
+    const safe = (value: DomainAudit['before']) => {
+      if (!value) return null;
+      const allowed = [
+        'status',
+        'statusHukum',
+        'slug',
+        'kode',
+        'nama',
+        'nomorVersi',
+        'judul',
+        'tingkatAkses',
+        'targetId',
+        'reason',
+      ];
+      return JSON.stringify(
+        Object.fromEntries(
+          Object.entries(value)
+            .filter(
+              ([key, v]) =>
+                allowed.includes(key) &&
+                (v === null || ['string', 'number', 'boolean'].includes(typeof v)),
+            )
+            .map(([k, v]) => [k, typeof v === 'string' ? v.slice(0, 1000) : v]),
+        ),
+      );
+    };
+    await this.repo.insertAudit(db, [
+      event.actorId,
+      event.module,
+      event.action.slice(0, 100),
+      event.entityType.slice(0, 64),
+      event.entityId,
+      safe(event.before),
+      safe(event.after),
       randomUUID(),
     ]);
   }

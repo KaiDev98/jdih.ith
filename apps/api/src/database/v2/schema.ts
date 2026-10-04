@@ -8,6 +8,9 @@ import {
   boolean,
   mysqlEnum,
   json,
+  int,
+  smallint,
+  date,
 } from 'drizzle-orm/mysql-core';
 const idType = customType<{ data: string; driverData: string }>({
   dataType: () => 'bigint unsigned',
@@ -118,4 +121,148 @@ export const dokumen_akses_rahasia = mysqlTable('dokumen_akses_rahasia', {
   revoked_by: idType('revoked_by'),
   grant_reason: varchar('grant_reason', { length: 1000 }).notNull(),
   revoke_reason: varchar('revoke_reason', { length: 1000 }),
+});
+
+// Read/write bindings for Core Backend. Physical constraints remain exclusively in schema.sql.
+export const jenis_dokumen = mysqlTable('jenis_dokumen', {
+  id: idType('id').notNull(),
+  kode: varchar('kode', { length: 40 }).notNull(),
+  nama: varchar('nama', { length: 150 }).notNull(),
+  urutan: smallint('urutan', { unsigned: true }).notNull(),
+  aktif: boolean('aktif').notNull(),
+  created_at: datetime('created_at', { mode: 'string', fsp: 6 }).notNull(),
+  updated_at: datetime('updated_at', { mode: 'string', fsp: 6 }).notNull(),
+});
+export const kategori = mysqlTable('kategori', {
+  id: idType('id').notNull(),
+  kode: varchar('kode', { length: 60 }).notNull(),
+  nama: varchar('nama', { length: 150 }).notNull(),
+  aktif: boolean('aktif').notNull(),
+  created_at: datetime('created_at', { mode: 'string', fsp: 6 }).notNull(),
+  updated_at: datetime('updated_at', { mode: 'string', fsp: 6 }).notNull(),
+});
+export const tag = mysqlTable('tag', {
+  id: idType('id').notNull(),
+  nama: varchar('nama', { length: 100 }).notNull(),
+  created_at: datetime('created_at', { mode: 'string', fsp: 6 }).notNull(),
+});
+export const dokumen = mysqlTable('dokumen', {
+  id: idType('id').notNull(),
+  kode_dokumen: varchar('kode_dokumen', { length: 64 }).notNull(),
+  slug: varchar('slug', { length: 191 }).notNull(),
+  jenis_dokumen_id: idType('jenis_dokumen_id').notNull(),
+  status_hukum: mysqlEnum('status_hukum', ['BERLAKU', 'DIUBAH', 'DICABUT']).notNull(),
+  current_published_version_id: idType('current_published_version_id'),
+  created_by: idType('created_by').notNull(),
+  deleted_at: datetime('deleted_at', { mode: 'string', fsp: 6 }),
+  created_at: datetime('created_at', { mode: 'string', fsp: 6 }).notNull(),
+  updated_at: datetime('updated_at', { mode: 'string', fsp: 6 }).notNull(),
+});
+export const dokumen_versi = mysqlTable('dokumen_versi', {
+  id: idType('id').notNull(),
+  dokumen_id: idType('dokumen_id').notNull(),
+  nomor_versi: int('nomor_versi', { unsigned: true }).notNull(),
+  status_workflow: mysqlEnum('status_workflow', [
+    'DRAF',
+    'DIAJUKAN',
+    'REVISI',
+    'DISETUJUI',
+    'TERBIT',
+    'DITARIK',
+  ]).notNull(),
+  tingkat_akses: mysqlEnum('tingkat_akses', ['publik', 'internal', 'rahasia']).notNull(),
+  nomor: varchar('nomor', { length: 100 }),
+  tahun: smallint('tahun', { unsigned: true }),
+  judul: varchar('judul', { length: 500 }).notNull(),
+  pic: varchar('pic', { length: 255 }),
+  unit_kerja_id: idType('unit_kerja_id'),
+  tanggal_penetapan: date('tanggal_penetapan', { mode: 'string' }),
+  created_by: idType('created_by').notNull(),
+  verified_by: idType('verified_by'),
+  approved_at: datetime('approved_at', { mode: 'string', fsp: 6 }),
+  published_by: idType('published_by'),
+  published_at: datetime('published_at', { mode: 'string', fsp: 6 }),
+  superseded_at: datetime('superseded_at', { mode: 'string', fsp: 6 }),
+  withdrawn_at: datetime('withdrawn_at', { mode: 'string', fsp: 6 }),
+  withdrawal_reason: varchar('withdrawal_reason', { length: 1000 }),
+  created_at: datetime('created_at', { mode: 'string', fsp: 6 }).notNull(),
+  updated_at: datetime('updated_at', { mode: 'string', fsp: 6 }).notNull(),
+});
+export const dokumen_versi_kategori = mysqlTable('dokumen_versi_kategori', {
+  dokumen_versi_id: idType('dokumen_versi_id').notNull(),
+  kategori_id: idType('kategori_id').notNull(),
+});
+export const dokumen_versi_tag = mysqlTable('dokumen_versi_tag', {
+  dokumen_versi_id: idType('dokumen_versi_id').notNull(),
+  tag_id: idType('tag_id').notNull(),
+});
+export const dokumen_berkas = mysqlTable('dokumen_berkas', {
+  id: idType('id').notNull(),
+  dokumen_versi_id: idType('dokumen_versi_id').notNull(),
+  jenis_berkas: mysqlEnum('jenis_berkas', ['UTAMA', 'LAMPIRAN']).notNull(),
+  judul: varchar('judul', { length: 255 }),
+  storage_key: varchar('storage_key', { length: 512 }).notNull(),
+  nama_asli: varchar('nama_asli', { length: 255 }).notNull(),
+  mime_type: varchar('mime_type', { length: 150 }).notNull(),
+  size_bytes: idType('size_bytes').notNull(),
+  checksum: customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => 'binary(32)' })(
+    'checksum',
+  ).notNull(),
+  urutan: int('urutan', { unsigned: true }).notNull(),
+  created_at: datetime('created_at', { mode: 'string', fsp: 6 }).notNull(),
+});
+export const dokumen_relasi = mysqlTable('dokumen_relasi', {
+  id: idType('id').notNull(),
+  source_version_id: idType('source_version_id').notNull(),
+  target_document_id: idType('target_document_id').notNull(),
+  jenis_relasi: mysqlEnum('jenis_relasi', [
+    'MENGUBAH',
+    'MENCABUT',
+    'DASAR_HUKUM',
+    'TERKAIT',
+  ]).notNull(),
+  catatan: varchar('catatan', { length: 2000 }),
+  created_at: datetime('created_at', { mode: 'string', fsp: 6 }).notNull(),
+});
+export const dokumen_workflow = mysqlTable('dokumen_workflow', {
+  id: idType('id').notNull(),
+  dokumen_versi_id: idType('dokumen_versi_id').notNull(),
+  status_asal: mysqlEnum('status_asal', [
+    'DRAF',
+    'DIAJUKAN',
+    'REVISI',
+    'DISETUJUI',
+    'TERBIT',
+    'DITARIK',
+  ]),
+  status_tujuan: mysqlEnum('status_tujuan', [
+    'DRAF',
+    'DIAJUKAN',
+    'REVISI',
+    'DISETUJUI',
+    'TERBIT',
+    'DITARIK',
+  ]).notNull(),
+  action: mysqlEnum('action', [
+    'CREATE',
+    'SUBMIT',
+    'RETURN',
+    'APPROVE',
+    'PUBLISH',
+    'WITHDRAW',
+  ]).notNull(),
+  catatan: varchar('catatan', { length: 2000 }),
+  actor_id: idType('actor_id').notNull(),
+  created_at: datetime('created_at', { mode: 'string', fsp: 6 }).notNull(),
+});
+export const dokumen_status_hukum_riwayat = mysqlTable('dokumen_status_hukum_riwayat', {
+  id: idType('id').notNull(),
+  dokumen_id: idType('dokumen_id').notNull(),
+  status_asal: mysqlEnum('status_asal', ['BERLAKU', 'DIUBAH', 'DICABUT']),
+  status_tujuan: mysqlEnum('status_tujuan', ['BERLAKU', 'DIUBAH', 'DICABUT']).notNull(),
+  source_version_id: idType('source_version_id'),
+  alasan: varchar('alasan', { length: 2000 }).notNull(),
+  actor_id: idType('actor_id').notNull(),
+  confirmed_at: datetime('confirmed_at', { mode: 'string', fsp: 6 }).notNull(),
+  created_at: datetime('created_at', { mode: 'string', fsp: 6 }).notNull(),
 });

@@ -13,6 +13,7 @@ import { BungkusTanggapanInterceptor } from './common/interceptors/bungkus-tangg
 import { DatabaseModule } from './database/database.module.js';
 import { HealthModule } from './health/health.module.js';
 import { IdentityModule } from './modules/identity/identity.module.js';
+import { CoreBackendModule } from './modules/core-backend/core-backend.module.js';
 
 @Module({
   imports: [
@@ -123,6 +124,7 @@ import { IdentityModule } from './modules/identity/identity.module.js';
     DatabaseModule,
     HealthModule,
     IdentityModule,
+    CoreBackendModule,
 
     // Modul domain ditambahkan di sini seiring pengembangan.
     // Lihat src/modules/README.md untuk batas tanggung jawab tiap modul.
