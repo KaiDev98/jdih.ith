@@ -25,6 +25,8 @@ import {
   skemaJenisDokumen,
   skemaKategori,
   skemaTag,
+  skemaDetailDokumenPublik,
+  skemaDetailDokumenAuthorized,
 } from '@jdih/shared';
 import { cekIzin } from '../identity/security.js';
 import { AuditService } from '../identity/audit.service.js';
@@ -32,6 +34,7 @@ import { DocumentPolicyService } from '../identity/document-policy.service.js';
 import { utc } from '../identity/identity.repository.js';
 import { CoreBackendRepository } from './core-backend.repository.js';
 import type { KonfigurasiApp } from '../../config/configuration.js';
+import { DocumentFilesService } from './files/document-files.service.js';
 
 type Actor = PenggunaAktif;
 interface MasterPayload {
@@ -53,6 +56,7 @@ export class CoreBackendService {
     private readonly audit: AuditService,
     private readonly config: ConfigService<KonfigurasiApp, true>,
     private readonly policy: DocumentPolicyService,
+    private readonly files: DocumentFilesService,
   ) {}
   private allow(actor: Actor, permission: Parameters<typeof cekIzin>[1][number]) {
     cekIzin(actor, [permission]);
@@ -334,7 +338,7 @@ export class CoreBackendService {
     const r = (
       await this.repo.rows(
         this.repo.pool,
-        "SELECT CAST(d.id AS CHAR) id,CAST(j.nama AS CHAR) tipe,v.tingkat_akses,d.status_hukum statusHukum,v.status_workflow,IF(d.current_published_version_id=v.id,1,0) current,IF(d.deleted_at IS NULL,0,1) deleted,v.judul,v.nomor,v.tanggal_penetapan tanggalPenetapan,v.pic FROM dokumen d JOIN dokumen_versi v ON v.id=d.current_published_version_id JOIN jenis_dokumen j ON j.id=d.jenis_dokumen_id WHERE d.slug=? AND v.status_workflow='TERBIT' AND d.deleted_at IS NULL",
+        "SELECT CAST(d.id AS CHAR) id,CAST(v.id AS CHAR) versionId,d.slug,CAST(j.nama AS CHAR) tipe,v.tingkat_akses,d.status_hukum statusHukum,v.status_workflow,IF(d.current_published_version_id=v.id,1,0) current,IF(d.deleted_at IS NULL,0,1) deleted,v.judul,v.nomor,v.tanggal_penetapan tanggalPenetapan,v.pic FROM dokumen d JOIN dokumen_versi v ON v.id=d.current_published_version_id JOIN jenis_dokumen j ON j.id=d.jenis_dokumen_id WHERE d.slug=? AND v.status_workflow='TERBIT' AND d.deleted_at IS NULL",
         [slug],
       )
     )[0] as any;
@@ -344,19 +348,43 @@ export class CoreBackendService {
         id: r.id,
         tingkatAkses: r.tingkat_akses,
         published: r.status_workflow === 'TERBIT',
-        current: Boolean(r.current),
-        deleted: Boolean(r.deleted),
+        current: Number(r.current) === 1,
+        deleted: Number(r.deleted) === 1,
       },
       actor,
     );
-    return {
+    const fileRows = (await this.repo.rows(
+      this.repo.pool,
+      'SELECT CAST(id AS CHAR) id,jenis_berkas jenisBerkas,nama_asli namaAsli FROM dokumen_berkas WHERE dokumen_versi_id=? ORDER BY jenis_berkas,urutan,id',
+      [r.versionId],
+    )) as any[];
+    const main = fileRows.find((f) => f.jenisBerkas === 'UTAMA');
+    if (!main) throw new NotFoundException();
+    const response = {
+      id: r.id,
+      slug: r.slug,
       tipe: r.tipe,
       judul: r.judul,
       nomor: r.nomor,
       tanggalPenetapan: r.tanggalPenetapan,
       statusHukum: r.statusHukum,
       pic: r.pic,
+      berkasUtama: {
+        id: main.id,
+        jenisBerkas: 'UTAMA',
+        namaAsli: main.namaAsli,
+        kemampuan: { preview: true, download: true },
+      },
+      lampiran: fileRows.filter((f) => f.jenisBerkas === 'LAMPIRAN').map((f) => ({
+        id: f.id,
+        jenisBerkas: 'LAMPIRAN',
+        namaAsli: f.namaAsli,
+        kemampuan: { preview: true, download: true },
+      })),
     };
+    return r.tingkat_akses === 'publik'
+      ? skemaDetailDokumenPublik.parse({ ...response, tingkatAkses: 'publik' })
+      : skemaDetailDokumenAuthorized.parse({ ...response, tingkatAkses: r.tingkat_akses });
   }
   async updateDocument(actor: Actor, id: string, raw: unknown) {
     this.allow(actor, 'documents.edit');
@@ -702,16 +730,9 @@ export class CoreBackendService {
       )[0] as any;
       if (!v || v.status_workflow !== 'DISETUJUI' || String(v.dokumen_id) !== String(doc.id))
         throw new ConflictException();
-      // The version row is the serialization point for publish and future file-metadata writes.
-      // Phase 3 checks metadata readiness only; storage-object validation belongs to Phase 4.
-      const mainFile = (
-        await this.repo.rows(
-          db,
-          "SELECT id FROM dokumen_berkas WHERE dokumen_versi_id=? AND jenis_berkas='UTAMA' LIMIT 1 FOR UPDATE",
-          [id],
-        )
-      )[0];
-      if (!mainFile) throw new UnprocessableEntityException('Metadata file UTAMA wajib tersedia');
+      // The locked version row serializes publish against file metadata writes; object bytes are
+      // verified before moving the current publication pointer.
+      await this.files.assertPublishReady(db, id);
       const fresh = (await this.repo.rows(
         db,
         "SELECT CAST(d.id AS CHAR) targetDocumentId,d.status_hukum statusSaatIni,r.jenis_relasi FROM dokumen_relasi r JOIN dokumen d ON d.id=r.target_document_id WHERE r.source_version_id=? AND r.jenis_relasi IN ('MENGUBAH','MENCABUT') ORDER BY d.id FOR UPDATE",

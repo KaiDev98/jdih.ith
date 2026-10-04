@@ -24,6 +24,7 @@ export const skemaVersiTemplateAdmin = z.strictObject({
 });
 const item = {
   id: skemaId,
+  slug: skemaSlug,
   nama: teksWajib(200, 'Nama'),
   kemampuan: z.strictObject({ download: z.literal(true) }),
 };
@@ -42,6 +43,9 @@ export const skemaMetadataDownloadTemplate = z.strictObject({
   mimeType: teksWajib(150, 'MIME'),
   sizeBytes: skemaId,
 });
+export const skemaUnggahTemplateAwal = skemaBuatTemplate.extend({
+  tingkatAkses: skemaAksesTemplate,
+});
 export type MuatanBuatTemplate = z.infer<typeof skemaBuatTemplate>;
 export type MuatanBuatVersiTemplate = z.infer<typeof skemaBuatVersiTemplate>;
 export type MuatanArsipTemplate = z.infer<typeof skemaArsipTemplate>;
@@ -49,3 +53,4 @@ export type ItemTemplatePublik = z.infer<typeof skemaItemTemplatePublik>;
 export type ItemTemplateAuthorized = z.infer<typeof skemaItemTemplateAuthorized>;
 export type VersiTemplateAdmin = z.infer<typeof skemaVersiTemplateAdmin>;
 export type MetadataDownloadTemplate = z.infer<typeof skemaMetadataDownloadTemplate>;
+export type MuatanUnggahTemplateAwal = z.infer<typeof skemaUnggahTemplateAwal>;

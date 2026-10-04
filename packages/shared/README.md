@@ -2,8 +2,9 @@
 
 Kontrak TypeScript/Zod 4 untuk API dan web. Sumber desain adalah
 [context V2](../../docs/CODEX_CONTEXT_JDIH_ITH_V2.md); bentuk penyimpanan mengikuti
-[schema V2](../../database/v2/schema.sql). Phase 2 tidak mengimplementasikan service,
-OAuth, query database, state machine, atau halaman fitur.
+[schema V2](../../database/v2/schema.sql). Kontrak Zod mendefinisikan bentuk API;
+authorization, query database, storage, dan state transition tetap ditegakkan oleh
+backend. Phase 2 sendiri tidak mengimplementasikan service atau halaman fitur.
 
 ## Audit dan perubahan dari foundation legacy
 

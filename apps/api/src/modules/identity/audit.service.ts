@@ -23,7 +23,7 @@ export interface SecurityAudit {
   reason?: string;
 }
 export interface DomainAudit {
-  module: 'master' | 'documents' | 'workflow' | 'legal-relations' | 'secret-access';
+  module: 'master' | 'documents' | 'workflow' | 'legal-relations' | 'secret-access' | 'letter-templates';
   action: string;
   entityType: string;
   entityId: string;

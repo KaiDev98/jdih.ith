@@ -21,7 +21,7 @@ describe('CoreBackendService authorization boundary', () => {
   const setup = () => {
     const repo = { transaction: vi.fn(), pool: {}, rows: vi.fn() };
     const audit = { recordDomain: vi.fn() };
-    const service = new CoreBackendService(repo as never, audit as never, {} as never, {} as never);
+    const service = new CoreBackendService(repo as never, audit as never, {} as never, {} as never, { assertPublishReady: vi.fn() } as never);
     return { repo, service };
   };
 

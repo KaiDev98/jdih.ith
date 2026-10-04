@@ -43,7 +43,7 @@ export const skemaUbahDokumen = z
     jenisDokumenId: skemaId.optional(),
   })
   .refine((v) => Object.keys(v).length > 0, 'Perubahan tidak boleh kosong');
-/** Validate persisted metadata again at publish; this does not validate authorization or main-file existence. */
+/** Validate persisted version metadata; the backend separately checks UTAMA metadata and storage readiness. */
 export const skemaKesiapanPublikasi = skemaBuatVersiDokumen.extend({
   nomor: teksWajib(100, 'Nomor'),
   pic: teksWajib(255, 'PIC'),
@@ -68,6 +68,14 @@ export const skemaMetaBerkas = z.strictObject({
   jenisBerkas: skemaJenisBerkas,
   judul: z.string().trim().max(255).optional(),
   urutan: z.number().int().min(0).max(4294967295).default(0),
+});
+export const skemaHasilUnggahBerkas = z.strictObject({
+  id: skemaId,
+  jenisBerkas: skemaJenisBerkas,
+  namaAsli: teksWajib(255, 'Nama berkas'),
+  mimeType: z.enum(['application/pdf']),
+  sizeBytes: skemaId,
+  checksum: z.string().regex(/^[a-f0-9]{64}$/),
 });
 const berkasAuthorized = {
   id: skemaId,

@@ -303,6 +303,7 @@ for (const field of [
 test('template list only title and download, no public Internal', () => {
   const item = {
     id: '1',
+    slug: 'surat-tugas',
     nama: 'Surat Tugas',
     tingkatAkses: 'PUBLIK',
     kemampuan: { download: true },

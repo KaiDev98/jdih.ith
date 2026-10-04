@@ -4,6 +4,9 @@ import { LegalRelationsModule } from './legal-relations/legal-relations.module.j
 import { MasterModule } from './master/master.module.js';
 import { SecretAccessModule } from './secret-access/secret-access.module.js';
 import { WorkflowModule } from './workflow/workflow.module.js';
+import { FilesModule } from './files/files.module.js';
+import { SearchModule } from './search/search.module.js';
+import { LetterTemplatesModule } from './templates/letter-templates.module.js';
 
 @Module({
   imports: [
@@ -12,6 +15,9 @@ import { WorkflowModule } from './workflow/workflow.module.js';
     WorkflowModule,
     LegalRelationsModule,
     SecretAccessModule,
+    FilesModule,
+    SearchModule,
+    LetterTemplatesModule,
   ],
 })
 export class CoreBackendModule {}

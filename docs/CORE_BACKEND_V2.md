@@ -47,12 +47,15 @@ menghasilkan not-found.
 ## Batas fase
 
 Phase 3 menjamin keberadaan metadata row `dokumen_berkas` jenis `UTAMA` saat
-publish, tanpa memeriksa objek fisik di storage. Phase 4 menambahkan pemeriksaan
-storage object existence, upload, MIME, preview, download, streaming, serta
-otorisasi file. Endpoint detail hanya mengembalikan enam metadata hukum yang
-disetujui dan belum menawarkan file. Search penuh, template runtime, audit
-browser, serta UI konfirmasi/progress/feedback tetap di luar phase ini. Semua
-write tetap harus mendapat confirmation dan feedback saat UI diimplementasikan.
+publish. Phase 4 juga memverifikasi object, ukuran, dan checksum sebelum current
+pointer berpindah. Endpoint detail mengembalikan enam metadata hukum yang
+disetujui beserta capability metadata file setelah policy lulus; setiap stream
+memeriksa ulang policy. Search metadata dan runtime Format Persuratan ditambahkan.
+Detail arsitektur, endpoints, kegagalan transaksi, dan limitasi ada di
+`docs/PHASE4_FILES_SEARCH_TEMPLATES.md`. Range request PDF belum didukung dan
+storage S3/MinIO belum diimplementasikan. Audit browser serta UI
+konfirmasi/progress/feedback tetap di luar phase ini. Semua write tetap harus
+mendapat confirmation dan feedback saat UI diimplementasikan.
 
 Technical debt: beberapa query dynamic SQL dan hasil row mysql2 masih memakai
 lint suppression terlokalisasi; suppression ini belum direstrukturisasi pada

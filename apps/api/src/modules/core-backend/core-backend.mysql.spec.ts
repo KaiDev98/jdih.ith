@@ -4,6 +4,10 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseEnv } from 'node:util';
 import { randomUUID } from 'node:crypto';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { Readable } from 'node:stream';
 import mysql from 'mysql2';
 import type { Pool, RowDataPacket } from 'mysql2/promise';
 import { ConfigService } from '@nestjs/config';
@@ -14,8 +18,49 @@ import { AuditService } from '../identity/audit.service.js';
 import { DocumentPolicyService } from '../identity/document-policy.service.js';
 import { CoreBackendRepository } from './core-backend.repository.js';
 import { CoreBackendService } from './core-backend.service.js';
+import { LocalStorageDriver } from './storage/storage.service.js';
+import { DocumentFilesService } from './files/document-files.service.js';
+import { SearchService } from './search/search.service.js';
+import { LetterTemplatesService } from './templates/letter-templates.service.js';
 
 const enabled = Boolean(process.env.IDENTITY_TEST_ENV);
+function minimalDocx() {
+  const entries = [
+    ['[Content_Types].xml', Buffer.from('<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>')],
+    ['word/document.xml', Buffer.from('<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body/></w:document>')],
+  ] as const;
+  const crc32 = (bytes: Buffer) => {
+    let crc = 0xffffffff;
+    for (const byte of bytes) {
+      crc ^= byte;
+      for (let bit = 0; bit < 8; bit += 1) crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+    }
+    return (crc ^ 0xffffffff) >>> 0;
+  };
+  const locals: Buffer[] = [];
+  const centrals: Buffer[] = [];
+  let offset = 0;
+  for (const [name, body] of entries) {
+    const filename = Buffer.from(name);
+    const crc = crc32(body);
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0); local.writeUInt16LE(20, 4); local.writeUInt32LE(crc, 14);
+    local.writeUInt32LE(body.length, 18); local.writeUInt32LE(body.length, 22); local.writeUInt16LE(filename.length, 26);
+    locals.push(local, filename, body);
+    const central = Buffer.alloc(46);
+    central.writeUInt32LE(0x02014b50, 0); central.writeUInt16LE(20, 4); central.writeUInt16LE(20, 6);
+    central.writeUInt32LE(crc, 16); central.writeUInt32LE(body.length, 20); central.writeUInt32LE(body.length, 24);
+    central.writeUInt16LE(filename.length, 28); central.writeUInt32LE(offset, 42);
+    centrals.push(central, filename);
+    offset += local.length + filename.length + body.length;
+  }
+  const centralBytes = Buffer.concat(centrals);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(entries.length, 8); end.writeUInt16LE(entries.length, 10);
+  end.writeUInt32LE(centralBytes.length, 12); end.writeUInt32LE(offset, 16);
+  return Buffer.concat([...locals, centralBytes, end]);
+}
+
 describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
   let pool: Pool;
   let identities: IdentityRepository;
@@ -24,6 +69,11 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
   let actor: any;
   let second: any;
   let policy: DocumentPolicyService;
+  let storage: LocalStorageDriver;
+  let storageRoot: string;
+  let files: DocumentFilesService;
+  let search: SearchService;
+  let templates: LetterTemplatesService;
   const uid = () => randomUUID().replaceAll('-', '');
   beforeAll(async () => {
     const env = parseEnv(readFileSync(resolve(process.env.IDENTITY_TEST_ENV!), 'utf8'));
@@ -56,17 +106,29 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     identities = new IdentityRepository(pool);
     audit = new AuditService(identities);
     policy = new DocumentPolicyService(identities, audit);
+    storageRoot = await mkdtemp(join(tmpdir(), 'jdih-core-storage-'));
+    const config = new ConfigService({
+      identitas: { key: 'integration-test-key' },
+      penyimpanan: { jalurLokal: storageRoot, ukuranMaksimumBita: 50 * 1024 * 1024 },
+    }) as any;
+    storage = new LocalStorageDriver(config);
+    const repository = new CoreBackendRepository(pool);
+    files = new DocumentFilesService(repository, storage, audit, policy, config);
+    search = new SearchService(repository);
+    templates = new LetterTemplatesService(repository, storage, audit, config);
     service = new CoreBackendService(
-      new CoreBackendRepository(pool),
+      repository,
       audit,
-      new ConfigService({ identitas: { key: 'integration-test-key' } }) as any,
+      config,
       policy,
+      files,
     );
     actor = await addAdmin();
     second = await addAdmin();
   }, 15000);
   afterAll(async () => {
     await pool?.end();
+    if (storageRoot) await rm(storageRoot, { recursive: true, force: true });
   });
   async function addAdmin() {
     const suffix = uid();
@@ -102,6 +164,18 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
       "INSERT INTO pengguna_peran(pengguna_id,peran_id) SELECT ?,id FROM peran WHERE kode='DOSEN_STAF'",
       [id],
     );
+    const row = await identities.user(pool, id);
+    return identities.principal(pool, row!);
+  }
+  async function addPendingStaff() {
+    const suffix = uid();
+    const [unit] = await pool.execute('INSERT INTO unit_kerja(kode,nama) VALUES(?,?)', [suffix, `Unit ${suffix}`]);
+    const [user] = await pool.execute(
+      "INSERT INTO pengguna(google_sub,email,nama,status,unit_kerja_id) VALUES(?,?,?,'MENUNGGU_VERIFIKASI',?)",
+      [`sub-${suffix}`, `${suffix}@ith.ac.id`, `Pending ${suffix}`, String((unit as any).insertId)],
+    );
+    const id = String((user as any).insertId);
+    await pool.execute("INSERT INTO pengguna_peran(pengguna_id,peran_id) SELECT ?,id FROM peran WHERE kode='DOSEN_STAF'", [id]);
     const row = await identities.user(pool, id);
     return identities.principal(pool, row!);
   }
@@ -144,10 +218,22 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
   }
   async function addFileMetadata(versionId: string, kind: 'UTAMA' | 'LAMPIRAN') {
     const suffix = uid();
+    const content = Buffer.from('%PDF-1.7\nmetadata-only test\n%%EOF\n');
+    const staged = await storage.stage(Readable.from([content]));
+    await storage.finalize(staged);
     await pool.execute(
       'INSERT INTO dokumen_berkas(dokumen_versi_id,jenis_berkas,storage_key,nama_asli,mime_type,size_bytes,checksum) VALUES(?,?,?,?,?,?,?)',
-      [versionId, kind, `metadata-only/${suffix}`, `${suffix}.pdf`, 'application/pdf', 1, Buffer.alloc(32)],
+      [versionId, kind, staged.storageKey, `${suffix}.pdf`, 'application/pdf', staged.byte, staged.checksum],
     );
+  }
+  async function incomingFile(name: string, bytes: Buffer) {
+    const path = join(storageRoot, `${uid()}.upload`);
+    await writeFile(path, bytes);
+    return { path, originalname: name };
+  }
+  async function documentSlug(id: string) {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT slug FROM dokumen WHERE id=?', [id]);
+    return String(rows[0]!.slug);
   }
 
   it('keeps stable identity and current publication through a new draft, then atomically publishes revision and legal impact', async () => {
@@ -268,6 +354,216 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
       statusWorkflow: 'TERBIT',
       currentPublishedVersionId: d.versionId,
     });
+  });
+
+  it('uploads one UTAMA and multiple PDF LAMPIRAN, then rechecks access for each file request', async () => {
+    const publicDoc = await doc('publik');
+    await service.updateVersion(actor, publicDoc.versionId, ready('File access public'));
+    const pdf = Buffer.from('%PDF-1.7\nfile integration fixture\n%%EOF\n');
+    const main = await files.upload(actor, publicDoc.versionId, await incomingFile('main.pdf', pdf), { jenisBerkas: 'UTAMA' });
+    await files.upload(actor, publicDoc.versionId, await incomingFile('appendix-a.pdf', pdf), { jenisBerkas: 'LAMPIRAN', urutan: 1 });
+    await files.upload(actor, publicDoc.versionId, await incomingFile('appendix-b.pdf', pdf), { jenisBerkas: 'LAMPIRAN', urutan: 2 });
+    await expect(files.upload(actor, publicDoc.versionId, await incomingFile('duplicate.pdf', pdf), { jenisBerkas: 'UTAMA' })).rejects.toThrow();
+    await expect(files.upload(actor, publicDoc.versionId, await incomingFile('fake.pdf', Buffer.from('not PDF bytes')), { jenisBerkas: 'LAMPIRAN' })).rejects.toThrow();
+    await approve(publicDoc.versionId);
+    await publish(publicDoc.versionId);
+    const fileSlug = await documentSlug(publicDoc.id);
+    const [publicationState] = await pool.query<RowDataPacket[]>(
+      'SELECT CAST(d.current_published_version_id AS CHAR) currentId,CAST(v.id AS CHAR) versionId,v.status_workflow,d.deleted_at,f.dokumen_versi_id fileVersion FROM dokumen d JOIN dokumen_versi v ON v.id=d.current_published_version_id JOIN dokumen_berkas f ON f.dokumen_versi_id=v.id WHERE d.slug=? AND f.id=?',
+      [fileSlug, main.id],
+    );
+    expect(publicationState[0]).toMatchObject({ currentId: publicDoc.versionId, versionId: publicDoc.versionId, status_workflow: 'TERBIT' });
+    const [policyState] = await pool.query<RowDataPacket[]>(
+      'SELECT IF(d.current_published_version_id=v.id,1,0) is_current,IF(d.deleted_at IS NULL,0,1) is_deleted FROM dokumen d JOIN dokumen_versi v ON v.id=d.current_published_version_id JOIN dokumen_berkas f ON f.dokumen_versi_id=v.id WHERE d.slug=? AND f.id=?',
+      [fileSlug, main.id],
+    );
+    expect(policyState[0]).toMatchObject({ is_current: '1', is_deleted: '0' });
+    await expect(service.publicDetail(fileSlug)).resolves.toMatchObject({
+      tingkatAkses: 'publik',
+      berkasUtama: { id: main.id, jenisBerkas: 'UTAMA', kemampuan: { preview: true, download: true } },
+      lampiran: expect.arrayContaining([expect.objectContaining({ jenisBerkas: 'LAMPIRAN' })]),
+    });
+    const opened = await files.openCurrent(fileSlug, main.id);
+    const chunks: Buffer[] = [];
+    for await (const chunk of opened.stream) chunks.push(chunk as Buffer);
+    expect(Buffer.concat(chunks)).toEqual(pdf);
+
+    const internal = await doc('internal');
+    await service.updateVersion(actor, internal.versionId, ready('Internal file', 'internal'));
+    const internalMain = await files.upload(actor, internal.versionId, await incomingFile('internal.pdf', pdf), { jenisBerkas: 'UTAMA' });
+    await approve(internal.versionId);
+    await publish(internal.versionId);
+    const internalSlug = await documentSlug(internal.id);
+    await expect(files.openCurrent(internalSlug, internalMain.id)).rejects.toThrow();
+    await expect(files.openCurrent(internalSlug, internalMain.id, await addStaff())).resolves.toMatchObject({ mimeType: 'application/pdf' });
+
+    const secret = await doc('rahasia');
+    await service.updateVersion(actor, secret.versionId, ready('Secret file', 'rahasia'));
+    const secretMain = await files.upload(actor, secret.versionId, await incomingFile('secret.pdf', pdf), { jenisBerkas: 'UTAMA' });
+    await approve(secret.versionId);
+    await publish(secret.versionId);
+    const staff = await addStaff();
+    const secretSlug = await documentSlug(secret.id);
+    await expect(files.openCurrent(secretSlug, secretMain.id)).rejects.toThrow();
+    await expect(files.openCurrent(secretSlug, secretMain.id, staff)).rejects.toThrow();
+    await service.grant(actor, secret.id, { penggunaId: staff.id, alasan: 'Uji file secret', expiresAt: null });
+    await expect(files.openCurrent(secretSlug, secretMain.id, staff)).resolves.toMatchObject({ mimeType: 'application/pdf' });
+    const [audited] = await pool.query<RowDataPacket[]>(
+      "SELECT COUNT(*) total FROM audit_log WHERE module='identity' AND action='SECRET_ACCESS' AND actor_id=? AND entity_id=?",
+      [staff.id, secret.id],
+    );
+    expect(Number(audited[0]?.total)).toBe(1);
+  });
+
+  it('blocks publish when a main-file storage object is missing or its checksum no longer matches', async () => {
+    const d = await doc();
+    await service.updateVersion(actor, d.versionId, ready('Missing storage object'));
+    await approve(d.versionId);
+    await addFileMetadata(d.versionId, 'UTAMA');
+    const [row] = await pool.query<RowDataPacket[]>(
+      'SELECT storage_key FROM dokumen_berkas WHERE dokumen_versi_id=? AND jenis_berkas=\'UTAMA\'', [d.versionId],
+    );
+    await storage.delete(String(row[0]!.storage_key));
+    await expect(publish(d.versionId)).rejects.toThrow('File UTAMA tidak tersedia atau checksum berubah');
+    const [status] = await pool.query<RowDataPacket[]>(
+      'SELECT status_workflow FROM dokumen_versi WHERE id=?', [d.versionId],
+    );
+    expect(status[0]?.status_workflow).toBe('DISETUJUI');
+    const [pointer] = await pool.query<RowDataPacket[]>(
+      'SELECT current_published_version_id FROM dokumen WHERE id=?', [d.id],
+    );
+    expect(pointer[0]?.current_published_version_id).toBeNull();
+
+    const tampered = await doc();
+    await service.updateVersion(actor, tampered.versionId, ready('Checksum mismatch'));
+    await approve(tampered.versionId);
+    await addFileMetadata(tampered.versionId, 'UTAMA');
+    await pool.execute('UPDATE dokumen_berkas SET checksum=? WHERE dokumen_versi_id=? AND jenis_berkas=\'UTAMA\'', [Buffer.alloc(32), tampered.versionId]);
+    await expect(publish(tampered.versionId)).rejects.toThrow('File UTAMA tidak tersedia atau checksum berubah');
+  });
+
+  it('creates templates, atomically archives old versions, enforces visibility and archives safely', async () => {
+    const suffix = uid();
+    const first = await templates.create(
+      actor,
+      await incomingFile('surat.docx', minimalDocx()),
+      { slug: `format-${suffix}`, nama: 'Format Surat', tingkatAkses: 'PUBLIK' },
+    );
+    const publicList = await templates.list({ halaman: 1, perHalaman: 20 });
+    expect(publicList.data).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: first.id, slug: `format-${suffix}`, kemampuan: { download: true } }),
+    ]));
+    await expect(templates.open(`format-${suffix}`)).resolves.toMatchObject({ mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+
+    const originalStage = storage.stage.bind(storage);
+    const rollbackStage = vi.spyOn(storage, 'stage');
+    let failedObject = '';
+    rollbackStage.mockImplementation(async (stream) => {
+      const object = await originalStage(stream);
+      failedObject = object.storageKey;
+      return object;
+    });
+    const auditSpy = vi.spyOn(audit, 'recordDomain').mockImplementation(() => Promise.reject(new Error('template audit rollback probe')));
+    await expect(templates.newVersion(actor, first.id, await incomingFile('rolled-back.docx', minimalDocx()), { tingkatAkses: 'INTERNAL' })).rejects.toThrow('template audit rollback probe');
+    auditSpy.mockRestore(); rollbackStage.mockRestore();
+    expect(await storage.exists(failedObject)).toBe(false);
+    const [afterRollback] = await pool.query<RowDataPacket[]>(
+      'SELECT CAST(current_version_id AS CHAR) current FROM template_surat WHERE id=?', [first.id],
+    );
+    expect(afterRollback[0]?.current).toBe(first.versionId);
+
+    const next = await templates.newVersion(
+      actor,
+      first.id,
+      await incomingFile('surat-internal.docx', minimalDocx()),
+      { tingkatAkses: 'INTERNAL' },
+    );
+    const [versions] = await pool.query<RowDataPacket[]>(
+      'SELECT status FROM template_surat_versi WHERE template_surat_id=? ORDER BY nomor_versi', [first.id],
+    );
+    expect(versions.map((row) => String(row.status))).toEqual(['ARCHIVED', 'ACTIVE']);
+    expect((await templates.list({ halaman: 1, perHalaman: 20 })).data).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: first.id })]),
+    );
+    const staff = await addStaff();
+    expect((await templates.list({ halaman: 1, perHalaman: 20 }, staff)).data).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: first.id, tingkatAkses: 'INTERNAL' })]),
+    );
+    await expect(templates.open(`format-${suffix}`)).rejects.toThrow();
+    await expect(templates.open(`format-${suffix}`, staff)).resolves.toMatchObject({ mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    const [downloadAudit] = await pool.query<RowDataPacket[]>(
+      "SELECT COUNT(*) total FROM audit_log WHERE module='letter-templates' AND action='DOWNLOAD_INTERNAL' AND entity_id=?",
+      [next.id],
+    );
+    expect(Number(downloadAudit[0]?.total)).toBe(1);
+    await templates.archive(actor, first.id, {});
+    const [archived] = await pool.query<RowDataPacket[]>(
+      'SELECT current_version_id,aktif FROM template_surat WHERE id=?', [first.id],
+    );
+    expect(archived[0]?.current_version_id).toBeNull();
+    expect(archived[0]?.aktif).toBe(0);
+    expect(next.templateSuratId).toBe(first.id);
+    const reactivated = await templates.newVersion(actor, first.id, await incomingFile('surat-reactivated.docx', minimalDocx()), { tingkatAkses: 'PUBLIK' });
+    expect(reactivated.nomorVersi).toBe(3);
+    expect((await templates.list({ halaman: 1, perHalaman: 20 })).data).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: first.id, tingkatAkses: 'PUBLIK' })]),
+    );
+  });
+
+  it('searches current published versions, redacts anonymous Internal results and omits Secret from counts until grant', async () => {
+    const marker = uid();
+    const tagName = `TagSearch${marker}`;
+    const [categoryResult] = await pool.execute('INSERT INTO kategori(kode,nama) VALUES(?,?)', [uid(), `Kategori ${marker}`]);
+    const [tagResult] = await pool.execute('INSERT INTO tag(nama) VALUES(?)', [tagName]);
+    const categoryId = String((categoryResult as any).insertId);
+    const tagId = String((tagResult as any).insertId);
+    const publicDoc = await doc('publik');
+    const internalDoc = await doc('internal');
+    const secretDoc = await doc('rahasia');
+    for (const [target, level, title] of [
+      [publicDoc, 'publik', `Search V2 public ${marker}`],
+      [internalDoc, 'internal', `Search V2 internal ${marker}`],
+      [secretDoc, 'rahasia', `Search V2 secret ${marker}`],
+    ] as const) {
+      await service.updateVersion(actor, target.versionId, ready(title, level));
+      if (target.id === publicDoc.id)
+        await service.updateVersion(actor, target.versionId, { kategoriId: [categoryId], tagId: [tagId], unitKerjaId: actor.unitKerjaId });
+      await addFileMetadata(target.versionId, 'UTAMA');
+      await approve(target.versionId);
+      await publish(target.versionId);
+    }
+    const anon = await search.search({ q: marker, halaman: 1, perHalaman: 20 });
+    expect(anon.meta.totalButir).toBe(2);
+    expect(anon.data).toEqual(expect.arrayContaining([
+      expect.objectContaining({ judul: `Search V2 public ${marker}`, badge: 'PUBLIK' }),
+      { judul: `Search V2 internal ${marker}`, badge: 'INTERNAL' },
+    ]));
+    expect(anon.data.find((row) => 'badge' in row && row.badge === 'INTERNAL')).toEqual({ judul: `Search V2 internal ${marker}`, badge: 'INTERNAL' });
+    const [type] = await pool.query<RowDataPacket[]>('SELECT CAST(jenis_dokumen_id AS CHAR) id FROM dokumen WHERE id=?', [publicDoc.id]);
+    const filtered = await search.search({ q: `public ${marker}`, jenisDokumenId: String(type[0]!.id), tahun: '2026', unitKerjaId: actor.unitKerjaId, kategoriId: categoryId, statusHukum: 'BERLAKU' });
+    expect(filtered.data).toHaveLength(1);
+    expect((await search.search({ q: tagName })).data).toHaveLength(1);
+    const staff = await addStaff();
+    const staffResults = await search.search({ q: marker }, staff);
+    expect(staffResults.meta.totalButir).toBe(2);
+    await service.grant(actor, secretDoc.id, { penggunaId: staff.id, alasan: 'Search grant', expiresAt: null });
+    const granted = await search.search({ q: `secret ${marker}` }, staff);
+    expect(granted.data).toHaveLength(1);
+    expect(granted.data[0]).toMatchObject({ id: secretDoc.id, tingkatAkses: 'rahasia' });
+    const pending = await addPendingStaff();
+    const pendingResults = await search.search({ q: `internal ${marker}` }, pending);
+    expect(pendingResults.data).toEqual([{ judul: `Search V2 internal ${marker}`, badge: 'INTERNAL' }]);
+    const internalFiles = (await pool.query<RowDataPacket[]>('SELECT CAST(id AS CHAR) id FROM dokumen_berkas WHERE dokumen_versi_id=? AND jenis_berkas=\'UTAMA\'', [internalDoc.versionId]))[0];
+    await expect(files.openCurrent(await documentSlug(internalDoc.id), String(internalFiles[0]!.id), pending)).rejects.toThrow();
+    expect((await search.publicList({ halaman: 1, perHalaman: 100 })).data.every((row) => row.badge === 'PUBLIK')).toBe(true);
+
+    const revision = await service.newVersion(actor, publicDoc.id, ready(`Search V2 revised ${marker}`));
+    expect((await search.search({ q: `public ${marker}` })).data).toHaveLength(1);
+    await addFileMetadata(revision.id, 'UTAMA');
+    await approve(revision.id);
+    await publish(revision.id);
+    expect((await search.search({ q: `public ${marker}` })).data).toHaveLength(0);
+    expect((await search.search({ q: `revised ${marker}` })).data).toHaveLength(1);
   });
 
   it('rejects duplicate active Secret grants and permits expired-grant history plus regrant', async () => {
