@@ -1,0 +1,35 @@
+name: jdih-ith-v2-phase1
+
+services:
+  mysql-v2:
+    image: mysql:8.4
+    ports:
+      - "127.0.0.1:3307:3306"
+    environment:
+      MYSQL_DATABASE: jdih_ith_v2_dev
+      MYSQL_USER: jdih_v2_dev
+      MYSQL_PASSWORD: ${JDIH_V2_MYSQL_PASSWORD:?Isi password lokal V2}
+      MYSQL_ROOT_PASSWORD: ${JDIH_V2_MYSQL_ROOT_PASSWORD:?Isi root password lokal V2}
+      TZ: UTC
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+00:00
+      - --sql-mode=STRICT_ALL_TABLES,ONLY_FULL_GROUP_BY,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION
+    volumes:
+      - mysql-v2-data:/var/lib/mysql
+      - ./database/v2:/workspace/v2:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'MYSQL_PWD="$${MYSQL_PASSWORD}" mysql --protocol=TCP --host=127.0.0.1 --user="$${MYSQL_USER}" --database=jdih_ith_v2_dev --execute="SELECT 1" --silent >/dev/null 2>&1'
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    # Tidak auto-start pada login berikutnya; hanya lifecycle Compose V2 eksplisit.
+    restart: "no"
+
+volumes:
+  mysql-v2-data:
+    name: jdih_ith_v2_phase1_mysql_data

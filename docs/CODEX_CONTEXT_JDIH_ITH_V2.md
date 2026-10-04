@@ -2,7 +2,7 @@
 
 **Dokumen ini adalah konteks lengkap yang harus dipahami Codex sebelum mengerjakan project.**  
 Bahasa utama project: Bahasa Indonesia.  
-Tanggal baseline V2: 2026-10-03.
+Tanggal baseline V2: 2026-10-03. Revisi requirement Phase 1: 2026-10-04.
 
 ---
 
@@ -540,6 +540,31 @@ Do not add `Statuta` as a final V1 product type unless user explicitly requests 
 
 ---
 
+## 10.1 Detail Produk Hukum V1 — keputusan final 2026-10-04
+
+Berlaku sama untuk seluruh lima jenis Produk Hukum, setelah otorisasi:
+
+| Label detail | Sumber |
+| --- | --- |
+| Tipe | `jenis_dokumen.nama` |
+| Judul | `dokumen_versi.judul` |
+| Nomor | `dokumen_versi.nomor` |
+| Tanggal Penetapan | `dokumen_versi.tanggal_penetapan` |
+| Status | `dokumen.status_hukum` (BERLAKU/DIUBAH/DICABUT, bukan workflow) |
+| PIC | `dokumen_versi.pic`, free text, bukan FK pengguna/unit |
+
+Di bawah enam metadata ini, tampilkan dokumen utama dan lampiran milik current
+published version; setiap file yang diizinkan memiliki Preview dan Download.
+PUBLIK dapat dibuka anonim; INTERNAL hanya Dosen/Staf AKTIF tanpa pembatasan unit;
+RAHASIA hanya Admin/Superadmin sesuai permission atau pengguna AKTIF dengan explicit
+grant valid. Search anonim INTERNAL tetap judul + badge saja, tanpa detail/file;
+RAHASIA tidak pernah muncul di public search. Otorisasi dicek ulang pada preview/download.
+
+Tidak ada Materi Pokok, Abstrak, T.E.U., Bentuk, Bentuk Singkat, Tempat Penetapan,
+Tanggal Pengundangan, Tanggal Berlaku, Sumber, Subjek, atau metadata panjang BPK.
+`abstrak` tidak disimpan karena tidak ada kebutuhan V1 lain. `tahun` tetap disimpan
+untuk search/filter/indexing/nomor, tetapi bukan baris metadata detail.
+
 # 11. SOP Categories
 
 SOP remains one document type.
@@ -713,7 +738,7 @@ Requires a revision note.
 
 Before publish:
 - state must be DISETUJUI;
-- required metadata present;
+- required metadata present: judul, nomor, PIC free text, tanggal penetapan, serta jenis/status hukum pada dokumen;
 - required main file present;
 - actor has permission;
 - legal relation impacts recomputed against current target status;
@@ -729,7 +754,10 @@ Use confirmation popup.
 
 After withdrawal:
 - version no longer public;
-- if it is current published version, stable document public pointer is cleared or handled explicitly.
+- if it is current published version, set `dokumen.current_published_version_id = NULL` in the same transaction;
+- never reactivate an old superseded version automatically;
+- withdrawing a non-current version must not clear a different current pointer;
+- preserve history, withdrawal reason, workflow event and audit.
 
 Do not delete history.
 
@@ -781,7 +809,8 @@ Prefer storing mutable publication metadata on `dokumen_versi`, including:
 - number;
 - year;
 - title;
-- abstract;
+- PIC free text (VARCHAR(255), not a user/unit FK);
+- tanggal penetapan (DATE);
 - managing/publishing unit;
 - categories;
 - tags;
@@ -919,6 +948,11 @@ INTERNAL
 ```
 
 No secret template level is required.
+
+UI V1 hanya daftar Judul + Download (misalnya Surat Tugas, Surat Undangan).
+Judul berasal dari `template_surat.nama`; file dari `current_version_id`.
+Tidak ada halaman detail template, Preview, status hukum, atau metadata Produk Hukum.
+Versioning backend tetap digunakan; akses PUBLIK/INTERNAL tetap berlaku.
 
 ## 19.1 PUBLIK template
 
@@ -1305,7 +1339,8 @@ Suggested mutable publication metadata:
 - `nomor`
 - `tahun`
 - `judul`
-- `abstrak`
+- `pic` (VARCHAR(255), free text, versioned, required at publish)
+- `tanggal_penetapan` (DATE, versioned, required at publish)
 - `unit_kerja_id`
 - `created_by`
 - `verified_by`
@@ -1314,7 +1349,7 @@ Suggested mutable publication metadata:
 - `superseded_at`
 - timestamps
 
-Additional metadata fields can be added during physical schema design based on JDIH needs.
+Draft metadata may be incomplete. Published/withdrawn history must retain nonblank judul/nomor/PIC and tanggal_penetapan. `abstrak` and `tanggal_berlaku` are omitted from physical V2: no V1 requirement uses them. Do not add BPK-style extended metadata without an explicit requirement.
 
 ## 29.5 `dokumen_berkas`
 
@@ -1351,6 +1386,13 @@ Suggested:
 - `expires_at` nullable
 - `revoked_at` nullable
 - timestamp
+
+Grant expired tidak memberi akses walaupun belum revoked. Slot unik memakai
+`revoked_at IS NULL`, bukan waktu berjalan; generated column tidak memakai NOW().
+Regrant mengunci row dokumen lalu pengguna dalam urutan konsisten, menutup grant
+expired dengan revoked_at/revoke_reason/actor, kemudian membuat grant baru dan audit
+dalam satu transaksi. History tidak dihapus. Grant yang masih valid tidak diduplikasi;
+service mengembalikan konflik atau hasil idempotent. Expiry cleanup bukan syarat akses.
 
 ## 29.8 `dokumen_workflow`
 
@@ -2044,10 +2086,11 @@ Recommended:
 - constraints;
 - indexes;
 - seed master roles/permissions/document types;
-- seed pre-provisioned admin accounts using configured emails;
+- document operations provisioning; Phase 1 seed has no real Admin accounts;
 - Docker Compose MySQL 8 :3307;
 - local test data;
-- Drizzle pull.
+- runtime import/test MySQL required before physical schema is considered final;
+- Drizzle pull/binding deferred until explicit approval; not part of current Phase 1.
 
 ## Phase 2 — Shared contracts
 - final enums;

@@ -70,7 +70,15 @@ Physical design must include:
 - indexes for search.
 - soft delete.
 - transaction-safe current version pointer.
-- grant uniqueness.
+- grant uniqueness: expired grants deny access immediately; regrant closes expired
+  row and inserts a new row with audit under document/user locks in one transaction.
+- versioned free-text PIC VARCHAR(255), tanggal_penetapan DATE; nullable for drafts,
+  mandatory with nonblank nomor/judul on TERBIT/DITARIK via CHECK + future service.
+- omit abstrak/tanggal_berlaku; retain tahun for search/filter, not detail rows.
+- current withdrawal clears pointer to NULL; never automatically restores superseded versions.
+- MySQL import/runtime validation must pass before physical schema is final; report
+  pending if engine unavailable. No risky system changes to unblock Docker.
+- no Drizzle binding/introspection or real Admin seed in current Phase 1 scope.
 - session indexes.
 - audit indexes.
 
@@ -94,6 +102,8 @@ Update:
 - relation types.
 - account statuses.
 - schemas for public search.
+- authorized product detail: Tipe, Judul, Nomor, Tanggal Penetapan, Status hukum, PIC;
+  main file + attachments with Preview/Download; no extended BPK metadata.
 - schemas for admin document version create/update.
 - schemas for account registration/approval.
 - schemas for secret grants.
@@ -196,7 +206,8 @@ Tests:
 - self-approval blocked.
 - invalid transition blocked.
 - revision note required.
-- publish only approved.
+- publish only approved, with mandatory PIC/tanggal_penetapan/nomor/judul and main file.
+- withdrawal sets current pointer NULL, preserves history, no superseded fallback.
 
 ## Phase 9 — Legal Relations
 
@@ -240,6 +251,8 @@ Implement:
 - local storage.
 - public/internal access.
 - old version archive.
+- public UI: Judul + Download only; no template detail/preview/legal metadata.
+- INTERNAL templates visible/downloadable only to active Dosen/Staf.
 
 ## Phase 13 — Dashboard & Audit
 

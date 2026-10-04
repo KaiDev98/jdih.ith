@@ -92,6 +92,10 @@ document_workflow:
   return_revision_requires_note: true
   publish_transactional: true
   write_actions_require_confirmation_popup: true
+  publish_required_version_metadata: [judul, nomor, pic, tanggal_penetapan]
+  withdrawal_current_pointer: null
+  withdrawal_auto_reactivate_superseded: false
+  withdrawal_preserves_history: true
 
 legal:
   statuses:
@@ -110,6 +114,31 @@ legal:
     TERKAIT: null
   auto_apply_without_human_confirmation: false
   withdrawal_rolls_back_target_status: false
+
+product_detail_v1:
+  fields:
+    Tipe: "jenis_dokumen.nama"
+    Judul: "dokumen_versi.judul"
+    Nomor: "dokumen_versi.nomor"
+    Tanggal Penetapan: "dokumen_versi.tanggal_penetapan"
+    Status: "dokumen.status_hukum"
+    PIC: "dokumen_versi.pic"
+  pic: {type: "VARCHAR(255)", free_text: true, foreign_key: false, versioned: true}
+  tanggal_penetapan: {type: "DATE", versioned: true}
+  abstrak_in_schema: false
+  extended_bpk_metadata: false
+  tahun_retained_for_search: true
+  tahun_detail_row: false
+  files_from: "current_published_version"
+  authorized_file_actions: [Preview, Download]
+  same_detail_format_for_all_authorized_access_levels: true
+
+secret_grants:
+  expired_grants_give_access: false
+  unique_slot: "dokumen_id + pengguna_id where revoked_at IS NULL"
+  regrant_transaction: "lock document then user; close expired row; insert new grant; audit; commit"
+  preserve_history: true
+  nondeterministic_generated_columns: false
 
 product_types:
   - "Peraturan Rektor"
@@ -151,6 +180,7 @@ document_files:
   main_file_required: true
   multiple_attachments: true
   access_recheck_on_download: true
+  access_recheck_on_preview: true
   checksum: true
   stream_download: true
 
@@ -165,6 +195,12 @@ versioning:
 letter_templates:
   module: "Format Persuratan"
   primary_format_v1: ".docx"
+  ui_columns: [Judul, Download]
+  title_source: "template_surat.nama"
+  detail_page_v1: false
+  preview_v1: false
+  legal_metadata_v1: false
+  internal_requires_active_staff: true
   access_levels:
     - "PUBLIK"
     - "INTERNAL"
@@ -206,6 +242,8 @@ database_v2:
     - "audit_log"
   legacy_50_table_schema_is_final: false
   sql_first: true
+  physical_schema_final_requires_mysql_import: true
+  phase1_drizzle_binding: false
 
 backend_modules:
   - "auth"
