@@ -11,9 +11,12 @@ import { validasiEnv } from './env.schema.js';
  */
 
 const envMinimum = {
-  JWT_SECRET: 'a'.repeat(48),
-  JWT_REFRESH_SECRET: 'b'.repeat(48),
-  COOKIE_SECRET: 'c'.repeat(48),
+  DB_USER: 'test',
+  DB_NAME: 'jdih_ith_v2_test',
+  GOOGLE_CLIENT_ID: 'test-client',
+  GOOGLE_CLIENT_SECRET: 'test-only',
+  GOOGLE_REDIRECT_URI: 'http://localhost:3001/api/v1/auth/google/callback',
+  SESSION_KEY: 'test-only-key-'.repeat(4),
 };
 
 describe('validasiEnv', () => {
@@ -22,7 +25,7 @@ describe('validasiEnv', () => {
 
     expect(env.NODE_ENV).toBe('development');
     expect(env.API_PORT).toBe(3001);
-    expect(env.DB_NAME).toBe('jdih_ith');
+    expect(env.DB_NAME).toBe('jdih_ith_v2_test');
     expect(env.STORAGE_DRIVER).toBe('lokal');
     expect(env.SEARCH_DRIVER).toBe('mysql');
     expect(env.UNDUH_LIMIT_ANONIM).toBe(30);
@@ -36,28 +39,20 @@ describe('validasiEnv', () => {
     expect(env.DB_POOL_LIMIT).toBe(25);
   });
 
-  it('menafsirkan "true" dan "1" sebagai benar', () => {
-    expect(validasiEnv({ ...envMinimum, DB_LOG_QUERY: 'true' }).DB_LOG_QUERY).toBe(true);
-    expect(validasiEnv({ ...envMinimum, DB_LOG_QUERY: '1' }).DB_LOG_QUERY).toBe(true);
-    expect(validasiEnv({ ...envMinimum, DB_LOG_QUERY: 'false' }).DB_LOG_QUERY).toBe(false);
+  it('menolak logging SQL identity dan legacy database', () => {
+    expect(() => validasiEnv({ ...envMinimum, DB_LOG_QUERY: 'true' })).toThrow(/DB_LOG_QUERY/);
+    expect(() => validasiEnv({ ...envMinimum, DB_NAME: 'jdih_ith' })).toThrow(/DB_NAME/);
   });
-
-  it('menolak rahasia yang terlalu pendek', () => {
-    expect(() => validasiEnv({ ...envMinimum, JWT_SECRET: 'pendek' })).toThrow(/JWT_SECRET/);
+  it('menolak session key pendek', () => {
+    expect(() => validasiEnv({ ...envMinimum, SESSION_KEY: 'short' })).toThrow(/SESSION_KEY/);
   });
-
-  it('menolak rahasia JWT akses dan penyegar yang sama', () => {
-    const sama = 'x'.repeat(48);
+  it('menolak insecure cookies di produksi', () => {
     expect(() =>
-      validasiEnv({ ...envMinimum, JWT_SECRET: sama, JWT_REFRESH_SECRET: sama }),
-    ).toThrow(/harus berbeda/);
+      validasiEnv({ ...envMinimum, NODE_ENV: 'production', COOKIE_SECURE: 'false' }),
+    ).toThrow(/COOKIE_SECURE/);
   });
-
-  it('menolak COOKIE_SECRET yang sama dengan JWT_SECRET', () => {
-    const sama = 'y'.repeat(48);
-    expect(() => validasiEnv({ ...envMinimum, JWT_SECRET: sama, COOKIE_SECRET: sama })).toThrow(
-      /COOKIE_SECRET/,
-    );
+  it('menolak CORS berbeda dari origin frontend', () => {
+    expect(() => validasiEnv({ ...envMinimum, CORS_ORIGIN: '*' })).toThrow(/CORS_ORIGIN/);
   });
 
   it('mewajibkan parameter S3 bila pengandar penyimpanan s3 dipilih', () => {
@@ -105,7 +100,7 @@ describe('validasiEnv', () => {
     ).toThrow(/DB_PASSWORD/);
   });
 
-  it('mengizinkan kata sandi basis data kosong saat pengembangan, sesuai XAMPP baku', () => {
+  it('mengizinkan kata sandi kosong hanya pada pengembangan V2', () => {
     const env = validasiEnv({ ...envMinimum, DB_PASSWORD: '' });
     expect(env.DB_PASSWORD).toBe('');
   });
@@ -113,14 +108,14 @@ describe('validasiEnv', () => {
   it('melaporkan seluruh masalah sekaligus, bukan satu per satu', () => {
     let pesan = '';
     try {
-      validasiEnv({ JWT_SECRET: 'pendek', JWT_REFRESH_SECRET: 'juga-pendek' });
+      validasiEnv({ SESSION_KEY: 'pendek' });
     } catch (galat) {
       pesan = galat instanceof Error ? galat.message : String(galat);
     }
 
-    expect(pesan).toContain('JWT_SECRET');
-    expect(pesan).toContain('JWT_REFRESH_SECRET');
-    expect(pesan).toContain('COOKIE_SECRET');
-    expect(pesan).toContain('.env.example');
+    expect(pesan).toContain('SESSION_KEY');
+    expect(pesan).toContain('GOOGLE_CLIENT_ID');
+    expect(pesan).toContain('GOOGLE_CLIENT_SECRET');
+    expect(pesan).toContain('.env.identity.example');
   });
 });

@@ -42,14 +42,11 @@ export class SemuaGalatFilter implements ExceptionFilter {
 
     if (catatSebagaiGalat) {
       this.log.error(
-        `[${jejak}] ${permintaan.method} ${permintaan.originalUrl} -> ${status}: ` +
-          `${this.pesanAsli(galat)}`,
-        galat instanceof Error ? galat.stack : undefined,
+        `[${jejak}] ${permintaan.method} ${permintaan.path} -> ${status}: internal failure`,
       );
     } else {
       this.log.warn(
-        `[${jejak}] ${permintaan.method} ${permintaan.originalUrl} -> ${status}: ` +
-          `${badan.galat.kode}`,
+        `[${jejak}] ${permintaan.method} ${permintaan.path} -> ${status}: ` + `${badan.galat.kode}`,
       );
     }
 
@@ -161,10 +158,5 @@ export class SemuaGalatFilter implements ExceptionFilter {
       if (Array.isArray(pesan)) return pesan.join('; ');
     }
     return galat.message;
-  }
-
-  private pesanAsli(galat: unknown): string {
-    if (galat instanceof Error) return `${galat.name}: ${galat.message}`;
-    return String(galat);
   }
 }

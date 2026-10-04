@@ -21,9 +21,8 @@ export const KUNCI_META_IZIN_MODE = 'jdih:izin-mode';
 /**
  * Menandai rute sebagai dapat diakses tanpa autentikasi.
  *
- * Perhatikan: publik BUKAN berarti tanpa pembatasan. Permintaan anonim tetap
- * memperoleh himpunan izin peran 'pengunjung', dan penyaringan tingkat akses
- * dokumen (Lapisan 3) tetap berjalan.
+ * Publik tetap dibatasi rate limit dan policy resource. Anonymous tidak memiliki
+ * persisted role atau permission. Guard global menegakkan default-closed.
  */
 export const Publik = (): MethodDecorator & ClassDecorator => SetMetadata(KUNCI_META_PUBLIK, true);
 

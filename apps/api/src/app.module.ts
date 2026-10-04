@@ -12,6 +12,7 @@ import { SemuaGalatFilter } from './common/filters/semua-galat.filter.js';
 import { BungkusTanggapanInterceptor } from './common/interceptors/bungkus-tanggapan.interceptor.js';
 import { DatabaseModule } from './database/database.module.js';
 import { HealthModule } from './health/health.module.js';
+import { IdentityModule } from './modules/identity/identity.module.js';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { HealthModule } from './health/health.module.js';
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,
-      envFilePath: ['.env'],
+      envFilePath: ['.env.identity.local', '../../.env.v2.local'],
       // Peladen menolak menyala bila ada variabel lingkungan yang kurang
       // atau salah bentuk, disertai penyebutan variabel mana yang bermasalah.
       validate: validasiEnv,
@@ -36,6 +37,14 @@ import { HealthModule } from './health/health.module.js';
         return {
           pinoHttp: {
             level: log.taraf,
+            // OAuth callback query can contain a one-time authorization code.
+            serializers: {
+              req: (req: { id?: string; method?: string; url?: string }) => ({
+                id: req.id,
+                method: req.method,
+                url: req.url?.split('?')[0],
+              }),
+            },
             // Log dipercantik saat pengembangan; di produksi tetap JSON satu
             // baris agar dapat dibaca pengumpul log.
             transport:
@@ -54,7 +63,10 @@ import { HealthModule } from './health/health.module.js';
             // setiap baris log yang dihasilkannya.
             genReqId: (permintaan, tanggapan) => {
               const dariHulu = permintaan.headers['x-request-id'];
-              const id = typeof dariHulu === 'string' ? dariHulu : randomUUID();
+              const id =
+                typeof dariHulu === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(dariHulu)
+                  ? dariHulu
+                  : randomUUID();
               tanggapan.setHeader('X-Request-Id', id);
               return id;
             },
@@ -110,6 +122,7 @@ import { HealthModule } from './health/health.module.js';
     /* ─────────────────────────── Modul aplikasi ──────────────────────────── */
     DatabaseModule,
     HealthModule,
+    IdentityModule,
 
     // Modul domain ditambahkan di sini seiring pengembangan.
     // Lihat src/modules/README.md untuk batas tanggung jawab tiap modul.

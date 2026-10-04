@@ -13,8 +13,6 @@ const bolean = z
   .enum(['true', 'false', '1', '0'])
   .transform((nilai) => nilai === 'true' || nilai === '1');
 
-const rahasiaMinimum = 32;
-
 export const skemaEnv = z.object({
   /* ─────────────────────────────── Aplikasi ─────────────────────────────── */
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -29,11 +27,11 @@ export const skemaEnv = z.object({
 
   /* ──────────────────────────── Basis data MySQL ───────────────────────── */
   DB_HOST: z.string().min(1).default('127.0.0.1'),
-  DB_PORT: z.coerce.number().int().min(1).max(65_535).default(3306),
-  DB_USER: z.string().min(1).default('root'),
-  /** Boleh kosong pada pemasangan XAMPP baku, karena itu tidak diwajibkan. */
+  DB_PORT: z.coerce.number().int().min(1).max(65_535).default(3307),
+  DB_USER: z.string().min(1),
+  /** Development V2 may use empty password; production cannot. */
   DB_PASSWORD: z.string().default(''),
-  DB_NAME: z.string().min(1).default('jdih_ith'),
+  DB_NAME: z.string().regex(/^jdih_ith_v2_(dev|test[a-z0-9_]*)$/),
   DB_POOL_LIMIT: z.coerce.number().int().min(1).max(100).default(10),
   /** Zona waktu koneksi. Seluruh DATETIME disimpan dalam UTC (docs/04 § D.0). */
   DB_TIMEZONE: z.string().default('Z'),
@@ -41,14 +39,13 @@ export const skemaEnv = z.object({
   DB_LOG_QUERY: bolean.default(false),
 
   /* ───────────────────────────── Autentikasi ───────────────────────────── */
-  JWT_SECRET: z.string().min(rahasiaMinimum, `JWT_SECRET minimum ${rahasiaMinimum} karakter`),
-  JWT_EXPIRES_IN: z.string().default('15m'),
-  JWT_REFRESH_SECRET: z
-    .string()
-    .min(rahasiaMinimum, `JWT_REFRESH_SECRET minimum ${rahasiaMinimum} karakter`),
-  JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
-  /** Menandatangani kuki sesi. Wajib berbeda dari rahasia JWT. */
-  COOKIE_SECRET: z.string().min(rahasiaMinimum, `COOKIE_SECRET minimum ${rahasiaMinimum} karakter`),
+  GOOGLE_CLIENT_ID: z.string().min(1),
+  GOOGLE_CLIENT_SECRET: z.string().min(1),
+  GOOGLE_REDIRECT_URI: z.url(),
+  SESSION_KEY: z.string().min(32),
+  SESSION_TTL_SECONDS: z.coerce.number().int().min(300).max(604800).default(604800),
+  COOKIE_SECURE: bolean.default(true),
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(3).default(0),
 
   /* ─────────────────────── Penyimpanan berkas dokumen ──────────────────── */
   /** 'lokal' menyimpan di diska peladen; 's3' ke penyimpanan objek. */
@@ -119,6 +116,35 @@ export type Env = z.infer<typeof skemaEnv>;
  * ruas, misalnya "bila pengandar S3 dipilih, parameternya wajib ada".
  */
 export const skemaEnvLengkap = skemaEnv
+  .refine((env) => env.DB_TIMEZONE === 'Z', {
+    message: 'V2 timestamps require UTC',
+    path: ['DB_TIMEZONE'],
+  })
+  .refine((env) => !env.DB_LOG_QUERY, {
+    message: 'Identity SQL parameters must not be logged',
+    path: ['DB_LOG_QUERY'],
+  })
+  .refine(
+    (env) =>
+      env.COOKIE_SECURE ||
+      (env.NODE_ENV !== 'production' &&
+        ['localhost', '127.0.0.1'].includes(new URL(env.APP_URL).hostname)),
+    { message: 'Insecure cookies only on local development', path: ['COOKIE_SECURE'] },
+  )
+  .refine(
+    (env) =>
+      env.NODE_ENV !== 'production' ||
+      [env.APP_URL, env.GOOGLE_REDIRECT_URI].every((url) => new URL(url).protocol === 'https:'),
+    { message: 'Production requires HTTPS', path: ['APP_URL'] },
+  )
+  .refine((env) => new URL(env.APP_URL).origin === env.APP_URL, {
+    message: 'APP_URL must be an exact origin without path/trailing slash',
+    path: ['APP_URL'],
+  })
+  .refine((env) => env.CORS_ORIGIN === env.APP_URL, {
+    message: 'Cookie API allows the configured frontend origin only',
+    path: ['CORS_ORIGIN'],
+  })
   .refine(
     (env) =>
       env.STORAGE_DRIVER !== 's3' ||
@@ -140,16 +166,6 @@ export const skemaEnvLengkap = skemaEnv
   .refine((env) => env.MAIL_DRIVER !== 'smtp' || (!!env.MAIL_HOST && !!env.MAIL_PORT), {
     message: 'MAIL_DRIVER=smtp memerlukan MAIL_HOST dan MAIL_PORT',
     path: ['MAIL_DRIVER'],
-  })
-  .refine((env) => env.JWT_SECRET !== env.JWT_REFRESH_SECRET, {
-    message:
-      'JWT_SECRET dan JWT_REFRESH_SECRET harus berbeda; bila sama, token penyegar ' +
-      'dapat dipakai sebagai token akses',
-    path: ['JWT_REFRESH_SECRET'],
-  })
-  .refine((env) => env.COOKIE_SECRET !== env.JWT_SECRET, {
-    message: 'COOKIE_SECRET harus berbeda dari JWT_SECRET',
-    path: ['COOKIE_SECRET'],
   })
   .refine((env) => env.NODE_ENV !== 'production' || !env.SWAGGER_ENABLED, {
     message:
@@ -175,9 +191,9 @@ export function validasiEnv(mentah: Record<string, unknown>): Env {
       return `  - ${ruas}: ${masalah.message}`;
     });
     throw new Error(
-      `Konfigurasi lingkungan tidak sah. Periksa berkas .env pada apps/api.\n` +
+      `Konfigurasi lingkungan tidak sah. Periksa .env.identity.local dan .env.v2.local.\n` +
         `${baris.join('\n')}\n\n` +
-        `Salin apps/api/.env.example menjadi apps/api/.env lalu isi nilainya.`,
+        `Salin apps/api/.env.identity.example menjadi apps/api/.env.identity.local lalu isi nilainya.`,
     );
   }
 

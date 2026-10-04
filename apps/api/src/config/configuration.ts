@@ -39,12 +39,15 @@ export function konfigurasi() {
       catatKueri: env.DB_LOG_QUERY,
     },
 
-    autentikasi: {
-      rahasiaAkses: env.JWT_SECRET,
-      umurAkses: env.JWT_EXPIRES_IN,
-      rahasiaPenyegar: env.JWT_REFRESH_SECRET,
-      umurPenyegar: env.JWT_REFRESH_EXPIRES_IN,
-      rahasiaKuki: env.COOKIE_SECRET,
+    identitas: {
+      clientId: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
+      redirectUri: env.GOOGLE_REDIRECT_URI,
+      key: env.SESSION_KEY,
+      sessionSeconds: env.SESSION_TTL_SECONDS,
+      secure: env.COOKIE_SECURE,
+      origin: env.APP_URL,
+      proxyHops: env.TRUST_PROXY_HOPS,
     },
 
     penyimpanan: {

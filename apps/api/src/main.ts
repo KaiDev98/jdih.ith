@@ -49,7 +49,7 @@ async function nyalakan(): Promise<void> {
     }),
   );
 
-  app.use(cookieParser(kfg.get('autentikasi.rahasiaKuki', { infer: true })));
+  app.use(cookieParser());
   app.use(compression());
 
   app.enableCors({
@@ -63,7 +63,7 @@ async function nyalakan(): Promise<void> {
   // Peladen berada di belakang Nginx pada penggelaran nyata; tanpa ini, alamat
   // IP yang tercatat pada log keamanan dan dipakai pembatasan laju akan selalu
   // berupa alamat proksi, bukan alamat pengguna.
-  app.set('trust proxy', 1);
+  app.set('trust proxy', kfg.get('identitas.proxyHops', { infer: true }));
 
   // Membuang tajuk yang menyebutkan kerangka kerja yang dipakai.
   app.disable('x-powered-by');
@@ -85,11 +85,10 @@ async function nyalakan(): Promise<void> {
       .setDescription(
         'Jaringan Dokumentasi dan Informasi Hukum — Institut Teknologi ' +
           'Bacharuddin Jusuf Habibie, Parepare.\n\n' +
-          'Otorisasi berjalan dalam tiga lapisan: izin fungsional, cakupan unit ' +
-          'kerja, dan tingkat akses dokumen. Rincian pada docs/05-role-permission.md.',
+          'Otorisasi V2: sesi aktif, izin fungsional, dan kebijakan akses dokumen. Internal tidak unit-scoped.',
       )
       .setVersion('1.0')
-      .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'token-akses')
+      .addCookieAuth('jdih_session')
       .addTag('Kesehatan Sistem', 'Pemeriksaan ketersediaan peladen dan ketergantungannya')
       .addServer(`http://localhost:${aplikasi.port}`, 'Pengembangan lokal')
       .build();

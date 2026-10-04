@@ -50,6 +50,28 @@ export const skemaAuthMe = z.discriminatedUnion('terautentikasi', [
 ]);
 export const skemaTanggapanAuthMe = skemaTanggapan(skemaAuthMe);
 export type AuthMe = z.infer<typeof skemaAuthMe>;
+/** HTTP session bootstrap; CSRF is a request proof, never a bearer/session credential. */
+export const skemaAuthMeHttp = z.discriminatedUnion('terautentikasi', [
+  z.strictObject({
+    terautentikasi: z.literal(false),
+    perluRegistrasi: z.boolean(),
+    csrfToken: z.string().nullable(),
+  }),
+  z.strictObject({
+    terautentikasi: z.literal(true),
+    pengguna: skemaPenggunaSesi,
+    csrfToken: z.string(),
+  }),
+]);
+export const skemaGoogleCallback = z.object({
+  code: z.string().min(1).max(4096),
+  state: z.string().min(1).max(128),
+});
+/** Minimal master-unit creation used only for approved manual-unit resolution. */
+export const skemaBuatUnit = z.strictObject({
+  kode: teksWajib(40, 'Kode unit'),
+  nama: teksWajib(200, 'Nama unit'),
+});
 /** Presentation helper only, never a document authorization decision. */
 export function punyaSemuaIzin(
   pengguna: Pick<PenggunaAktif, 'izin'>,

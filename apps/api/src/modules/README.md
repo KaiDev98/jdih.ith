@@ -1,5 +1,10 @@
 # Modul Domain
 
+> **V2 aktif:** modul `identity/` mengimplementasikan Identity & Security sesuai
+> [catatan implementasi](../../../../docs/IDENTITY_SECURITY_V2.md).
+> Daftar/aturan lama di bawah adalah **LEGACY**, termasuk password/2FA, unit-scoped
+> access, CMS, dan request-access. Gunakan context V2 untuk modul baru.
+
 Direktori ini menampung modul-modul fungsional API. Direktori sengaja dibiarkan
 kosong pada tahap setup: yang sudah ditetapkan adalah **batas tanggung jawabnya**,
 bukan isinya. Menentukan batas lebih dahulu mencegah modul saling menempel
