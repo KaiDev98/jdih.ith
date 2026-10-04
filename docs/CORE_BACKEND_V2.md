@@ -14,6 +14,11 @@ Semua endpoint admin memakai prefix `/api/v1/admin` dan session akun aktif.
 | Master | `GET/POST /master/{unit_kerja,jenis_dokumen,kategori,tag}` | `units.manage` atau `master.manage` |
 | Master | `GET/PATCH /master/:table/:id`; `PATCH /master/:table/:id/status` | izin master terkait |
 | Dokumen | `POST /documents`; `GET/PATCH /documents/:id` | create/read_admin/edit |
+| Daftar admin | `GET /admin/documents?statusWorkflow=...` | `documents.read_admin`; seluruh versi, pagination, filter status |
+| Antrean verifikasi | `GET /admin/documents/verification-queue` | `workflow.approve` atau `workflow.return`; hanya `DIAJUKAN` |
+| Pengguna aktif | `GET /admin/active-users?q=...` | `secret.manage`; hanya DOSEN/STAF AKTIF, proyeksi nama/email/unit |
+| Audit | `GET /admin/audit` | `audit.read`; pagination/filter modul, proyeksi tanpa payload, IP, user-agent, atau kredensial |
+| Lookup publik | `GET /public/master/{jenis_dokumen,kategori,unit_kerja}` | Publik; ID dan label nama record aktif saja |
 | Versi | `POST /documents/:id/versions`; `PATCH /documents/versions/:versionId` | revise/edit |
 | Workflow | `POST /documents/versions/:id/{submit,return,approve,publish}` | izin workflow terkait |
 | Dampak hukum | `GET /documents/versions/:id/legal-impact` | `workflow.publish` |

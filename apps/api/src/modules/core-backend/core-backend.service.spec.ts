@@ -19,7 +19,7 @@ function fixture(status: PenggunaAktif['status'], izin: PenggunaAktif['izin']): 
 
 describe('CoreBackendService authorization boundary', () => {
   const setup = () => {
-    const repo = { transaction: vi.fn(), pool: {}, rows: vi.fn() };
+    const repo = { transaction: vi.fn(), pool: {}, rows: vi.fn().mockResolvedValue([]) };
     const audit = { recordDomain: vi.fn() };
     const service = new CoreBackendService(repo as never, audit as never, {} as never, {} as never, { assertPublishReady: vi.fn() } as never);
     return { repo, service };
@@ -61,5 +61,18 @@ describe('CoreBackendService authorization boundary', () => {
       service.masterList(fixture('AKTIF', ['master.manage']), 'users' as never),
     ).rejects.toBeInstanceOf(NotFoundException);
     expect(repo.rows).not.toHaveBeenCalled();
+  });
+
+  it('protects administrative list queries and allowlists public master lookup', async () => {
+    const { repo, service } = setup();
+    const user = fixture('AKTIF', []);
+    await expect(service.adminDocuments(user, {})).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.adminDocuments(user, {}, true)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.activeUsers(user, { q: 'ab' })).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.auditList(user, {})).rejects.toBeInstanceOf(ForbiddenException);
+    expect(repo.rows).not.toHaveBeenCalled();
+    await expect(service.publicMaster('jenis_dokumen')).resolves.toEqual([]);
+    expect(repo.rows).toHaveBeenCalledWith({}, expect.stringContaining('WHERE aktif=1 ORDER BY urutan,nama'));
+    await expect(service.publicMaster('constructor' as never)).rejects.toBeInstanceOf(NotFoundException);
   });
 });

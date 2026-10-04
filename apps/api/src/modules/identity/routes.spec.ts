@@ -119,6 +119,15 @@ describe('AppModule HTTP security wiring (no database/network provider)', () => 
     expect((await fetch(base + '/api/v1/admin/master/jenis_dokumen')).status).toBe(401);
     expect((await fetch(base + '/api/v1/admin/documents/test-id')).status).toBe(401);
   });
+  it('keeps the new admin query endpoints permission-gated and public masters allowlisted', async () => {
+    auth('AKTIF', []);
+    const headers = { cookie: 'jdih_session=' + token };
+    expect((await fetch(base + '/api/v1/admin/documents', { headers })).status).toBe(403);
+    expect((await fetch(base + '/api/v1/admin/documents/verification-queue', { headers })).status).toBe(403);
+    expect((await fetch(base + '/api/v1/admin/active-users?q=ab', { headers })).status).toBe(403);
+    expect((await fetch(base + '/api/v1/admin/audit', { headers })).status).toBe(403);
+    expect((await fetch(base + '/api/v1/public/master/constructor')).status).toBe(404);
+  });
   it('logout requires CSRF proof and clears HttpOnly cookie', async () => {
     auth();
     const headers = { cookie: 'jdih_session=' + token, origin: 'http://localhost:3000' };

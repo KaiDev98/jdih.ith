@@ -236,6 +236,38 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     return String(rows[0]!.slug);
   }
 
+  it('serves authorized admin document and verifier lists, active DOSEN_STAF lookup, redacted audit, and public masters', async () => {
+    const d = await doc();
+    const createdList = await service.adminDocuments(actor, { halaman: '1', perHalaman: '50' });
+    expect(createdList.data).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: d.id, versionId: d.versionId, statusWorkflow: 'DRAF' }),
+    ]));
+    await service.transition(actor, d.versionId, 'SUBMIT');
+    const queue = await service.adminDocuments(actor, { halaman: '1', perHalaman: '50' }, true);
+    expect(queue.data).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: d.id, versionId: d.versionId, statusWorkflow: 'DIAJUKAN' }),
+    ]));
+    const active = await addStaff();
+    const pending = await addPendingStaff();
+    const lookup = await service.activeUsers(actor, { q: '@ith.ac.id', halaman: '1', perHalaman: '100' });
+    expect(lookup.data).toEqual(expect.arrayContaining([expect.objectContaining({ id: active.id, nama: active.nama, email: active.surel })]));
+    expect(lookup.data.some((user) => user.id === pending.id)).toBe(false);
+    await expect(service.activeUsers(active, { q: 'staff', halaman: '1', perHalaman: '10' })).rejects.toBeInstanceOf(ForbiddenException);
+    const auditRows = await service.auditList(actor, { halaman: '1', perHalaman: '50', module: 'documents' });
+    expect(auditRows.data).toEqual(expect.arrayContaining([expect.objectContaining({ module: 'documents', action: 'CREATE' })]));
+    expect(auditRows.data[0]).not.toHaveProperty('beforeJson');
+    expect(auditRows.data[0]).not.toHaveProperty('afterJson');
+    expect(auditRows.data[0]).not.toHaveProperty('requestId');
+    expect(auditRows.data[0]).not.toHaveProperty('userAgent');
+    await expect(service.auditList(active, { halaman: '1', perHalaman: '10' })).rejects.toBeInstanceOf(ForbiddenException);
+    for (const table of ['jenis_dokumen', 'kategori', 'unit_kerja'] as const) {
+      const rows = await service.publicMaster(table);
+      expect(rows.length).toBeGreaterThan(0);
+      expect(rows[0]).toHaveProperty('nama');
+      expect(rows[0]).toHaveProperty('id');
+    }
+  });
+
   it('keeps stable identity and current publication through a new draft, then atomically publishes revision and legal impact', async () => {
     const first = await doc();
     const v1 = first.versionId;

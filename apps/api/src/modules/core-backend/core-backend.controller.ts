@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
 import {
   Izin,
   IzinSalahSatu,
@@ -14,6 +14,7 @@ import { cookie, SESSION_COOKIE } from '../identity/identity.guard.js';
 
 type MasterTable = 'unit_kerja' | 'jenis_dokumen' | 'kategori' | 'tag';
 type ToggleableMasterTable = Exclude<MasterTable, 'tag'>;
+type PublicMasterTable = 'unit_kerja' | 'jenis_dokumen' | 'kategori';
 
 @Controller('admin/master')
 export class MasterController {
@@ -56,17 +57,38 @@ export class MasterController {
   }
 }
 
+@Controller('public/master')
+export class PublicMasterController {
+  constructor(private readonly core: CoreBackendService) {}
+  @Get(':table') @Publik() list(@Param('table') table: PublicMasterTable) {
+    return this.core.publicMaster(table);
+  }
+}
+
 @Controller('admin/documents')
 export class DocumentsController {
   constructor(private readonly core: CoreBackendService) {}
+  @Get('verification-queue') @IzinSalahSatu('workflow.approve', 'workflow.return') queue(
+    @Query() query: unknown,
+    @Aktor() actor: PenggunaAktif,
+  ) {
+    return this.core.adminDocuments(actor, query, true);
+  }
+  @Get() @Izin('documents.read_admin') list(
+    @Query() query: unknown,
+    @Aktor() actor: PenggunaAktif,
+  ) {
+    return this.core.adminDocuments(actor, query);
+  }
   @Post() @Izin('documents.create') create(@Body() body: unknown, @Aktor() actor: PenggunaAktif) {
     return this.core.createDocument(actor, body);
   }
   @Get(':id') @Izin('documents.read_admin') detail(
     @Param('id') id: string,
+    @Query('versionId') versionId: string | undefined,
     @Aktor() actor: PenggunaAktif,
   ) {
-    return this.core.document(actor, id);
+    return this.core.document(actor, id, versionId);
   }
   @Patch(':id') @Izin('documents.edit') update(
     @Param('id') id: string,
@@ -88,6 +110,22 @@ export class DocumentsController {
     @Aktor() actor: PenggunaAktif,
   ) {
     return this.core.updateVersion(actor, id, body);
+  }
+}
+
+@Controller('admin/active-users')
+export class ActiveUsersController {
+  constructor(private readonly core: CoreBackendService) {}
+  @Get() @Izin('secret.manage') list(@Query() query: unknown, @Aktor() actor: PenggunaAktif) {
+    return this.core.activeUsers(actor, query);
+  }
+}
+
+@Controller('admin/audit')
+export class AuditController {
+  constructor(private readonly core: CoreBackendService) {}
+  @Get() @Izin('audit.read') list(@Query() query: unknown, @Aktor() actor: PenggunaAktif) {
+    return this.core.auditList(actor, query);
   }
 }
 

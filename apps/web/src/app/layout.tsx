@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 
 import { PenyediaKueri } from '@/lib/penyedia-kueri';
+import { SessionProvider } from '@/lib/sesi';
 
 import './globals.css';
 
@@ -67,7 +68,7 @@ export default function TataLetakAkar({ children }: { children: React.ReactNode 
         <a href="#isi-utama" className="lewati-ke-isi">
           Lewati ke isi utama
         </a>
-        <PenyediaKueri>{children}</PenyediaKueri>
+        <PenyediaKueri><SessionProvider>{children}</SessionProvider></PenyediaKueri>
       </body>
     </html>
   );

@@ -27,6 +27,8 @@ import {
   skemaTag,
   skemaDetailDokumenPublik,
   skemaDetailDokumenAuthorized,
+  skemaHalaman,
+  skemaKataKunci,
 } from '@jdih/shared';
 import { cekIzin } from '../identity/security.js';
 import { AuditService } from '../identity/audit.service.js';
@@ -35,6 +37,8 @@ import { utc } from '../identity/identity.repository.js';
 import { CoreBackendRepository } from './core-backend.repository.js';
 import type { KonfigurasiApp } from '../../config/configuration.js';
 import { DocumentFilesService } from './files/document-files.service.js';
+import { z } from 'zod';
+import type { RowDataPacket } from 'mysql2/promise';
 
 type Actor = PenggunaAktif;
 interface MasterPayload {
@@ -63,6 +67,125 @@ export class CoreBackendService {
   }
   private cfgKey() {
     return this.config.get('identitas', { infer: true }).key;
+  }
+
+  private async halaman<T extends RowDataPacket>(
+    rowsSql: string,
+    countSql: string,
+    values: (string | number)[],
+    halaman: number,
+    perHalaman: number,
+  ) {
+    const count = (await this.repo.rows(this.repo.pool, countSql, values))[0] as any;
+    const totalButir = Number(count?.total ?? 0);
+    const offset = (halaman - 1) * perHalaman;
+    const data = await this.repo.rows<T>(this.repo.pool, rowsSql, [
+      ...values,
+      perHalaman,
+      offset,
+    ]);
+    const totalHalaman = Math.ceil(totalButir / perHalaman);
+    return {
+      data,
+      meta: {
+        halaman,
+        perHalaman,
+        totalButir,
+        totalHalaman,
+        adaSebelumnya: halaman > 1,
+        adaBerikutnya: halaman < totalHalaman,
+      },
+    };
+  }
+
+  async adminDocuments(actor: Actor, rawQuery: unknown, verificationOnly = false) {
+    if (verificationOnly) cekIzin(actor, ['workflow.approve', 'workflow.return'], true);
+    else this.allow(actor, 'documents.read_admin');
+    const query = z
+      .strictObject({
+        halaman: skemaHalaman.shape.halaman,
+        perHalaman: skemaHalaman.shape.perHalaman,
+        q: skemaKataKunci,
+        statusWorkflow: z
+          .enum(['DRAF', 'DIAJUKAN', 'REVISI', 'DISETUJUI', 'TERBIT', 'DITARIK'])
+          .optional(),
+      })
+      .parse(rawQuery);
+    const where = ['d.deleted_at IS NULL'];
+    const values: (string | number)[] = [];
+    if (!actor.izin.includes('secret.read_admin')) where.push("v.tingkat_akses<>'rahasia'");
+    if (verificationOnly) where.push("v.status_workflow='DIAJUKAN'");
+    else if (query.statusWorkflow) {
+      where.push('v.status_workflow=?');
+      values.push(query.statusWorkflow);
+    }
+    if (query.q) {
+      where.push("(v.judul LIKE ? ESCAPE '!' OR v.nomor LIKE ? ESCAPE '!' OR d.slug LIKE ? ESCAPE '!')");
+      const pattern = `%${query.q.replaceAll('!', '!!').replaceAll('%', '!%').replaceAll('_', '!_')}%`;
+      values.push(pattern, pattern, pattern);
+    }
+    const from = `FROM dokumen d JOIN dokumen_versi v ON v.dokumen_id=d.id JOIN jenis_dokumen j ON j.id=d.jenis_dokumen_id WHERE ${where.join(' AND ')}`;
+    return this.halaman(
+      `SELECT CAST(d.id AS CHAR) id,CAST(v.id AS CHAR) versionId,d.slug,CAST(d.jenis_dokumen_id AS CHAR) jenisDokumenId,j.nama tipe,v.judul,v.nomor,v.tahun,v.tingkat_akses tingkatAkses,v.status_workflow statusWorkflow,d.status_hukum statusHukum,v.published_at publishedAt ${from} ORDER BY v.updated_at DESC,v.id DESC LIMIT ? OFFSET ?`,
+      `SELECT COUNT(*) total ${from}`,
+      values,
+      query.halaman,
+      query.perHalaman,
+    );
+  }
+
+  async activeUsers(actor: Actor, rawQuery: unknown) {
+    this.allow(actor, 'secret.manage');
+    const query = z
+      .strictObject({
+        halaman: skemaHalaman.shape.halaman,
+        perHalaman: skemaHalaman.shape.perHalaman,
+        q: z.string().trim().min(2).max(100),
+      })
+      .parse(rawQuery);
+    const pattern = `%${query.q.replaceAll('!', '!!').replaceAll('%', '!%').replaceAll('_', '!_')}%`;
+    const from = "FROM pengguna p JOIN pengguna_peran pp ON pp.pengguna_id=p.id JOIN peran r ON r.id=pp.peran_id LEFT JOIN unit_kerja u ON u.id=p.unit_kerja_id WHERE p.status='AKTIF' AND p.deleted_at IS NULL AND r.kode='DOSEN_STAF' AND (p.nama LIKE ? ESCAPE '!' OR p.email LIKE ? ESCAPE '!')";
+    return this.halaman(
+      `SELECT CAST(p.id AS CHAR) id,p.nama,p.email,CAST(p.unit_kerja_id AS CHAR) unitKerjaId,u.nama unitKerja FROM pengguna p JOIN pengguna_peran pp ON pp.pengguna_id=p.id JOIN peran r ON r.id=pp.peran_id LEFT JOIN unit_kerja u ON u.id=p.unit_kerja_id WHERE p.status='AKTIF' AND p.deleted_at IS NULL AND r.kode='DOSEN_STAF' AND (p.nama LIKE ? ESCAPE '!' OR p.email LIKE ? ESCAPE '!') ORDER BY p.nama,p.id LIMIT ? OFFSET ?`,
+      `SELECT COUNT(DISTINCT p.id) total ${from}`,
+      [pattern, pattern],
+      query.halaman,
+      query.perHalaman,
+    );
+  }
+
+  async auditList(actor: Actor, rawQuery: unknown) {
+    this.allow(actor, 'audit.read');
+    const query = z
+      .strictObject({
+        halaman: skemaHalaman.shape.halaman,
+        perHalaman: skemaHalaman.shape.perHalaman,
+        module: z.string().trim().min(1).max(64).optional(),
+        action: z.string().trim().min(1).max(100).optional(),
+      })
+      .parse(rawQuery);
+    const where: string[] = [];
+    const values: string[] = [];
+    if (query.module) { where.push('a.module=?'); values.push(query.module); }
+    if (query.action) { where.push('a.action=?'); values.push(query.action); }
+    const clause = where.length ? ` WHERE ${where.join(' AND ')}` : '';
+    return this.halaman(
+      `SELECT CAST(a.id AS CHAR) id,COALESCE(p.nama,'Sistem') actor,a.module,a.action,a.entity_type entityType,CAST(a.entity_id AS CHAR) entityId,a.created_at createdAt FROM audit_log a LEFT JOIN pengguna p ON p.id=a.actor_id${clause} ORDER BY a.created_at DESC,a.id DESC LIMIT ? OFFSET ?`,
+      `SELECT COUNT(*) total FROM audit_log a${clause}`,
+      values,
+      query.halaman,
+      query.perHalaman,
+    );
+  }
+
+  async publicMaster(table: 'jenis_dokumen' | 'kategori' | 'unit_kerja') {
+    const sql = {
+      jenis_dokumen: 'SELECT CAST(id AS CHAR) id,nama FROM jenis_dokumen WHERE aktif=1 ORDER BY urutan,nama',
+      kategori: 'SELECT CAST(id AS CHAR) id,nama FROM kategori WHERE aktif=1 ORDER BY nama',
+      unit_kerja: 'SELECT CAST(id AS CHAR) id,nama FROM unit_kerja WHERE aktif=1 AND deleted_at IS NULL ORDER BY nama',
+    } as const;
+    if (!Object.hasOwn(sql, table)) throw new NotFoundException();
+    return this.repo.rows(this.repo.pool, sql[table]);
   }
 
   async masterList(actor: Actor, table: 'unit_kerja' | 'jenis_dokumen' | 'kategori' | 'tag') {
@@ -319,7 +442,7 @@ export class CoreBackendService {
       await this.repo.write(db, 'INSERT INTO dokumen_versi_tag VALUES(?,?)', [vid, id]);
     }
   }
-  async document(actor: Actor, id: string) {
+  async document(actor: Actor, id: string, requestedVersionId?: string) {
     this.allow(actor, 'documents.read_admin');
     const rows = await this.repo.rows(
       this.repo.pool,
@@ -332,7 +455,11 @@ export class CoreBackendService {
       !actor.izin.includes('secret.read_admin')
     )
       throw new NotFoundException();
-    return { document: rows[0], versions: rows.slice(1) };
+    const selected = requestedVersionId
+      ? (rows as any[]).find((row) => row.versionId === requestedVersionId)
+      : rows[0];
+    if (!selected) throw new NotFoundException();
+    return { document: selected, versions: (rows as any[]).filter((row) => row.versionId !== selected.versionId) };
   }
   async publicDetail(slug: string, actor?: Actor) {
     const r = (

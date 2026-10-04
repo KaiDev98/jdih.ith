@@ -1,0 +1,14 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { ambilApiBerdaftar, GalatApi } from '@/lib/api-client';
+import { Button, Card, PageTitle, SelectField, StateMessage } from '@/components/ui';
+
+type AuditRow = { id:string; actor:string; module:string; action:string; entityType:string; entityId:string|null; createdAt:string };
+const modules=['identity','master','documents','workflow','legal-relations','secret-access','letter-templates'];
+
+export function AdminAudit(){
+  const [rows,setRows]=useState<readonly AuditRow[]>([]);const [module,setModule]=useState('');const [page,setPage]=useState(1);const [total,setTotal]=useState(0);const [error,setError]=useState('');const [loading,setLoading]=useState(true);
+  useEffect(()=>{let current=true;void ambilApiBerdaftar<AuditRow>('/admin/audit',{kueri:{halaman:page,perHalaman:30,module:module||undefined}}).then(r=>{if(current){setRows(r.data);setTotal(r.meta.totalButir);setError('');}}).catch((e:unknown)=>{if(current)setError(e instanceof GalatApi?e.message:'Riwayat audit tidak dapat dimuat.');}).finally(()=>{if(current)setLoading(false);});return()=>{current=false;};},[module,page]);
+  return <div className="mx-auto max-w-6xl"><PageTitle title="Audit" description="Riwayat tindakan administratif. Rincian payload, IP, user agent, dan kredensial tidak dikirim ke UI."/><Card><div className="mb-4 flex flex-wrap items-end justify-between gap-3"><SelectField className="w-full sm:max-w-sm" label="Filter modul" id="audit-module" value={module} onChange={e=>{setLoading(true);setPage(1);setModule(e.target.value);}}><option value="">Semua modul</option>{modules.map(m=><option key={m}>{m}</option>)}</SelectField><p className="text-sm text-slate-600">{total} catatan</p></div>{error&&<StateMessage title="Audit gagal dimuat" kind="error">{error}</StateMessage>}{loading&&<StateMessage title="Memuat riwayat audit…"/>}{!loading&&!error&&!rows.length&&<StateMessage title="Belum ada catatan audit"/>}{!loading&&!error&&rows.length>0&&<div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left text-sm"><thead><tr className="border-b text-slate-600"><th className="py-3">Waktu UTC</th><th>Pelaku</th><th>Modul / aksi</th><th>Entitas</th><th>ID</th></tr></thead><tbody className="divide-y">{rows.map(r=><tr key={r.id}><td className="py-3 whitespace-nowrap">{new Date(r.createdAt).toLocaleString('id-ID',{timeZone:'UTC'})}</td><td>{r.actor}</td><td>{r.module} · {r.action}</td><td>{r.entityType}</td><td>{r.entityId??'—'}</td></tr>)}</tbody></table></div>}<div className="mt-4 flex items-center justify-between"><Button tone="secondary" disabled={page<=1||loading} onClick={()=>{setLoading(true);setPage(p=>p-1);}}>Sebelumnya</Button><span className="text-sm">Halaman {page}</span><Button tone="secondary" disabled={rows.length<30||loading} onClick={()=>{setLoading(true);setPage(p=>p+1);}}>Berikutnya</Button></div></Card></div>;
+}

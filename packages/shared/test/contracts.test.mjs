@@ -175,6 +175,8 @@ test('legal relation contracts contain only 4 canonical relations', () => {
   for (const jenisRelasi of c.JENIS_RELASI)
     ok(c.skemaBuatRelasi, { targetDocumentId: '2', jenisRelasi });
   bad(c.skemaBuatRelasi, { targetDocumentId: '2', jenisRelasi: 'JUKNIS' });
+  ok(c.skemaBuatRelasi, { targetDocumentId: '2', jenisRelasi: 'TERKAIT' });
+  bad(c.skemaBuatRelasi, { targetDocumentId: '2', jenisRelasi: 'MELAKSANAKAN' });
 });
 test('impact requires explicit confirmation of a reviewed snapshot', () => {
   const konfirmasi = {
