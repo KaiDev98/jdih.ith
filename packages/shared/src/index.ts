@@ -17,3 +17,8 @@ export * from './api.js';
 export * from './schemas/common.schema.js';
 export * from './schemas/auth.schema.js';
 export * from './schemas/dokumen.schema.js';
+export * from './schemas/search.schema.js';
+export * from './schemas/relasi.schema.js';
+export * from './schemas/workflow.schema.js';
+export * from './schemas/akses-rahasia.schema.js';
+export * from './schemas/template.schema.js';

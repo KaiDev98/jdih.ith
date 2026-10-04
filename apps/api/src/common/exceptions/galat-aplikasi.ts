@@ -49,17 +49,6 @@ export class GalatAkunTidakAktif extends GalatAplikasi {
   }
 }
 
-export class GalatPerluAktifkan2fa extends GalatAplikasi {
-  constructor() {
-    super(
-      KODE_GALAT.PERLU_AKTIFKAN_2FA,
-      'Peran Anda mewajibkan autentikasi dua faktor. Aktifkan terlebih dahulu ' +
-        'sebelum membuka panel administrasi.',
-      HttpStatus.FORBIDDEN,
-    );
-  }
-}
-
 /** Lapisan 1 — izin fungsional tidak dipegang. */
 export class GalatIzinTidakCukup extends GalatAplikasi {
   constructor(izinDiperlukan: readonly string[]) {
@@ -73,39 +62,10 @@ export class GalatIzinTidakCukup extends GalatAplikasi {
   }
 }
 
-/** Lapisan 2 — objek berada di luar cakupan unit kerja pelaku. */
-export class GalatDiLuarCakupanUnit extends GalatAplikasi {
-  constructor() {
-    super(
-      KODE_GALAT.DI_LUAR_CAKUPAN_UNIT,
-      'Data ini milik unit kerja di luar cakupan Anda.',
-      HttpStatus.FORBIDDEN,
-    );
-  }
-}
-
 /** Lapisan 3 — tingkat akses dokumen tidak mengizinkan. */
 export class GalatAksesDokumenDitolak extends GalatAplikasi {
   constructor(pesan = 'Anda tidak berhak mengakses dokumen ini.') {
     super(KODE_GALAT.AKSES_DOKUMEN_DITOLAK, pesan, HttpStatus.FORBIDDEN);
-  }
-}
-
-/**
- * Lapisan 3 khusus dokumen terbatas — pemohon masih punya jalan keluar, yaitu
- * mengajukan permintaan akses. Dibedakan dari penolakan biasa supaya peramban
- * dapat menampilkan tombol "Minta Akses" alih-alih pesan mati.
- */
-export class GalatPerluPermintaanAkses extends GalatAplikasi {
-  constructor(dokumenId: number) {
-    super(
-      KODE_GALAT.PERLU_PERMINTAAN_AKSES,
-      'Dokumen ini bertingkat akses terbatas. Ajukan permintaan akses beserta ' +
-        'alasan kebutuhan Anda.',
-      HttpStatus.FORBIDDEN,
-      undefined,
-      { dokumenId },
-    );
   }
 }
 

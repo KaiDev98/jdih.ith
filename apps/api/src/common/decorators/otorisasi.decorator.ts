@@ -32,7 +32,7 @@ export const Publik = (): MethodDecorator & ClassDecorator => SetMetadata(KUNCI_
  *
  * @example
  * ```ts
- * @Izin(IZIN.DOKUMEN_UBAH, IZIN.DOKUMEN_UNGGAH_BERKAS)
+ * @Izin(IZIN.DOCUMENTS_EDIT, IZIN.DOCUMENTS_UPLOAD)
  * ```
  */
 export const Izin = (...kode: readonly KodeIzin[]): MethodDecorator & ClassDecorator =>

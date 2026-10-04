@@ -28,13 +28,13 @@ const expected = [
 const fks = [...schema.matchAll(/CONSTRAINT (\w+) FOREIGN KEY/g)].map(m => m[1]).sort();
 const checks = [...schema.matchAll(/CONSTRAINT (\w+) CHECK/g)].map(m => m[1]).sort();
 const unique = [...schema.matchAll(/UNIQUE KEY (\w+)/g)].map(m => m[1]).sort();
-const indexes = [...schema.matchAll(/^  (?:UNIQUE )?KEY (\w+)/gm)].map(m => m[1]).sort();
+const indexes = [...schema.matchAll(/^ {2}(?:UNIQUE )?KEY (\w+)/gm)].map(m => m[1]).sort();
 assert.deepEqual(names, expected);
 assert.equal((schema.match(/ON DELETE RESTRICT ON UPDATE RESTRICT/g) ?? []).length, fks.length);
 // Structural review of our deliberately regular DDL; not a MySQL syntax parser.
 const structures = new Map();
 for (const match of schema.matchAll(/CREATE TABLE (\w+) \(\n([\s\S]*?)\n\) ENGINE=InnoDB;/g)) {
-  const columns = new Map([...match[2].matchAll(/^  (\w+) (BIGINT UNSIGNED|INT UNSIGNED|SMALLINT UNSIGNED|TINYINT|VARCHAR\(\d+\)|BINARY\(\d+\)|DATETIME\(6\)|DATE|TEXT|JSON|BOOLEAN|ENUM)/gm)].map(m => [m[1],m[2]]));
+  const columns = new Map([...match[2].matchAll(/^ {2}(\w+) (BIGINT UNSIGNED|INT UNSIGNED|SMALLINT UNSIGNED|TINYINT|VARCHAR\(\d+\)|BINARY\(\d+\)|DATETIME\(6\)|DATE|TEXT|JSON|BOOLEAN|ENUM)/gm)].map(m => [m[1],m[2]]));
   const keys = [...match[2].matchAll(/(?:PRIMARY KEY|(?:UNIQUE )?KEY \w+) \(([^)]+)\)/g)].map(m => m[1].split(',').map(c => c.trim()));
   const candidateKeys = [...match[2].matchAll(/(?:PRIMARY KEY|UNIQUE KEY \w+) \(([^)]+)\)/g)].map(m => m[1].split(',').map(c => c.trim()));
   if (/\bid BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY/.test(match[2])) {

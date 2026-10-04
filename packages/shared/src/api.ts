@@ -14,16 +14,10 @@ export const KODE_GALAT = {
   TIDAK_TERAUTENTIKASI: 'TIDAK_TERAUTENTIKASI',
   /** Sudah masuk, tetapi tidak memegang izin fungsional yang diperlukan (Lapisan 1). */
   IZIN_TIDAK_CUKUP: 'IZIN_TIDAK_CUKUP',
-  /** Objek berada di luar cakupan unit kerja pelaku (Lapisan 2). */
-  DI_LUAR_CAKUPAN_UNIT: 'DI_LUAR_CAKUPAN_UNIT',
-  /** Tingkat akses dokumen tidak mengizinkan aksi ini (Lapisan 3). */
-  AKSES_DOKUMEN_DITOLAK: 'AKSES_DOKUMEN_DITOLAK',
-  /** Dokumen terbatas: pemohon dapat mengajukan permintaan akses. */
-  PERLU_PERMINTAAN_AKSES: 'PERLU_PERMINTAAN_AKSES',
-  /** Autentikasi dua faktor diwajibkan tetapi belum diaktifkan. */
-  PERLU_AKTIFKAN_2FA: 'PERLU_AKTIFKAN_2FA',
   /** Akun tidak berstatus aktif, atau sedang terkunci. */
   AKUN_TIDAK_AKTIF: 'AKUN_TIDAK_AKTIF',
+  /** General access denial; Secret policy must use a non-disclosing NOT_FOUND response. */
+  AKSES_DOKUMEN_DITOLAK: 'AKSES_DOKUMEN_DITOLAK',
   TIDAK_DITEMUKAN: 'TIDAK_DITEMUKAN',
   /** Bertabrakan dengan data yang sudah ada, misalnya nomor peraturan duplikat. */
   KONFLIK: 'KONFLIK',
@@ -118,7 +112,6 @@ export const URUTAN_DOKUMEN = [
   'terlama',
   'tahun_turun',
   'tahun_naik',
-  'unduhan',
   'judul',
 ] as const;
 export type UrutanDokumen = (typeof URUTAN_DOKUMEN)[number];
@@ -129,6 +122,5 @@ export const LABEL_URUTAN_DOKUMEN: Record<UrutanDokumen, string> = {
   terlama: 'Terlama Ditetapkan',
   tahun_turun: 'Tahun Terbesar',
   tahun_naik: 'Tahun Terkecil',
-  unduhan: 'Paling Banyak Diunduh',
   judul: 'Judul A sampai Z',
 };

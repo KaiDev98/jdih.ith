@@ -55,11 +55,6 @@ export class GalatApi extends Error {
     return hasil;
   }
 
-  /** Dokumen terbatas: pengguna masih dapat mengajukan permintaan akses. */
-  get dapatMintaAkses(): boolean {
-    return this.kode === KODE_GALAT.PERLU_PERMINTAAN_AKSES;
-  }
-
   /** Perlu masuk lebih dahulu; peramban dapat mengalihkan ke halaman masuk. */
   get perluMasuk(): boolean {
     return this.kode === KODE_GALAT.TIDAK_TERAUTENTIKASI;

@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { IZIN_BERDAMPAK_TINGGI } from '@jdih/shared';
 
 import DasborAdmin from './page';
 
@@ -21,41 +22,37 @@ describe('DasborAdmin', () => {
   it('menampilkan jumlah izin dan peran dari paket kontrak bersama', () => {
     render(<DasborAdmin />);
 
-    // Pencarian dilingkupi ke kartunya masing-masing. Mencari teks "4" begitu saja
-    // akan bertabrakan dengan kolom Tingkat pada tabel peran di bawahnya.
     const kartu = (label: string) => screen.getByText(label).closest('div');
 
-    // Nilai yang sama dengan database/jdih_ith_seed.sql: 4 peran, 76 izin,
-    // 27 di antaranya berdampak tinggi.
-    expect(kartu('Peran sistem')).toHaveTextContent('4');
-    expect(kartu('Kode izin')).toHaveTextContent('76');
-    expect(kartu('Izin berdampak tinggi')).toHaveTextContent('27');
+    // Seed V2: 3 persisted roles, 23 permissions.
+    expect(kartu('Peran sistem')).toHaveTextContent('3');
+    expect(kartu('Kode izin')).toHaveTextContent('23');
+    expect(kartu('Izin berdampak tinggi')).toHaveTextContent(String(IZIN_BERDAMPAK_TINGGI.length));
   });
 
-  it('mencantumkan keempat peran sistem beserta kodenya', () => {
+  it('mencantumkan ketiga peran sistem beserta kodenya', () => {
     render(<DasborAdmin />);
 
-    for (const nama of ['Superadmin', 'Admin', 'Dosen/Staf', 'Pengunjung Publik']) {
+    for (const nama of ['Superadmin', 'Admin', 'Dosen/Staf']) {
       expect(screen.getByText(nama)).toBeInTheDocument();
     }
-    for (const kode of ['superadmin', 'admin', 'dosen_staf', 'pengunjung']) {
+    for (const kode of ['SUPERADMIN', 'ADMIN', 'DOSEN_STAF']) {
       expect(screen.getByText(kode)).toBeInTheDocument();
     }
   });
 
-  it('menandai Superadmin sebagai wajib 2FA dan tanpa batas unit', () => {
+  it('menjelaskan akun Superadmin hanya melalui operations', () => {
     render(<DasborAdmin />);
 
     const baris = screen.getByText('Superadmin').closest('tr');
     expect(baris).not.toBeNull();
-    expect(baris).toHaveTextContent('Wajib');
-    expect(baris).toHaveTextContent('Tanpa batas unit');
+    expect(baris).toHaveTextContent('tidak dapat dibuat atau dipromosikan melalui aplikasi');
   });
 
-  it('menandai Admin sebagai dibatasi cakupan unit kerja', () => {
+  it('menjelaskan verifikator sebagai Admin dengan permission tambahan', () => {
     render(<DasborAdmin />);
 
-    const baris = screen.getByText('admin').closest('tr');
-    expect(baris).toHaveTextContent('Dibatasi unit kerja');
+    const baris = screen.getByText('ADMIN').closest('tr');
+    expect(baris).toHaveTextContent('permission tambahan');
   });
 });

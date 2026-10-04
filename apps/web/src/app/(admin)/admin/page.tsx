@@ -37,7 +37,7 @@ export default function DasborAdmin() {
         <h2 className="text-lg font-semibold text-slate-900">Peran yang Terdefinisi</h2>
         <p className="mt-1 text-sm text-slate-600">
           Dibaca dari <code>@jdih/shared</code>, yang nilainya diturunkan dari
-          <code className="mx-1">database/jdih_ith_seed.sql</code>.
+          <code className="mx-1">database/v2/seed.sql</code>.
         </p>
 
         <div className="mt-4 overflow-x-auto">
@@ -45,9 +45,7 @@ export default function DasborAdmin() {
             <thead className="border-b border-slate-200 text-slate-500">
               <tr>
                 <th className="py-2 pr-4 font-medium">Peran</th>
-                <th className="py-2 pr-4 font-medium">Tingkat</th>
-                <th className="py-2 pr-4 font-medium">2FA</th>
-                <th className="py-2 pr-4 font-medium">Cakupan unit</th>
+                <th className="py-2 pr-4 font-medium">Keterangan peran</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -57,13 +55,7 @@ export default function DasborAdmin() {
                     <span className="font-medium text-slate-900">{peran.nama}</span>
                     <code className="ml-2 text-xs text-slate-400">{peran.kode}</code>
                   </td>
-                  <td className="py-2 pr-4 text-slate-600">{peran.tingkat}</td>
-                  <td className="py-2 pr-4 text-slate-600">
-                    {peran.wajib2fa ? 'Wajib' : 'Opsional'}
-                  </td>
-                  <td className="py-2 pr-4 text-slate-600">
-                    {peran.lingkupUnit ? 'Dibatasi unit kerja' : 'Tanpa batas unit'}
-                  </td>
+                  <td className="py-2 pr-4 text-slate-600">{peran.deskripsi}</td>
                 </tr>
               ))}
             </tbody>
