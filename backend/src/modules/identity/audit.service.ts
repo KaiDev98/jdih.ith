@@ -5,6 +5,7 @@ import { IdentityRepository, type Connection } from './identity.repository.js';
 export type SecurityAction =
   | 'LOGIN_SUCCESS'
   | 'LOGIN_FAILURE'
+  | 'LOGIN_UJI'
   | 'REGISTER'
   | 'LOGOUT'
   | 'REFRESH'
@@ -23,7 +24,7 @@ export interface SecurityAudit {
   reason?: string;
 }
 export interface DomainAudit {
-  module: 'master' | 'documents' | 'workflow' | 'legal-relations' | 'secret-access' | 'letter-templates';
+  module: 'master' | 'documents' | 'workflow' | 'legal-relations' | 'secret-access' | 'letter-templates' | 'settings';
   action: string;
   entityType: string;
   entityId: string;

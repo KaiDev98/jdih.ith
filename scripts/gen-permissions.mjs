@@ -12,7 +12,7 @@ const rows = [...block[1].matchAll(/\('([^']+)', '([^']+)', '([^']+)'\)/g)].map(
   nama: m[2],
   modul: m[3],
 }));
-if (rows.length !== 23 || new Set(rows.map((r) => r.kode)).size !== rows.length)
+if (rows.length !== 25 || new Set(rows.map((r) => r.kode)).size !== rows.length)
   throw new Error('Unexpected V2 permission baseline');
 const content = [
   '// Generated from database/v2/seed.sql by npm run gen:permissions. No role provisioning API.',
@@ -39,4 +39,4 @@ const content = [
 ].join('\n');
 const output = fileURLToPath(new URL('packages/shared/src/permissions.ts', root));
 writeFileSync(output, await format(content, { ...(await resolveConfig(output)), parser: 'typescript' }));
-console.log('Generated 23 V2 permissions.');
+console.log('Generated 25 V2 permissions.');

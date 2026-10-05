@@ -180,8 +180,8 @@ export class CoreBackendService {
 
   async publicMaster(table: 'jenis_dokumen' | 'kategori' | 'unit_kerja') {
     const sql = {
-      jenis_dokumen: 'SELECT CAST(id AS CHAR) id,nama FROM jenis_dokumen WHERE aktif=1 ORDER BY urutan,nama',
-      kategori: 'SELECT CAST(id AS CHAR) id,nama FROM kategori WHERE aktif=1 ORDER BY nama',
+      jenis_dokumen: 'SELECT CAST(id AS CHAR) id,kode,nama FROM jenis_dokumen WHERE aktif=1 ORDER BY urutan,nama',
+      kategori: 'SELECT CAST(id AS CHAR) id,kode,nama FROM kategori WHERE aktif=1 ORDER BY nama',
       unit_kerja: 'SELECT CAST(id AS CHAR) id,nama FROM unit_kerja WHERE aktif=1 AND deleted_at IS NULL ORDER BY nama',
     } as const;
     if (!Object.hasOwn(sql, table)) throw new NotFoundException();
@@ -509,9 +509,16 @@ export class CoreBackendService {
         kemampuan: { preview: true, download: true },
       })),
     };
-    return r.tingkat_akses === 'publik'
-      ? skemaDetailDokumenPublik.parse({ ...response, tingkatAkses: 'publik' })
-      : skemaDetailDokumenAuthorized.parse({ ...response, tingkatAkses: r.tingkat_akses });
+    // Tingkat akses hanya disebut kepada yang berhak melihat dokumen Internal.
+    // Pengunjung anonim membaca dokumen publik tanpa tahu ada tingkat lain.
+    // Lolos assertRead atas dokumen non-publik berarti memang berhak tahu.
+    const bolehTahuTingkat =
+      r.tingkat_akses !== 'publik' ||
+      (actor?.status === 'AKTIF' &&
+        (actor.peran.includes('DOSEN_STAF') || actor.izin.includes('documents.read_admin')));
+    return bolehTahuTingkat
+      ? skemaDetailDokumenAuthorized.parse({ ...response, tingkatAkses: r.tingkat_akses })
+      : skemaDetailDokumenPublik.parse(response);
   }
   async updateDocument(actor: Actor, id: string, raw: unknown) {
     this.allow(actor, 'documents.edit');

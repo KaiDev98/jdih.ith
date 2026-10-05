@@ -103,9 +103,9 @@ const detail = {
   lampiran: z.array(skemaBerkasLampiran),
 };
 /** Explicit projections after policy checks; never spread raw DB rows into responses. */
+/** Untuk yang tidak berhak tahu ada tingkat akses lain: tanpa `tingkatAkses`. */
 export const skemaDetailDokumenPublik = z.strictObject({
   ...detail,
-  tingkatAkses: z.literal('publik'),
 });
 export const skemaDetailDokumenAuthorized = z.strictObject({
   ...detail,

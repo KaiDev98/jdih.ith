@@ -70,7 +70,9 @@ export function cekAksesDokumen(
   const admin = active && user.peran.some((r) => r === 'ADMIN' || r === 'SUPERADMIN');
   if (resource.tingkatAkses === 'internal') {
     if (staff || (admin && user.izin.includes('documents.read_admin'))) return;
-    throw new ForbiddenException();
+    // 404, bukan 403: jawaban 403 membedakan "ada tetapi tertutup" dari "tidak
+    // ada", sehingga keberadaan dokumen Internal dapat ditebak dari luar.
+    throw new NotFoundException();
   }
   if (
     // Retain runtime fail-closed check even for input outside the TypeScript union.

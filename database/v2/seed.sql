@@ -17,6 +17,7 @@ INSERT INTO izin (kode, nama, modul) VALUES
   ('documents.edit', 'Mengubah draf dan metadata', 'documents'),
   ('documents.upload', 'Mengunggah file dan lampiran', 'documents'),
   ('documents.revise', 'Membuat revisi baru', 'documents'),
+  ('documents.delete', 'Menghapus dokumen secara permanen', 'documents'),
   ('workflow.submit', 'Mengajukan versi', 'workflow'),
   ('workflow.return', 'Mengembalikan dengan catatan revisi', 'workflow'),
   ('workflow.approve', 'Menyetujui versi pihak lain', 'workflow'),
@@ -34,7 +35,8 @@ INSERT INTO izin (kode, nama, modul) VALUES
   ('secret.read_admin', 'Akses Rahasia untuk administrasi', 'secret-access'),
   ('templates.manage', 'Mengelola versi Format Persuratan', 'letter-templates'),
   ('dashboard.read', 'Melihat dashboard administratif', 'dashboard'),
-  ('audit.read', 'Melihat audit sesuai kewenangan', 'audit') AS incoming
+  ('audit.read', 'Melihat audit sesuai kewenangan', 'audit'),
+  ('contact.manage', 'Mengelola kontak kantor', 'settings') AS incoming
 ON DUPLICATE KEY UPDATE nama = incoming.nama, modul = incoming.modul;
 
 -- Provision minimum ordinary Admin permissions. Verification remains additional.
@@ -42,10 +44,11 @@ INSERT INTO peran_izin (peran_id, izin_id)
 SELECT p.id, i.id FROM peran p CROSS JOIN izin i
 WHERE p.kode = 'ADMIN' AND i.kode IN (
   'documents.read_admin', 'documents.create', 'documents.edit', 'documents.upload',
-  'documents.revise', 'workflow.submit', 'legal.manage_relations',
+  'documents.revise', 'documents.delete', 'workflow.submit', 'legal.manage_relations',
+  'legal.correct_status',
   'users.read', 'users.approve', 'users.reject', 'users.set_status',
   'units.manage', 'master.manage', 'secret.manage', 'secret.read_admin',
-  'templates.manage', 'dashboard.read', 'audit.read'
+  'templates.manage', 'dashboard.read', 'audit.read', 'contact.manage'
 )
 ON DUPLICATE KEY UPDATE izin_id = peran_izin.izin_id;
 
@@ -56,6 +59,10 @@ ON DUPLICATE KEY UPDATE izin_id = peran_izin.izin_id;
 -- DOSEN_STAF access depends on active account + document policy, not a global
 -- secret permission. Admin verifier permissions can be explicitly provisioned
 -- through pengguna_izin by operations; no separate VERIFIER role is created.
+
+-- Nilai awal nomor telepon kantor; selanjutnya diubah Admin lewat panel, seed tidak menimpanya.
+INSERT INTO kontak_kantor (id, telepon) VALUES (1, '+62 853-4088-9059') AS incoming
+ON DUPLICATE KEY UPDATE id = kontak_kantor.id;
 
 INSERT INTO jenis_dokumen (kode, nama, urutan) VALUES
   ('PERREK', 'Peraturan Rektor', 1),

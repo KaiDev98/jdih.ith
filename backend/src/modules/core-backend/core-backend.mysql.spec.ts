@@ -539,11 +539,13 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
       [fileSlug, main.id],
     );
     expect(policyState[0]).toMatchObject({ is_current: '1', is_deleted: '0' });
-    await expect(service.publicDetail(fileSlug)).resolves.toMatchObject({
-      tingkatAkses: 'publik',
+    const anonymousDetail = await service.publicDetail(fileSlug);
+    expect(anonymousDetail).toMatchObject({
       berkasUtama: { id: main.id, jenisBerkas: 'UTAMA', kemampuan: { preview: true, download: true } },
       lampiran: expect.arrayContaining([expect.objectContaining({ jenisBerkas: 'LAMPIRAN' })]),
     });
+    // Anonymous visitors are not told about access levels at all.
+    expect(anonymousDetail).not.toHaveProperty('tingkatAkses');
     const opened = await files.openCurrent(fileSlug, main.id);
     const chunks: Buffer[] = [];
     for await (const chunk of opened.stream) chunks.push(chunk as Buffer);
@@ -666,9 +668,10 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     expect(next.templateSuratId).toBe(first.id);
     const reactivated = await templates.newVersion(actor, first.id, await incomingFile('surat-reactivated.docx', minimalDocx()), { tingkatAkses: 'PUBLIK' });
     expect(reactivated.nomorVersi).toBe(3);
-    expect((await templates.list({ halaman: 1, perHalaman: 20 })).data).toEqual(
-      expect.arrayContaining([expect.objectContaining({ id: first.id, tingkatAkses: 'PUBLIK' })]),
-    );
+    const anonim = (await templates.list({ halaman: 1, perHalaman: 20 })).data;
+    expect(anonim).toEqual(expect.arrayContaining([expect.objectContaining({ id: first.id })]));
+    // Tanggapan anonim tidak boleh menyiratkan adanya tingkat akses lain.
+    for (const item of anonim) expect(item).not.toHaveProperty('tingkatAkses');
   });
 
   it('searches current published versions, redacts anonymous Internal results and omits Secret from counts until grant', async () => {
@@ -694,12 +697,12 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
       await publish(target.versionId);
     }
     const anon = await search.search({ q: marker, halaman: 1, perHalaman: 20 });
-    expect(anon.meta.totalButir).toBe(2);
-    expect(anon.data).toEqual(expect.arrayContaining([
-      expect.objectContaining({ judul: `Search V2 public ${marker}`, badge: 'PUBLIK' }),
-      { judul: `Search V2 internal ${marker}`, badge: 'INTERNAL' },
-    ]));
-    expect(anon.data.find((row) => 'badge' in row && row.badge === 'INTERNAL')).toEqual({ judul: `Search V2 internal ${marker}`, badge: 'INTERNAL' });
+    // Anonymous visitors must not learn that Internal documents exist: only the
+    // public one is returned and counted, with no access label of any kind.
+    expect(anon.meta.totalButir).toBe(1);
+    expect(anon.data).toEqual([expect.objectContaining({ judul: `Search V2 public ${marker}` })]);
+    expect(anon.data[0]).not.toHaveProperty('badge');
+    expect(anon.data[0]).not.toHaveProperty('tingkatAkses');
     const [type] = await pool.query<RowDataPacket[]>('SELECT CAST(jenis_dokumen_id AS CHAR) id FROM dokumen WHERE id=?', [publicDoc.id]);
     const filtered = await search.search({ q: `public ${marker}`, jenisDokumenId: String(type[0]!.id), tahun: '2026', unitKerjaId: actor.unitKerjaId, kategoriId: categoryId, statusHukum: 'BERLAKU' });
     expect(filtered.data).toHaveLength(1);
@@ -713,10 +716,14 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     expect(granted.data[0]).toMatchObject({ id: secretDoc.id, tingkatAkses: 'rahasia' });
     const pending = await addPendingStaff();
     const pendingResults = await search.search({ q: `internal ${marker}` }, pending);
-    expect(pendingResults.data).toEqual([{ judul: `Search V2 internal ${marker}`, badge: 'INTERNAL' }]);
+    expect(pendingResults.data).toEqual([]);
+    expect(pendingResults.meta.totalButir).toBe(0);
     const internalFiles = (await pool.query<RowDataPacket[]>('SELECT CAST(id AS CHAR) id FROM dokumen_berkas WHERE dokumen_versi_id=? AND jenis_berkas=\'UTAMA\'', [internalDoc.versionId]))[0];
     await expect(files.openCurrent(await documentSlug(internalDoc.id), String(internalFiles[0]!.id), pending)).rejects.toThrow();
-    expect((await search.publicList({ halaman: 1, perHalaman: 100 })).data.every((row) => row.badge === 'PUBLIK')).toBe(true);
+    for (const row of (await search.publicList({ halaman: 1, perHalaman: 100 })).data) {
+      expect(row).not.toHaveProperty('badge');
+      expect(row).not.toHaveProperty('tingkatAkses');
+    }
 
     const revision = await service.newVersion(actor, publicDoc.id, ready(`Search V2 revised ${marker}`));
     expect((await search.search({ q: `public ${marker}` })).data).toHaveLength(1);

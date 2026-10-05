@@ -3,7 +3,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from 'jose';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
-import type { ExecutionContext } from '@nestjs/common';
+import { NotFoundException, type ExecutionContext } from '@nestjs/common';
 import type { PenggunaAktif } from '@jdih/shared';
 import { skemaLengkapiRegistrasi, skemaBuatUnit, skemaTolakAkun } from '@jdih/shared';
 import {
@@ -202,8 +202,8 @@ describe('document policy', () => {
     it('noncurrent/unpublished/deleted fail closed ' + JSON.stringify(patch), () =>
       expect(() => cekAksesDokumen({ ...resource, ...patch })).toThrow(),
     );
-  it('anonymous Internal denied', () =>
-    expect(() => cekAksesDokumen({ ...resource, tingkatAkses: 'internal' })).toThrow());
+  it('anonymous Internal is not found, indistinguishable from a missing document', () =>
+    expect(() => cekAksesDokumen({ ...resource, tingkatAkses: 'internal' })).toThrow(NotFoundException));
   it('active staff Internal allowed without unit scope', () =>
     expect(() =>
       cekAksesDokumen(
@@ -215,7 +215,7 @@ describe('document policy', () => {
     it(status + ' Internal denied', () =>
       expect(() =>
         cekAksesDokumen({ ...resource, tingkatAkses: 'internal' }, { ...principal, status }),
-      ).toThrow(),
+      ).toThrow(NotFoundException),
     );
   const secret = { ...resource, tingkatAkses: 'rahasia' as const };
   const grant = { dokumenId: '8', penggunaId: '1', expiresAt: null, revokedAt: null };

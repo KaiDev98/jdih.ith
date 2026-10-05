@@ -8,20 +8,46 @@ const publicRow = {
 const internalRow = { ...publicRow, id: '20', slug: 'rahasia-internal', judul: 'Judul internal', tingkatAkses: 'internal' };
 
 describe('SearchService visibility projection', () => {
-  it('returns anonymous Internal rows as exactly title and badge, while excluding Secret from SQL visibility/count', async () => {
+  it('anonymous search sees only public documents, with no access label of any kind', async () => {
     const calls: { sql: string; values: unknown[] }[] = [];
     const repo = { rows: vi.fn((_db: unknown, sql: string, values: unknown[] = []) => {
       calls.push({ sql, values });
-      return Promise.resolve(sql.startsWith('SELECT COUNT') ? [{ total: '2' }] : [publicRow, internalRow]);
+      return Promise.resolve(sql.startsWith('SELECT COUNT') ? [{ total: '1' }] : [publicRow]);
     }), pool: {} };
     const result = await new SearchService(repo as never).search({ halaman: 1, perHalaman: 20 });
+    expect(result.data).toEqual([expect.objectContaining({ id: '10', judul: 'Aturan publik' })]);
+    expect(result.data[0]).not.toHaveProperty('badge');
+    expect(result.data[0]).not.toHaveProperty('tingkatAkses');
+    // Both the count and the page are restricted to public documents in SQL,
+    // so Internal documents neither appear nor inflate the total.
+    for (const call of calls) {
+      expect(call.sql).toContain("v.tingkat_akses='publik'");
+      expect(call.sql).not.toContain("'internal'");
+      expect(call.sql).not.toContain("'rahasia'");
+    }
+  });
+
+  it('active staff search still receives Internal documents with their access level', async () => {
+    const repo = { rows: vi.fn((_db: unknown, sql: string) =>
+      Promise.resolve(sql.startsWith('SELECT COUNT') ? [{ total: '2' }] : [publicRow, internalRow])), pool: {} };
+    const staff = { id: '1', status: 'AKTIF', peran: ['DOSEN_STAF'], izin: [] };
+    const result = await new SearchService(repo as never).search({ halaman: 1, perHalaman: 20 }, staff as never);
     expect(result.data).toEqual([
-      expect.objectContaining({ id: '10', badge: 'PUBLIK' }),
-      { judul: 'Judul internal', badge: 'INTERNAL' },
+      expect.objectContaining({ id: '10', tingkatAkses: 'publik' }),
+      expect.objectContaining({ id: '20', tingkatAkses: 'internal' }),
     ]);
-    expect(Object.keys(result.data[1]!)).toEqual(['judul', 'badge']);
-    expect(calls[0]!.sql).toContain("v.tingkat_akses IN ('publik','internal')");
-    expect(calls[0]!.sql).not.toContain("'rahasia'");
+  });
+
+  it('lists years from public documents only, newest first', async () => {
+    const calls: string[] = [];
+    const repo = { rows: vi.fn((_db: unknown, sql: string) => {
+      calls.push(sql);
+      return Promise.resolve([{ tahun: '2026' }, { tahun: 2024 }]);
+    }), pool: {} };
+    await expect(new SearchService(repo as never).publicYears()).resolves.toEqual([2026, 2024]);
+    expect(calls[0]).toContain("v.tingkat_akses='publik'");
+    expect(calls[0]).not.toContain("'internal'");
+    expect(calls[0]).toContain('ORDER BY v.tahun DESC');
   });
 
   it('applies keyword and explicit filters with prepared values', async () => {

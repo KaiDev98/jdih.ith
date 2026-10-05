@@ -96,6 +96,19 @@ export class IdentityService {
       return session;
     });
   }
+  /**
+   * Login uji tanpa Google untuk pengembangan lokal. Pemanggil wajib memastikan
+   * LOGIN_UJI aktif; konfigurasi sendiri menolak LOGIN_UJI di produksi.
+   */
+  async loginUji(peran: 'SUPERADMIN' | 'ADMIN', ip: string, agent: string) {
+    return this.repo.transaction(async (db) => {
+      const row = await this.repo.akunUji(db, peran);
+      if (!row) throw new NotFoundException('Belum ada akun aktif dengan peran ini');
+      const session = await this.issue(db, row, ip, agent);
+      await this.audit.record({ action: 'LOGIN_UJI', actorId: row.id }, db);
+      return session;
+    });
+  }
   async register(identity: GoogleIdentity, input: unknown, ip: string, agent: string) {
     const body = skemaLengkapiRegistrasi.parse(input);
     return this.repo.transaction(async (db) => {

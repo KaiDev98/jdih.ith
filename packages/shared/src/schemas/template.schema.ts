@@ -28,9 +28,13 @@ const item = {
   nama: teksWajib(200, 'Nama'),
   kemampuan: z.strictObject({ download: z.literal(true) }),
 };
+/**
+ * Tampilan untuk pengunjung anonim sengaja TIDAK memuat `tingkatAkses`. Ruas
+ * itu, sekalipun selalu bernilai PUBLIK, memberi tahu pengunjung bahwa ada
+ * tingkat akses lain — dan keberadaan format Internal tidak boleh terungkap.
+ */
 export const skemaItemTemplatePublik = z.strictObject({
   ...item,
-  tingkatAkses: z.literal('PUBLIK'),
 });
 export const skemaItemTemplateAuthorized = z.strictObject({
   ...item,

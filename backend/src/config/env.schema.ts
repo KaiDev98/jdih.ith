@@ -45,6 +45,8 @@ export const skemaEnv = z.object({
   SESSION_KEY: z.string().min(32),
   SESSION_TTL_SECONDS: z.coerce.number().int().min(300).max(604800).default(604800),
   COOKIE_SECURE: bolean.default(true),
+  /** Tombol login uji tanpa Google; khusus pengembangan lokal, ditolak di produksi. */
+  LOGIN_UJI: bolean.default(false),
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(3).default(0),
 
   /* ─────────────────────── Penyimpanan berkas dokumen ──────────────────── */
@@ -147,6 +149,13 @@ export const skemaEnvLengkap = skemaEnv
       env.NODE_ENV !== 'production' ||
       [env.APP_URL, env.GOOGLE_REDIRECT_URI].every((url) => new URL(url).protocol === 'https:'),
     { message: 'Production requires HTTPS', path: ['APP_URL'] },
+  )
+  .refine(
+    (env) =>
+      !env.LOGIN_UJI ||
+      (env.NODE_ENV !== 'production' &&
+        ['localhost', '127.0.0.1'].includes(new URL(env.APP_URL).hostname)),
+    { message: 'LOGIN_UJI hanya untuk pengembangan lokal', path: ['LOGIN_UJI'] },
   )
   .refine((env) => new URL(env.APP_URL).origin === env.APP_URL, {
     message: 'APP_URL must be an exact origin without path/trailing slash',
