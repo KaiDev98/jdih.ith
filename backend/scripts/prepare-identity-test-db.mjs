@@ -39,8 +39,8 @@ try {
   await connection.query('SET FOREIGN_KEY_CHECKS=1');
 
   for (const [label, file] of [
-    ['schema', '../../../database/v2/schema.sql'],
-    ['seed', '../../../database/v2/seed.sql'],
+    ['schema', '../../database/v2/schema.sql'],
+    ['seed', '../../database/v2/seed.sql'],
   ]) {
     const source = await readFile(resolve(scriptDir, file), 'utf8');
     const sql = source.replace(/\bUSE\s+jdih_ith_v2_dev\s*;/gi, 'USE jdih_ith_v2_test;');

@@ -96,6 +96,6 @@ Unduhan Internal dicatat audit. Tidak ada detail/preview template.
 
 Unit tests menggunakan direktori sementara unik di OS temp dan membersihkannya
 setelah test. Integration tests menggunakan MySQL `jdih_ith_v2_test` saja dan
-storage temp terisolasi. Gunakan `apps/api/.env.identity.test.local` sebagai sumber
+storage temp terisolasi. Gunakan `backend/.env.identity.test.local` sebagai sumber
 config; harness menolak host non-loopback atau DB selain nama test itu. Jangan
 menjalankan tes mutasi pada `jdih_ith_v2_dev`.

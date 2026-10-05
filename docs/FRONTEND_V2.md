@@ -1,6 +1,6 @@
 # Frontend JDIH ITH V2
 
-Frontend Phase 5 menggunakan Next.js App Router, React, TypeScript, dan paket kontrak `@jdih/shared`. Implementasi berada di `apps/web` dan memakai API NestJS melalui same-origin `/api/v1`; kredensial sesi tetap berupa cookie HttpOnly dan tidak disimpan di browser storage.
+Frontend menggunakan Next.js App Router, React, TypeScript, dan paket kontrak `@jdih/shared`. Implementasi berada di `frontend/` dan memakai API NestJS melalui same-origin `/api/v1`; kredensial sesi tetap berupa cookie HttpOnly dan tidak disimpan di browser storage.
 
 ## Rute
 

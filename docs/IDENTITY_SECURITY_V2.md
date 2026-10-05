@@ -100,14 +100,14 @@ headers; filter error tidak mencetak raw exception yang bisa memuat SQL/token.
 ## Database dan konfigurasi
 
 Tidak ada perubahan schema/seed/sample fisik. Binding terbatas sepuluh tabel
-identity/RBAC/audit/grant ada di `apps/api/src/database/v2/schema.ts`. Ini pemetaan
+identity/RBAC/audit/grant ada di `backend/src/database/v2/schema.ts`. Ini pemetaan
 kolom untuk runtime, bukan schema migrasi lengkap; FK/CHECK/index/default
 otoritatif tetap SQL. Jangan gunakan drizzle push/generate terhadap binding ini.
 IdentityRepository memakai prepared SQL mysql2 dalam repository tersentralisasi
 untuk locking/transaksi; Drizzle foundation menggunakan binding V2, bukan legacy.
 
-Startup membaca `apps/api/.env.identity.local` dan root `.env.v2.local` saat API
-dijalankan melalui npm workspace. Contoh ada di `apps/api/.env.identity.example`.
+Startup membaca `backend/.env.identity.local` dan root `.env.v2.local` saat API
+dijalankan melalui npm workspace. Contoh ada di `backend/.env.identity.example`.
 Google credentials dan SESSION_KEY wajib diisi lokal; tidak ada default secret.
 Konfigurasi JWT/password lama tidak diperlukan. DB_NAME menerima
 `jdih_ith_v2_dev` atau `jdih_ith_v2_test*` di luar produksi dan hanya
@@ -139,11 +139,11 @@ Perintah prepare hanya menerima host loopback, nama database persis
 memuat `database/v2/schema.sql` dan `database/v2/seed.sql`, serta mengganti
 directive `USE jdih_ith_v2_dev` hanya saat runtime agar SQL sumber tidak berubah.
 Sesudahnya jalankan suite, termasuk 20 skenario MySQL, dengan `IDENTITY_TEST_ENV`
-menunjuk file env lokal `apps/api/.env.identity.test.local`; suite memeriksa ulang
+menunjuk file env lokal `backend/.env.identity.test.local`; suite memeriksa ulang
 versi dan database aktif sebelum mengakses data. Contoh PowerShell dari root repo:
 
 ```powershell
-$env:IDENTITY_TEST_ENV = (Resolve-Path apps/api/.env.identity.test.local).Path
+$env:IDENTITY_TEST_ENV = (Resolve-Path backend/.env.identity.test.local).Path
 npm run test
 Remove-Item Env:IDENTITY_TEST_ENV
 ```

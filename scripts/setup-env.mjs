@@ -24,8 +24,8 @@ const rahasia = () => randomBytes(48).toString('base64url');
 const rahasiaWajib = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'COOKIE_SECRET'];
 
 const aplikasi = [
-  { nama: 'apps/api', contoh: 'apps/api/.env.example', tujuan: 'apps/api/.env' },
-  { nama: 'apps/web', contoh: 'apps/web/.env.example', tujuan: 'apps/web/.env' },
+  { nama: 'backend', contoh: 'backend/.env.example', tujuan: 'backend/.env' },
+  { nama: 'frontend', contoh: 'frontend/.env.example', tujuan: 'frontend/.env' },
 ];
 
 let adaPerubahan = false;
@@ -67,6 +67,6 @@ for (const { nama, contoh, tujuan } of aplikasi) {
 
 if (adaPerubahan) {
   console.log('');
-  console.log('Selesai. Periksa nilai DB_USER dan DB_PASSWORD pada apps/api/.env');
+  console.log('Selesai. Periksa nilai DB_USER dan DB_PASSWORD pada backend/.env');
   console.log('bila pemasangan MySQL Anda tidak memakai pengaturan XAMPP baku.');
 }

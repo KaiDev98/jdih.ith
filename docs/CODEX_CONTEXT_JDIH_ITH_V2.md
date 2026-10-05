@@ -4,6 +4,8 @@
 Bahasa utama project: Bahasa Indonesia.  
 Tanggal baseline V2: 2026-10-03. Revisi requirement Phase 1: 2026-10-04.
 
+> Catatan struktur: snapshot awal di bawah berasal dari sebelum implementasi dan refactor repository. Path aplikasi pada dokumen ini dinormalisasi ke layout terkini: NestJS di `backend/`, Next.js di `frontend/`, dan shared contracts tetap di `packages/shared/`.
+
 ---
 
 # 1. Tujuan Project
@@ -58,15 +60,14 @@ Snapshot saat context pack dibuat:
 - commit: `4e12664540013562e2fc5d30d5afb6cdbffdb527`
 - commit message: `chore: add JDIH ITH portal setup`
 - current source is a monorepo.
-- backend domain modules belum dibangun; `apps/api/src/modules/` hanya berisi README.
+- Pada snapshot awal, backend domain modules belum dibangun; kondisi saat ini dijelaskan pada dokumentasi fase terkait.
 
 Current structure:
 
 ```text
 jdih.ith/
-├── apps/
-│   ├── api/              NestJS 12 backend
-│   └── web/              Next.js 16 frontend
+├── backend/              NestJS 12 backend
+├── frontend/             Next.js 16 frontend
 ├── packages/
 │   └── shared/           shared Zod/API/enums/roles/permissions
 ├── database/             legacy SQL schema + seed
@@ -1104,7 +1105,7 @@ Do not expose a public statistics page unless user later asks.
 Recommended V2 modules:
 
 ```text
-apps/api/src/modules/
+backend/src/modules/
 ├── auth/
 ├── users/
 ├── authorization/

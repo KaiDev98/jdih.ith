@@ -15,7 +15,7 @@
     "test:mysql": "vitest run src/modules/identity/identity.mysql.spec.ts src/modules/core-backend/core-backend.mysql.spec.ts",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
-    "db:pull": "node ../../scripts/db-pull.mjs",
+    "db:pull": "node ../scripts/db-pull.mjs",
     "db:check": "drizzle-kit check",
     "db:studio": "drizzle-kit studio",
     "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",

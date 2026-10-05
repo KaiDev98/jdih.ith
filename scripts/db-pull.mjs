@@ -46,7 +46,7 @@ import { fileURLToPath } from 'node:url';
 import { rapikanSkema } from './lib/rapikan-skema.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const dirApi = join(root, 'apps', 'api');
+const dirApi = join(root, 'backend');
 
 /* ─────────────────────────── Konfigurasi ─────────────────────────────────── */
 
@@ -328,8 +328,8 @@ try {
 
   console.log('');
   console.log(`OK  ${hasil.tabel} tabel, ${hasil.baris} baris ditulis ke:`);
-  console.log('    apps/api/src/database/generated/schema.ts');
-  console.log('    apps/api/src/database/generated/relations.ts');
+  console.log('    backend/src/database/generated/schema.ts');
+  console.log('    backend/src/database/generated/relations.ts');
   console.log('');
   console.log('Berkas ini sudah diekspor ulang oleh src/database/schema/index.ts,');
   console.log('sehingga seluruh tabel langsung tersedia bertipe pada DatabaseModule.');

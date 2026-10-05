@@ -72,7 +72,7 @@ Integration tests hanya memakai `jdih_ith_v2_test`. Dari root repository:
 
 ```powershell
 npm run test:mysql:prepare --workspace @jdih/api
-$env:IDENTITY_TEST_ENV = (Resolve-Path apps/api/.env.identity.test.local).Path
+$env:IDENTITY_TEST_ENV = (Resolve-Path backend/.env.identity.test.local).Path
 npm run test:mysql --workspace @jdih/api
 Remove-Item Env:IDENTITY_TEST_ENV
 ```

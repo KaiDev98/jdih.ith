@@ -155,7 +155,7 @@ Drizzle bersifat _SQL-first_: berkas SQL tetap menjadi sumber kebenaran, dan tip
 TypeScript **diturunkan** darinya lewat introspeksi. Arahnya selalu satu:
 
 ```
-database/*.sql  ──[npm run db:import]──▶  MySQL  ──[npm run db:pull]──▶  apps/api/src/database/generated/
+database/*.sql  ──[npm run db:import]──▶  MySQL  ──[npm run db:pull]──▶  backend/src/database/generated/
 ```
 
 Perintah `drizzle-kit generate` dan `migrate` **tidak dipakai**, karena keduanya
@@ -223,7 +223,7 @@ pendampingnya, dan menyebutkan variabel mana yang kurang.
 
 Tahap ini adalah **setup**: kerangka, konfigurasi, kontrak, dan perkakas. Modul
 fungsional belum dibangun. Batas tanggung jawab tiap modul sudah ditetapkan di
-[`apps/api/src/modules/README.md`](apps/api/src/modules/README.md), dan urutan
+[`backend/src/modules/README.md`](backend/src/modules/README.md), dan urutan
 pembangunannya mengikuti peta fase pada `docs/` Bagian F § F.6.
 
 Tiga hal yang **wajib** dibereskan sebelum sistem dipakai sungguhan:
@@ -233,5 +233,5 @@ Tiga hal yang **wajib** dibereskan sebelum sistem dipakai sungguhan:
 2. **Verifikasi data institusional**: nomenklatur unit kerja pada OTK ITH, daftar
    resmi jenis produk hukum, dan nomor peraturan rujukan tingkat nasional.
    Sepuluh butirnya ada di `docs/` Bagian A § A.9.
-3. **Selaraskan warna institusi** pada `apps/web/src/app/globals.css` dengan
+3. **Selaraskan warna institusi** pada `frontend/src/app/globals.css` dengan
    pedoman identitas visual ITH. Nilai yang ada sekarang hanya sementara.

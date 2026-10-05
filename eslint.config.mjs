@@ -13,10 +13,10 @@ export default tseslint.config(
       '**/.next/**',
       '**/coverage/**',
       '**/*.tsbuildinfo',
-      'apps/api/src/database/generated/**',
-      // apps/web memakai eslint.config.mjs sendiri, karena eslint-config-next
+      'backend/src/database/generated/**',
+      // frontend memakai eslint.config.mjs sendiri, karena eslint-config-next
       // membawa salinan typescript-eslint yang bertabrakan bila digabung di sini.
-      'apps/web/**',
+      'frontend/**',
     ],
   },
 
@@ -59,7 +59,7 @@ export default tseslint.config(
 
   {
     name: 'jdih/api',
-    files: ['apps/api/**/*.ts'],
+    files: ['backend/**/*.ts'],
     languageOptions: {
       globals: { ...globals.node },
     },
@@ -74,7 +74,7 @@ export default tseslint.config(
 
   {
     name: 'jdih/web',
-    files: ['apps/web/**/*.{ts,tsx}'],
+    files: ['frontend/**/*.{ts,tsx}'],
     languageOptions: {
       globals: { ...globals.browser, ...globals.node },
     },

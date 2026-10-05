@@ -204,7 +204,7 @@ export function validasiEnv(mentah: Record<string, unknown>): Env {
     throw new Error(
       `Konfigurasi lingkungan tidak sah. Periksa .env.identity.local dan .env.v2.local.\n` +
         `${baris.join('\n')}\n\n` +
-        `Salin apps/api/.env.identity.example menjadi apps/api/.env.identity.local lalu isi nilainya.`,
+        `Salin backend/.env.identity.example menjadi backend/.env.identity.local lalu isi nilainya.`,
     );
   }
 

@@ -21,7 +21,7 @@ Sebelum melakukan perubahan apa pun:
 - Commit terakhir yang diamati: `4e12664540013562e2fc5d30d5afb6cdbffdb527`
 - Pesan commit: `chore: add JDIH ITH portal setup`
 - Tanggal commit: 2026-09-28
-- Backend domain modules pada `apps/api/src/modules/` masih belum diimplementasikan; baru ada `README.md`.
+- Backend NestJS aktif berada di `backend/`, frontend Next.js di `frontend/`, dan shared contracts tetap berada di `packages/shared/`.
 - Foundation NestJS/Next.js/Drizzle/Zod sudah ada dan **boleh dipakai kembali**.
 - Branch `niyato` pernah diverifikasi identik dengan `nesta`; cek ulang sebelum memakai branch tersebut.
 

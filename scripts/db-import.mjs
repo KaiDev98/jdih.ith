@@ -38,7 +38,7 @@ function bacaEnv(jalur) {
   return hasil;
 }
 
-const env = { ...bacaEnv(join(root, 'apps', 'api', '.env')), ...process.env };
+const env = { ...bacaEnv(join(root, 'backend', '.env')), ...process.env };
 
 const db = {
   host: env.DB_HOST ?? '127.0.0.1',

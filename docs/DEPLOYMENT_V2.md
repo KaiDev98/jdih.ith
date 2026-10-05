@@ -31,8 +31,8 @@ MySQL topology, and institution operations process before installation.
 ## Production environment
 
 The active API configuration is validated by
-[`apps/api/src/config/env.schema.ts`](../apps/api/src/config/env.schema.ts).
-Do not copy the legacy [`apps/api/.env.example`](../apps/api/.env.example): it
+[`backend/src/config/env.schema.ts`](../backend/src/config/env.schema.ts).
+Do not copy the legacy [`backend/.env.example`](../backend/.env.example): it
 contains the historical XAMPP/JWT configuration and is inactive for V2. Use
 these protected files outside the repository, for example
 `/etc/jdih-ith/api.env` and `/etc/jdih-ith/web.env`, owned by root and mode 0600.
@@ -137,9 +137,9 @@ and production runtime dependencies in the release directory. `npm run build`
 builds shared contracts, API, and web in order. Install the example units from
 `deploy/systemd/` after replacing the release path and service account. The web
 unit runs the standalone server at
-`apps/web/.next/standalone/apps/web/server.js`; after `npm run build`, copy
-`apps/web/.next/static/` into
-`apps/web/.next/standalone/apps/web/.next/static/` and copy `apps/web/public/`
+`frontend/.next/standalone/frontend/server.js`; after `npm run build`, copy
+`frontend/.next/static/` into
+`frontend/.next/standalone/frontend/.next/static/` and copy `frontend/public/`
 there when that directory exists. Set `HOSTNAME=127.0.0.1` and `PORT=3000` in
 the web environment file. Each service uses `Restart=on-failure`, a short
 restart delay, and systemd journal stdout/stderr. `systemctl stop` the API before

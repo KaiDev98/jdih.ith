@@ -21,7 +21,7 @@ import { CoreBackendModule } from './modules/core-backend/core-backend.module.js
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,
-      envFilePath: ['.env.identity.local', '../../.env.v2.local'],
+      envFilePath: ['.env.identity.local', '../.env.v2.local'],
       // Peladen menolak menyala bila ada variabel lingkungan yang kurang
       // atau salah bentuk, disertai penyebutan variabel mana yang bermasalah.
       validate: validasiEnv,

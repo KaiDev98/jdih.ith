@@ -31,7 +31,7 @@ test-results/
 playwright-report/
 
 # Berkas unggahan pengguna (disimpan di luar repositori)
-storage/
+/storage/
 uploads/
 public/uploads/
 

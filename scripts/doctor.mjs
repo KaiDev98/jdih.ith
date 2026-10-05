@@ -41,17 +41,17 @@ function bacaEnv(jalur) {
   return hasilEnv;
 }
 
-const envApi = bacaEnv(join(root, 'apps', 'api', '.env'));
+const envApi = bacaEnv(join(root, 'backend', '.env'));
 catat(
-  'apps/api/.env',
+  'backend/.env',
   envApi ? 'ok' : 'gagal',
   envApi ? 'ada' : 'belum ada',
   envApi ? undefined : 'Jalankan: npm run setup:env',
 );
 
-const envWeb = bacaEnv(join(root, 'apps', 'web', '.env'));
+const envWeb = bacaEnv(join(root, 'frontend', '.env'));
 catat(
-  'apps/web/.env',
+  'frontend/.env',
   envWeb ? 'ok' : 'peringatan',
   envWeb ? 'ada' : 'belum ada (nilai baku dipakai)',
   envWeb ? undefined : 'Jalankan: npm run setup:env',
@@ -83,7 +83,7 @@ catat(
   sharedTerbangun ? undefined : 'Jalankan: npm run build:shared',
 );
 
-const skemaDrizzle = join(root, 'apps', 'api', 'src', 'database', 'generated', 'schema.ts');
+const skemaDrizzle = join(root, 'backend', 'src', 'database', 'generated', 'schema.ts');
 catat(
   'Skema Drizzle',
   existsSync(skemaDrizzle) ? 'ok' : 'peringatan',

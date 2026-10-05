@@ -2,6 +2,8 @@
 
 Tanggal: 2026-10-03 (Asia/Makassar). Lingkup: **Phase 0 — Repository Alignment**.
 
+> Arsip historis Phase 0. Path `apps/api` dan `apps/web` di bawah menjelaskan layout pada tanggal audit dan sengaja dipertahankan sebagai catatan sejarah; layout aktif sekarang `backend/` dan `frontend/`.
+
 ## 1. Identitas audit dan batas pekerjaan
 
 - Repository: `KaiDev98/jdih.ith`.

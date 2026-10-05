@@ -14,17 +14,17 @@ const penuh = process.argv.includes('--penuh');
 
 const sasaran = [
   'packages/shared/dist',
-  'apps/api/dist',
-  'apps/web/.next',
-  'apps/web/out',
+  'backend/dist',
+  'frontend/.next',
+  'frontend/out',
   '.eslintcache',
 ];
 
 if (penuh) {
   sasaran.push(
     'node_modules',
-    'apps/api/node_modules',
-    'apps/web/node_modules',
+    'backend/node_modules',
+    'frontend/node_modules',
     'packages/shared/node_modules',
   );
 }
