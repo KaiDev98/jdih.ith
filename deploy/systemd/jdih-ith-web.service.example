@@ -1,0 +1,23 @@
+[Unit]
+Description=JDIH ITH V2 Next.js Web
+After=network-online.target jdih-ith-api.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=jdih
+Group=jdih
+WorkingDirectory=/srv/jdih-ith/current/apps/web
+EnvironmentFile=/etc/jdih-ith/web.env
+ExecStart=/usr/bin/node .next/standalone/apps/web/server.js
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=30s
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

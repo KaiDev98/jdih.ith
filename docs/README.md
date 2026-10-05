@@ -12,11 +12,21 @@ untuk seluruh implementasi baru adalah
 | [CODEX_DECISIONS_JDIH_ITH_V2.yaml](CODEX_DECISIONS_JDIH_ITH_V2.yaml) | Ringkasan keputusan terstruktur |
 | [CODEX_IMPLEMENTATION_PLAN.md](CODEX_IMPLEMENTATION_PLAN.md) | Rencana implementasi bertahap |
 | [CODEX_AUDIT_V2.md](CODEX_AUDIT_V2.md) | Audit source, konflik legacy, batas Phase 0, dan usulan Phase 1/2 |
+| [IDENTITY_SECURITY_V2.md](IDENTITY_SECURITY_V2.md) | Identity, sesi, CSRF, RBAC, dan policy akses |
+| [CORE_BACKEND_V2.md](CORE_BACKEND_V2.md) | API domain, workflow, transaksi, dan audit |
+| [PHASE4_FILES_SEARCH_TEMPLATES.md](PHASE4_FILES_SEARCH_TEMPLATES.md) | Storage privat, file, search, dan template |
+| [FRONTEND_V2.md](FRONTEND_V2.md) | Rute publik dan panel administrasi |
+| [DEPLOYMENT_V2.md](DEPLOYMENT_V2.md) | Production environment, Nginx, systemd, DB, storage, backup |
+| [FINAL_ACCEPTANCE_V2.md](FINAL_ACCEPTANCE_V2.md) | Final acceptance, known limits, dan go-live checklist |
 
 **Database 50 tabel lama adalah LEGACY SCHEMA / LEGACY REFERENCE, bukan target
-final V2.** Phase 0 hanya menyelaraskan dokumentasi; belum ada schema fisik V2,
-migrasi database, atau implementasi modul domain. MySQL 8 dengan Docker Compose
-port `3307` adalah target fase berikutnya, bukan fasilitas yang sudah tersedia.
+final V2.** Phase 0 alignment, V2 physical schema/seed validation, Identity and
+Security, Core Backend, Files/Search/Templates, and Frontend are implemented on
+the current development branch. Phase 6 is deployment preparation and final
+acceptance; no production deployment has been performed. Google live OIDC remains
+pending, and CSP acceptance remains a production go-live gate. Runtime MySQL
+ports are read from the selected environment; Compose's development port is not
+a universal runtime assumption.
 
 ## Arsip desain sebelum V2
 

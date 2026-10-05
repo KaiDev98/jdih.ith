@@ -10,6 +10,10 @@ const namaInstitusi =
   process.env.NEXT_PUBLIC_NAMA_INSTITUSI ?? 'Institut Teknologi Bacharuddin Jusuf Habibie';
 const urlSitus = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 
+// Nonce CSP is generated per request by src/proxy.ts; the root subtree must
+// render on demand so Next can apply that request nonce to hydration scripts.
+export const dynamic = 'force-dynamic';
+
 /**
  * Metadata akar.
  *

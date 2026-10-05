@@ -9,15 +9,15 @@ export function Button({ className = '', tone = 'primary', ...props }: React.But
 }
 
 export function Field({ label, id, className = '', ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) {
-  return <label htmlFor={id} className={`grid gap-1.5 text-sm font-medium text-slate-800 ${className}`}>{label}<input {...props} id={id} className="min-h-10 rounded-md border border-slate-300 bg-white px-3 font-normal text-slate-950 placeholder:text-slate-400 focus:border-blue-700 focus:outline-2 focus:outline-offset-2 focus:outline-blue-700" /></label>;
+  return <label htmlFor={id} className={`grid min-w-0 gap-1.5 text-sm font-medium text-slate-800 ${className}`}>{label}<input {...props} id={id} className="min-h-10 w-full min-w-0 rounded-md border border-slate-300 bg-white px-3 font-normal text-slate-950 placeholder:text-slate-400 focus:border-blue-700 focus:outline-2 focus:outline-offset-2 focus:outline-blue-700" /></label>;
 }
 
 export function SelectField({ label, id, children, className = '', ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string }) {
-  return <label htmlFor={id} className={`grid gap-1.5 text-sm font-medium text-slate-800 ${className}`}>{label}<select {...props} id={id} className="min-h-10 rounded-md border border-slate-300 bg-white px-3 font-normal text-slate-950 focus:border-blue-700 focus:outline-2 focus:outline-offset-2 focus:outline-blue-700">{children}</select></label>;
+  return <label htmlFor={id} className={`grid min-w-0 gap-1.5 text-sm font-medium text-slate-800 ${className}`}>{label}<select {...props} id={id} className="min-h-10 w-full min-w-0 rounded-md border border-slate-300 bg-white px-3 font-normal text-slate-950 focus:border-blue-700 focus:outline-2 focus:outline-offset-2 focus:outline-blue-700">{children}</select></label>;
 }
 
 export function TextAreaField({ label, id, className = '', ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }) {
-  return <label htmlFor={id} className={`grid gap-1.5 text-sm font-medium text-slate-800 ${className}`}>{label}<textarea {...props} id={id} className="min-h-24 rounded-md border border-slate-300 bg-white px-3 py-2 font-normal text-slate-950 focus:border-blue-700 focus:outline-2 focus:outline-offset-2 focus:outline-blue-700" /></label>;
+  return <label htmlFor={id} className={`grid min-w-0 gap-1.5 text-sm font-medium text-slate-800 ${className}`}>{label}<textarea {...props} id={id} className="min-h-24 w-full min-w-0 rounded-md border border-slate-300 bg-white px-3 py-2 font-normal text-slate-950 focus:border-blue-700 focus:outline-2 focus:outline-offset-2 focus:outline-blue-700" /></label>;
 }
 
 export function Badge({ children, color = 'slate' }: { children: React.ReactNode; color?: 'slate' | 'green' | 'amber' | 'red' | 'blue' }) {

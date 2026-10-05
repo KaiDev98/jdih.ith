@@ -29,6 +29,8 @@ interface TemplateFile extends RowDataPacket {
   template_surat_id: string;
 }
 
+export type TemplateDownloadTerotorisasi = TemplateFile;
+
 @Injectable()
 export class LetterTemplatesService {
   constructor(
@@ -208,7 +210,7 @@ export class LetterTemplatesService {
     );
   }
 
-  async open(slug: string, actor?: PenggunaAktif) {
+  async authorizeOpen(slug: string, actor?: PenggunaAktif) {
     const file = (
       await this.repo.rows<TemplateFile>(
         this.repo.pool,
@@ -219,6 +221,10 @@ export class LetterTemplatesService {
     if (!file) throw new NotFoundException();
     if (file.tingkat_akses === 'INTERNAL' && !(actor?.status === 'AKTIF' && actor.peran.includes('DOSEN_STAF')))
       throw new NotFoundException();
+    return file;
+  }
+
+  async openAuthorized(file: TemplateDownloadTerotorisasi, actor?: PenggunaAktif) {
     const object = await this.storage.open(file.storage_key);
     if (object.size !== Number(file.size_bytes)) throw new NotFoundException();
     if (file.tingkat_akses === 'INTERNAL' && actor)
@@ -226,6 +232,10 @@ export class LetterTemplatesService {
         module: 'letter-templates', action: 'DOWNLOAD_INTERNAL', entityType: 'template_surat_versi', entityId: file.id, actorId: actor.id,
       });
     return { stream: object.stream, size: object.size, mimeType: file.mime_type, originalName: safeOriginalName(file.nama_asli) };
+  }
+
+  async open(slug: string, actor?: PenggunaAktif) {
+    return this.openAuthorized(await this.authorizeOpen(slug, actor), actor);
   }
 }
 

@@ -1,0 +1,70 @@
+# Include from Nginx's http {} context (for example, conf.d).
+# Replace certificate paths through the approved host certificate process.
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+server {
+    listen 80;
+    server_name jdih.ith.ac.id;
+    return 301 https://jdih.ith.ac.id$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name jdih.ith.ac.id;
+
+    # Placeholder only. Replace with paths provisioned on the deployment host.
+    ssl_certificate     /path/to/provisioned/fullchain.pem;
+    ssl_certificate_key /path/to/provisioned/private-key.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    client_max_body_size 55m;
+    client_body_timeout 120s;
+    client_header_timeout 30s;
+    send_timeout 300s;
+
+    # Enable only after HTTPS and renewal have been verified.
+    add_header Strict-Transport-Security "max-age=31536000" always;
+
+    location = /api/v1 {
+        return 308 /api/v1/;
+    }
+
+    location ^~ /api/v1/ {
+        proxy_pass http://127.0.0.1:3001/api/v1/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        # Nginx is the single trusted edge; do not preserve a client-supplied chain.
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Request-ID $request_id;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_request_buffering off;
+        proxy_buffering off;
+        proxy_connect_timeout 10s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Request-ID $request_id;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_connect_timeout 10s;
+        proxy_send_timeout 120s;
+        proxy_read_timeout 120s;
+    }
+}

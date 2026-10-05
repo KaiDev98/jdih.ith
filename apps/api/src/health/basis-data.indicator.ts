@@ -26,10 +26,9 @@ export class BasisDataIndicator {
     try {
       await this.db.execute(KUERI_DENYUT);
       return sesi.up({ waktuTanggapMs: Date.now() - mulai });
-    } catch (galat) {
+    } catch {
       return sesi.down({
         waktuTanggapMs: Date.now() - mulai,
-        pesan: galat instanceof Error ? galat.message : 'Kueri denyut gagal',
       });
     }
   }

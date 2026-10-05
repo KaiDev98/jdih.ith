@@ -371,6 +371,135 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     expect(unchangedRepeal[0]?.status_hukum).toBe('DICABUT');
   });
 
+  it('serializes concurrent duplicate submit, approve, and publish actions', async () => {
+    const d = await doc();
+    await service.updateVersion(actor, d.versionId, ready('Concurrent workflow'));
+
+    const submits = await Promise.allSettled([
+      service.transition(actor, d.versionId, 'SUBMIT'),
+      service.transition(actor, d.versionId, 'SUBMIT'),
+    ]);
+    expect(submits.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+
+    const approvals = await Promise.allSettled([
+      service.transition(second, d.versionId, 'APPROVE'),
+      service.transition(second, d.versionId, 'APPROVE'),
+    ]);
+    expect(approvals.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    await addFileMetadata(d.versionId, 'UTAMA');
+
+    const impact = await service.impact(second, d.versionId);
+    const command = {
+      konfirmasi: {
+        tokenKonfirmasi: impact.tokenKonfirmasi,
+        disetujui: true as const,
+        dampak: impact.dampak,
+      },
+    };
+    const publications = await Promise.allSettled([
+      service.publish(second, d.versionId, command),
+      service.publish(second, d.versionId, command),
+    ]);
+    expect(publications.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    const [current] = await pool.query<RowDataPacket[]>(
+      'SELECT CAST(current_published_version_id AS CHAR) current FROM dokumen WHERE id=?',
+      [d.id],
+    );
+    expect(current[0]?.current).toBe(d.versionId);
+  });
+
+  it('allocates concurrent revisions uniquely and serializes publish against withdrawal', async () => {
+    const d = await doc();
+    await service.updateVersion(actor, d.versionId, ready('Concurrent version one'));
+    await approve(d.versionId);
+    await addFileMetadata(d.versionId, 'UTAMA');
+    await publish(d.versionId);
+
+    const revisions = await Promise.all([
+      service.newVersion(actor, d.id, ready('Concurrent version two')),
+      service.newVersion(actor, d.id, ready('Concurrent version three')),
+    ]);
+    expect(revisions.map((revision) => revision.nomorVersi).sort()).toEqual([2, 3]);
+
+    const next = revisions[0];
+    await approve(next.id);
+    await addFileMetadata(next.id, 'UTAMA');
+    const impact = await service.impact(second, next.id);
+    const command = {
+      konfirmasi: {
+        tokenKonfirmasi: impact.tokenKonfirmasi,
+        disetujui: true as const,
+        dampak: impact.dampak,
+      },
+    };
+    const [publication, withdrawal] = await Promise.allSettled([
+      service.publish(second, next.id, command),
+      service.withdraw(second, d.id, { alasan: 'Race regression test' }),
+    ]);
+    expect(publication.status).toBe('fulfilled');
+    expect(withdrawal.status).toBe('fulfilled');
+
+    const [current] = await pool.query<RowDataPacket[]>(
+      'SELECT CAST(current_published_version_id AS CHAR) current FROM dokumen WHERE id=?',
+      [d.id],
+    );
+    const [latest] = await pool.query<RowDataPacket[]>(
+      'SELECT status_workflow FROM dokumen_versi WHERE id=?',
+      [next.id],
+    );
+    if (current[0]?.current === null) expect(latest[0]?.status_workflow).toBe('DITARIK');
+    else {
+      expect(current[0]?.current).toBe(next.id);
+      expect(latest[0]?.status_workflow).toBe('TERBIT');
+    }
+  });
+
+  it('serializes competing legal impact publications using fresh target status', async () => {
+    const target = await doc();
+    const makeProposal = async (jenisRelasi: 'MENGUBAH' | 'MENCABUT') => {
+      const source = await doc();
+      await service.updateVersion(actor, source.versionId, ready(`Concurrent ${jenisRelasi}`));
+      await service.addRelation(actor, source.versionId, {
+        targetDocumentId: target.id,
+        jenisRelasi,
+      });
+      await approve(source.versionId);
+      await addFileMetadata(source.versionId, 'UTAMA');
+      const impact = await service.impact(second, source.versionId);
+      return {
+        id: source.versionId,
+        command: {
+          konfirmasi: {
+            tokenKonfirmasi: impact.tokenKonfirmasi,
+            disetujui: true as const,
+            dampak: impact.dampak,
+          },
+        },
+      };
+    };
+    const [change, repeal] = await Promise.all([
+      makeProposal('MENGUBAH'),
+      makeProposal('MENCABUT'),
+    ]);
+    const publications = await Promise.allSettled([
+      service.publish(second, change.id, change.command),
+      service.publish(second, repeal.id, repeal.command),
+    ]);
+    expect(publications.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    expect(publications.filter((result) => result.status === 'rejected')).toHaveLength(1);
+
+    const [status] = await pool.query<RowDataPacket[]>(
+      'SELECT status_hukum FROM dokumen WHERE id=?',
+      [target.id],
+    );
+    const [history] = await pool.query<RowDataPacket[]>(
+      'SELECT COUNT(*) total FROM dokumen_status_hukum_riwayat WHERE dokumen_id=?',
+      [target.id],
+    );
+    expect(['DIUBAH', 'DICABUT']).toContain(status[0]?.status_hukum);
+    expect(Number(history[0]?.total)).toBe(1);
+  });
+
   it('requires UTAMA metadata to publish and rejects attachment-only versions', async () => {
     const d = await doc();
     await service.updateVersion(actor, d.versionId, ready('Metadata readiness'));
@@ -614,9 +743,13 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     };
     await expect(policy.assertRead(resource, target)).rejects.toThrow();
     const input = { penggunaId: target.id, alasan: 'Akses kerja', expiresAt: null };
-    const grant = await service.grant(actor, d.id, input);
+    const competingGrants = await Promise.allSettled([
+      service.grant(actor, d.id, input),
+      service.grant(second, d.id, input),
+    ]);
+    expect(competingGrants.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    const grant = competingGrants.find((result) => result.status === 'fulfilled')!.value;
     await expect(policy.assertRead(resource, target)).resolves.toBeUndefined();
-    await expect(service.grant(actor, d.id, input)).rejects.toThrow();
     await pool.execute(
       'UPDATE dokumen_akses_rahasia SET granted_at=UTC_TIMESTAMP(6)-INTERVAL 1 HOUR,expires_at=UTC_TIMESTAMP(6)-INTERVAL 1 SECOND WHERE id=?',
       [grant.id],

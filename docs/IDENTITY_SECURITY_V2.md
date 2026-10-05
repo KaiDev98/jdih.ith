@@ -109,15 +109,17 @@ untuk locking/transaksi; Drizzle foundation menggunakan binding V2, bukan legacy
 Startup membaca `apps/api/.env.identity.local` dan root `.env.v2.local` saat API
 dijalankan melalui npm workspace. Contoh ada di `apps/api/.env.identity.example`.
 Google credentials dan SESSION_KEY wajib diisi lokal; tidak ada default secret.
-Konfigurasi JWT/password lama tidak diperlukan. DB_NAME hanya menerima
-`jdih_ith_v2_dev` atau `jdih_ith_v2_test*`, startup memverifikasi MySQL 8.4 dan
+Konfigurasi JWT/password lama tidak diperlukan. DB_NAME menerima
+`jdih_ith_v2_dev` atau `jdih_ith_v2_test*` di luar produksi dan hanya
+`jdih_ith_v2_prod` pada `NODE_ENV=production`; startup memverifikasi MySQL 8.4 dan
 DATABASE(). DB_PORT dibaca environment, tidak diasumsikan 3307. Koneksi UTC,
 BIGINT string, multipleStatements off. Tidak ada import/reset otomatis.
 
-Produksi belum dicakup: HTTPS + cookie Secure dan Swagger off wajib; trust proxy
-default 0, hanya disetel sesuai topology proxy terpercaya. APP_URL harus origin
-tanpa trailing slash; gunakan hostname yang konsisten antara API dan frontend
-agar SameSite cookies bekerja (contoh keduanya localhost, berbeda port).
+Identity phase tidak menjalankan operasi deployment. Konfigurasi operasional
+production, reverse proxy, service process, backup, serta langkah go-live ada di
+`docs/DEPLOYMENT_V2.md` dan `docs/FINAL_ACCEPTANCE_V2.md`. HTTPS + cookie Secure,
+Swagger off, APP_URL origin exact, serta trust proxy hanya untuk hop proxy yang
+dikendalikan tetap wajib.
 
 ## Validasi dan batas runtime
 

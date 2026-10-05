@@ -100,6 +100,24 @@ describe('validasiEnv', () => {
     ).toThrow(/DB_PASSWORD/);
   });
 
+  it('menerima database produksi hanya pada NODE_ENV production', () => {
+    const konfigurasiProduksi = {
+      ...envMinimum,
+      NODE_ENV: 'production',
+      DB_NAME: 'jdih_ith_v2_prod',
+      DB_PASSWORD: 'test-only-db-password',
+      APP_URL: 'https://jdih.ith.ac.id',
+      CORS_ORIGIN: 'https://jdih.ith.ac.id',
+      GOOGLE_REDIRECT_URI: 'https://jdih.ith.ac.id/api/v1/auth/google/callback',
+      SWAGGER_ENABLED: 'false',
+    };
+    expect(validasiEnv(konfigurasiProduksi).DB_NAME).toBe('jdih_ith_v2_prod');
+    expect(() => validasiEnv({ ...envMinimum, DB_NAME: 'jdih_ith_v2_prod' })).toThrow(/DB_NAME/);
+    expect(() =>
+      validasiEnv({ ...konfigurasiProduksi, DB_NAME: 'jdih_ith_v2_test' }),
+    ).toThrow(/DB_NAME/);
+  });
+
   it('mengizinkan kata sandi kosong hanya pada pengembangan V2', () => {
     const env = validasiEnv({ ...envMinimum, DB_PASSWORD: '' });
     expect(env.DB_PASSWORD).toBe('');

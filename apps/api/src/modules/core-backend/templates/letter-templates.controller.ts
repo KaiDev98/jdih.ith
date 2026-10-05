@@ -8,6 +8,7 @@ import { cookie, SESSION_COOKIE } from '../../identity/identity.guard.js';
 import { UploadInterceptor } from '../storage/upload.interceptor.js';
 import { contentDisposition } from '../files/file-headers.js';
 import { LetterTemplatesService } from './letter-templates.service.js';
+import { DownloadRateLimitService } from '../download-rate-limit.service.js';
 
 @Controller('admin/letter-templates')
 export class AdminLetterTemplatesController {
@@ -42,7 +43,11 @@ export class AdminLetterTemplatesController {
 
 @Controller('letter-templates')
 export class PublicLetterTemplatesController {
-  constructor(private readonly templates: LetterTemplatesService, private readonly identity: IdentityService) {}
+  constructor(
+    private readonly templates: LetterTemplatesService,
+    private readonly identity: IdentityService,
+    private readonly downloadLimits: DownloadRateLimitService,
+  ) {}
   private async actor(req: PermintaanBerpengguna) {
     const token = cookie(req, SESSION_COOKIE);
     return token ? (await this.identity.authenticate(token)).user : undefined;
@@ -55,7 +60,11 @@ export class PublicLetterTemplatesController {
 
   @Get(':slug/download') @Publik()
   async download(@Param('slug') slug: string, @Req() req: PermintaanBerpengguna, @Res() res: Response) {
-    const file = await this.templates.open(slug, await this.actor(req));
+    const actor = await this.actor(req);
+    // Keep Internal-template denial indistinguishable from a missing template.
+    const authorized = await this.templates.authorizeOpen(slug, actor);
+    this.downloadLimits.consume({ penggunaId: actor?.id, ip: req.ip });
+    const file = await this.templates.openAuthorized(authorized, actor);
     res.status(200);
     res.setHeader('Content-Type', file.mimeType);
     res.setHeader('Content-Length', String(file.size));

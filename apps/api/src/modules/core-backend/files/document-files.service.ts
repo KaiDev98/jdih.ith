@@ -30,6 +30,13 @@ interface FileRow extends RowDataPacket {
   urutan: number;
 }
 
+export interface BerkasDownloadTerotorisasi extends FileRow {
+  dokumen_id: string;
+  tingkat_akses: 'publik' | 'internal' | 'rahasia';
+  current: number;
+  deleted: number;
+}
+
 @Injectable()
 export class DocumentFilesService {
   constructor(
@@ -122,14 +129,9 @@ export class DocumentFilesService {
       throw new UnprocessableEntityException('File UTAMA tidak tersedia atau checksum berubah');
   }
 
-  async openCurrent(slug: string, fileId: string, actor?: PenggunaAktif) {
+  async authorizeCurrent(slug: string, fileId: string, actor?: PenggunaAktif) {
     const file = (
-      await this.repo.rows<FileRow & RowDataPacket & {
-        dokumen_id: string;
-        tingkat_akses: 'publik' | 'internal' | 'rahasia';
-        current: number;
-        deleted: number;
-      }>(
+      await this.repo.rows<BerkasDownloadTerotorisasi>(
         this.repo.pool,
         "SELECT CAST(d.id AS CHAR) dokumen_id,CAST(v.id AS CHAR) dokumen_versi_id,v.tingkat_akses,IF(d.current_published_version_id=v.id,1,0) current,IF(d.deleted_at IS NULL,0,1) deleted,f.* FROM dokumen d JOIN dokumen_versi v ON v.id=d.current_published_version_id JOIN dokumen_berkas f ON f.dokumen_versi_id=v.id WHERE d.slug=? AND f.id=? AND v.status_workflow='TERBIT' AND d.deleted_at IS NULL",
         [slug, fileId],
@@ -146,6 +148,10 @@ export class DocumentFilesService {
       },
       actor,
     );
+    return file;
+  }
+
+  async openAuthorized(file: BerkasDownloadTerotorisasi) {
     const object = await this.storage.open(file.storage_key);
     if (object.size !== Number(file.size_bytes)) throw new NotFoundException();
     return {
@@ -154,5 +160,9 @@ export class DocumentFilesService {
       mimeType: file.mime_type,
       originalName: safeOriginalName(file.nama_asli),
     };
+  }
+
+  async openCurrent(slug: string, fileId: string, actor?: PenggunaAktif) {
+    return this.openAuthorized(await this.authorizeCurrent(slug, fileId, actor));
   }
 }

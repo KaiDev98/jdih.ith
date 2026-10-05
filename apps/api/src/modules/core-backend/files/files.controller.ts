@@ -6,6 +6,7 @@ import type { PenggunaAktif } from '@jdih/shared';
 import { IdentityService } from '../../identity/identity.service.js';
 import { cookie, SESSION_COOKIE } from '../../identity/identity.guard.js';
 import { DocumentFilesService } from './document-files.service.js';
+import { DownloadRateLimitService } from '../download-rate-limit.service.js';
 import { UploadInterceptor } from '../storage/upload.interceptor.js';
 import { contentDisposition } from './file-headers.js';
 
@@ -37,6 +38,7 @@ export class PublicDocumentFilesController {
   constructor(
     private readonly files: DocumentFilesService,
     private readonly identity: IdentityService,
+    private readonly downloadLimits: DownloadRateLimitService,
   ) {}
 
   @Get(':slug/files/:fileId')
@@ -50,7 +52,11 @@ export class PublicDocumentFilesController {
   ) {
     const token = cookie(req, SESSION_COOKIE);
     const actor = token ? (await this.identity.authenticate(token)).user : undefined;
-    const file = await this.files.openCurrent(slug, fileId, actor);
+    // Resolve and authorize before rate accounting so unauthorized Secret
+    // probes retain the same not-found semantics as missing resources.
+    const authorized = await this.files.authorizeCurrent(slug, fileId, actor);
+    this.downloadLimits.consume({ penggunaId: actor?.id, ip: req.ip });
+    const file = await this.files.openAuthorized(authorized);
     const disposition = mode === 'inline' ? 'inline' : 'attachment';
     res.status(200);
     res.setHeader('Content-Type', file.mimeType);

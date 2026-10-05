@@ -21,10 +21,14 @@ LEGACY REFERENCE, bukan target final V2.** Delapan dokumen desain lama, diagram
 lama, dan dokumen Word pada indeks docs merupakan arsip historis. Rekomendasi
 Laravel/Blade/Livewire/Filament telah digantikan oleh NestJS + Next.js.
 
-Phase 0 hanya menyelaraskan dokumentasi. Source aplikasi dan database aktif
-belum dimigrasikan. Rancangan 23 tabel V2 masih perlu desain fisik dan review
-pada Phase 1; file SQL V2 belum dibuat. Target development V2 adalah MySQL 8
-melalui Docker Compose pada host port `3307`, yang juga belum dibuat di Phase 0.
+Repository telah melewati Phase 0 sampai Phase 5 pada branch kerja: baseline dan
+schema/seed V2 tervalidasi, Identity/Security, Core Backend, Files/Search/
+Templates, dan frontend tersedia. Physical schema V2 berada di
+`database/v2/`; schema 50 tabel lama tetap legacy. Lihat
+[`docs/FINAL_ACCEPTANCE_V2.md`](docs/FINAL_ACCEPTANCE_V2.md) untuk bukti validasi
+terbaru dan [`docs/DEPLOYMENT_V2.md`](docs/DEPLOYMENT_V2.md) untuk persiapan
+operasional. Phase 6 belum berarti production sudah deploy/go-live accepted:
+Google live OIDC masih pending dan CSP acceptance wajib sebelum go-live.
 
 ## Catatan foundation sebelumnya — referensi historis
 

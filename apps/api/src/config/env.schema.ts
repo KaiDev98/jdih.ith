@@ -31,7 +31,7 @@ export const skemaEnv = z.object({
   DB_USER: z.string().min(1),
   /** Development V2 may use empty password; production cannot. */
   DB_PASSWORD: z.string().default(''),
-  DB_NAME: z.string().regex(/^jdih_ith_v2_(dev|test[a-z0-9_]*)$/),
+  DB_NAME: z.string().regex(/^jdih_ith_v2_(dev|prod|test[a-z0-9_]*)$/),
   DB_POOL_LIMIT: z.coerce.number().int().min(1).max(100).default(10),
   /** Zona waktu koneksi. Seluruh DATETIME disimpan dalam UTC (docs/04 § D.0). */
   DB_TIMEZONE: z.string().default('Z'),
@@ -120,6 +120,17 @@ export const skemaEnvLengkap = skemaEnv
     message: 'V2 timestamps require UTC',
     path: ['DB_TIMEZONE'],
   })
+  .refine(
+    (env) =>
+      env.NODE_ENV === 'production'
+        ? env.DB_NAME === 'jdih_ith_v2_prod'
+        : env.DB_NAME !== 'jdih_ith_v2_prod',
+    {
+      message:
+        'Production must use jdih_ith_v2_prod; development/test must not use the production database',
+      path: ['DB_NAME'],
+    },
+  )
   .refine((env) => !env.DB_LOG_QUERY, {
     message: 'Identity SQL parameters must not be logged',
     path: ['DB_LOG_QUERY'],
