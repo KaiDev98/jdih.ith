@@ -218,3 +218,41 @@ HTTP 429 acceptance remain pending suitable test storage fixtures. The
 automated suites continue to cover streamed downloads and rate limits. **LIVE
 GOOGLE OIDC ACCEPTANCE = PENDING** and **AUTHENTICATED ADMIN RUNTIME QA =
 PENDING**; no authentication bypass or live Google attempt was used.
+
+## Local file runtime acceptance — 2026-10-05
+
+Dijalankan pada branch `aizen` di `a524700` (identik dengan `niyato`), MySQL 8.4.11
+via Compose pada 127.0.0.1:3307, database `jdih_ith_v2_dev` dari `database/v2`
+(schema, seed, sample). API :3001, web :3000, storage lokal, data sintetis, pemanggil
+anonim (tanpa login). Tidak ada kredensial Google atau data institusi.
+
+**Temuan persiapan:** baris berkas di `sample.sql` memakai `storage_key` berbentuk
+`fixtures/...`, sedangkan `LocalStorageDriver` hanya menerima `objects/<2 hex>/<uuid>`,
+sehingga semua berkas sample selalu 404 pada QA manual. Isi fixture juga hanya 6 byte.
+Untuk pengujian ini, skrip lokal (tidak di-commit) membuat PDF 1 halaman dan DOCX minimal
+yang valid, menyimpannya sebagai `objects/...`, lalu memperbarui `storage_key`,
+`size_bytes`, dan `checksum` di database dev. Test otomatis tidak terdampak karena memakai
+folder sementara.
+
+| Skenario | Hasil |
+| --- | --- |
+| PDF utama dan 2 lampiran dokumen Publik | 200, `application/pdf`, PDF valid 1 halaman |
+| Versi aktif dokumen dengan riwayat | 200 |
+| Dokumen Internal tanpa login | 403 |
+| Dokumen Rahasia tanpa login | 404 |
+| Versi DRAF dan versi yang sudah digantikan | 404 |
+| Template Publik (DOCX) | 200, MIME DOCX benar, berkas dikenali sebagai Word 2007+ |
+| Template Internal tanpa login | 404 dan tidak ada di daftar anonim |
+| Pencarian anonim | Rahasia tidak muncul, Internal hanya badge, slug Internal tidak bocor |
+| Batas unduh anonim (30/jam) | 429 tepat setelah 30 unduhan sukses; permintaan yang ditolak otorisasi tidak dihitung |
+
+Test otomatis pada commit yang sama: typecheck 0 error, lint lulus, shared 79, backend 110
+(33 kasus MySQL dilewati di runner umum), frontend 24, MySQL dedicated 33/33 pada
+`jdih_ith_v2_test` dengan `IDENTITY_TEST_ENV`.
+
+Bukti browser (preview PDF, daftar berkas, pencarian, Format Persuratan): tangkapan layar
+menyusul, disimpan di luar repositori.
+
+**Masih PENDING:** Google OIDC langsung, QA admin terautentikasi, review aksesibilitas
+keyboard/kontras, throttle `auth/me` (20/60 detik) belum direproduksi, rate limit hanya
+per proses, dan belum ada sweeper berkas yatim.
