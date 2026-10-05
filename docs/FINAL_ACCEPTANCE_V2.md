@@ -170,3 +170,51 @@ Production is not go-live accepted until the pending Google live test and
 authenticated Admin/accessibility acceptance are complete, even when repository
 and automated checks pass. CSP enforcement and download rate-limit enforcement
 are complete; their single-process state is not suitable for multi-instance use.
+
+## Local runtime corrective follow-up — 2026-10-05
+
+This follow-up was run on branch `niyato`, starting at
+`c80d18f37b573230188340017ada40386282fca8`. The Next client startup now calls
+the public Zod API `z.config({ jitless: true })` from
+`frontend/src/instrumentation-client.ts`, which Next executes before hydration.
+The frontend resolves one deduplicated Zod 4.6.5 installation shared with
+`@jdih/shared`; production CSP was not weakened. Browser capture across the
+public routes and unauthenticated admin shell recorded zero CSP violations,
+zero JavaScript exceptions, and no wildcard, `unsafe-inline`, or `unsafe-eval`
+source in the nonce CSP. Rendered script hydration completed, and no static
+asset returned an error.
+
+The frontend `postbuild` hook now copies standalone static/public assets with
+`frontend/scripts/prepare-standalone.mjs`, and `npm run start:web` starts
+`.next/standalone/frontend/server.js`. The production build prepared all 29
+static assets; this project has no `public/` directory. `npm run start:web`
+started successfully without the incompatible `next start` warning. The
+`/akun` loading, error, pending, anonymous fallback, registration, and
+authenticated states each have one level-one heading. An anonymous browser
+visit to `/akun` returned 200 and then followed its existing redirect to
+`/masuk`.
+
+For local runtime acceptance, the ignored `backend/.env.identity.local` uses
+non-production OAuth placeholders and a random session key; the Google route
+was not opened. Effective configuration was verified against local MySQL
+8.4.11 on port 3308 with the active database exactly `jdih_ith_v2_test`. The
+guarded setup imported V2 schema and seed and verified 23 tables. Dedicated
+MySQL integration passed 33/33. The monorepo suite passed 213 tests, with its
+33 database cases skipped there because they ran separately. Typecheck, lint,
+build, and `git diff --check` passed.
+
+API liveness/readiness and same-origin health, `auth/me`, unit/master lookup,
+public search, and template-list requests returned 200 with API request IDs;
+the health bodies exposed no database/storage path or infrastructure error.
+Browser routes `/`, `/profil`, `/produk-hukum`, `/format-persuratan`, `/masuk`,
+and `/akun` returned 200. On the test fixtures, anonymous search returned six
+Public rows and two Internal rows (total eight); both Internal rows had only
+`judul` and `badge: "INTERNAL"`, were rendered without links, and no Secret row
+or Secret count was exposed.
+
+The test database has file metadata but the runtime's isolated private storage
+directory contains no file objects, so live PDF/DOCX preview, download, and
+HTTP 429 acceptance remain pending suitable test storage fixtures. The
+automated suites continue to cover streamed downloads and rate limits. **LIVE
+GOOGLE OIDC ACCEPTANCE = PENDING** and **AUTHENTICATED ADMIN RUNTIME QA =
+PENDING**; no authentication bypass or live Google attempt was used.

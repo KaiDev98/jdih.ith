@@ -137,11 +137,13 @@ and production runtime dependencies in the release directory. `npm run build`
 builds shared contracts, API, and web in order. Install the example units from
 `deploy/systemd/` after replacing the release path and service account. The web
 unit runs the standalone server at
-`frontend/.next/standalone/frontend/server.js`; after `npm run build`, copy
-`frontend/.next/static/` into
-`frontend/.next/standalone/frontend/.next/static/` and copy `frontend/public/`
-there when that directory exists. Set `HOSTNAME=127.0.0.1` and `PORT=3000` in
-the web environment file. Each service uses `Restart=on-failure`, a short
+`frontend/.next/standalone/frontend/server.js`. The frontend `postbuild` hook
+calls `frontend/scripts/prepare-standalone.mjs` to copy `.next/static` and, when
+present, `public` into the standalone app directory. The helper replaces those
+generated destinations on each build, so local startup and deployment consume
+the same standalone artifact without a manual copy step. `npm run start:web`
+uses this standalone server. Set `HOSTNAME=127.0.0.1` and `PORT=3000` in the web
+environment file. Each service uses `Restart=on-failure`, a short
 restart delay, and systemd journal stdout/stderr. `systemctl stop` the API before
 maintenance requiring no writes; stop both API and web during a consistent
 DB-plus-file restore.
