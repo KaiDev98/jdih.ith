@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description: 'Kontak Institut Teknologi Bacharuddin Jusuf Habibie, Parepare.',
 };
 
-const kelasTautan = 'font-medium text-blue-900 hover:underline [overflow-wrap:anywhere]';
+const kelasTautan = 'font-medium text-institusi-900 hover:underline [overflow-wrap:anywhere]';
 
 export default async function Kontak() {
   const k = KONTAK_INSTITUSI;
@@ -73,7 +73,7 @@ export default async function Kontak() {
             <div key={label} className="flex min-w-0 gap-4">
               <span
                 aria-hidden
-                className="grid size-10 shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-900"
+                className="grid size-10 shrink-0 place-items-center rounded-lg bg-institusi-50 text-institusi-900"
               >
                 <Ikon className="size-5" />
               </span>

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useId, useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, Menu, X } from 'lucide-react';
@@ -62,7 +63,7 @@ function DaftarProdukHukum({
   const idSub = useId();
   const kelasButir = seluler
     ? 'flex w-full items-center justify-between rounded-md px-3 py-3 text-left font-medium text-slate-800 hover:bg-slate-100'
-    : 'flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-blue-900';
+    : 'flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-institusi-900';
 
   return (
     <ul className="grid gap-0.5">
@@ -135,7 +136,7 @@ function DaftarTahun({
             className={
               seluler
                 ? 'block rounded-md px-3 py-3 text-center font-medium text-slate-800 hover:bg-slate-100'
-                : 'block rounded-md px-3 py-2 text-center text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-blue-900'
+                : 'block rounded-md px-3 py-2 text-center text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-institusi-900'
             }
           >
             {nilai}
@@ -187,7 +188,7 @@ function DropdownNavigasi({
         aria-expanded={buka}
         aria-controls={idPanel}
         onClick={() => setBuka((nilai) => !nilai)}
-        className="inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-blue-900"
+        className="inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-institusi-900"
       >
         {label}
         <ChevronDown
@@ -227,7 +228,7 @@ function DaftarTautan({
 }) {
   const kelas = seluler
     ? 'block rounded-md px-3 py-3 font-medium text-slate-800 hover:bg-slate-100'
-    : 'block rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-blue-900';
+    : 'block rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-institusi-900';
   return (
     <ul className="grid gap-0.5">
       {butir.map((item) => (
@@ -243,7 +244,7 @@ function DaftarTautan({
 const tautanSesudah = [{ label: 'Format Persuratan', href: '/format-persuratan' }];
 
 const kelasTautanDesktop =
-  'rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-blue-900';
+  'rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-institusi-900';
 
 /**
  * Navigasi utama. Tampilan desktop baru dipakai mulai lebar `lg`, karena dengan
@@ -275,7 +276,7 @@ export function NavigasiPublik({ tahun = [] }: { tahun?: readonly number[] }) {
         ))}
         <Link
           href="/masuk"
-          className="ml-2 inline-flex min-h-10 items-center rounded-md bg-blue-900 px-4 text-sm font-semibold text-white hover:bg-blue-950"
+          className="ml-2 inline-flex min-h-10 items-center rounded-md bg-institusi-600 px-4 text-sm font-semibold text-white hover:bg-institusi-700"
         >
           Masuk
         </Link>
@@ -333,7 +334,7 @@ function ButtonMobile({
         aria-expanded={buka}
         aria-controls="menu-mobile"
         onClick={() => setBuka(!buka)}
-        className="grid size-11 place-items-center rounded-md border border-slate-300 text-slate-800 focus-visible:outline-2 focus-visible:outline-blue-800"
+        className="grid size-11 place-items-center rounded-md border border-slate-300 text-slate-800 focus-visible:outline-2 focus-visible:outline-institusi-800"
       >
         {buka ? <X aria-hidden /> : <Menu aria-hidden />}
       </button>
@@ -371,7 +372,7 @@ function ButtonMobile({
               <Link
                 onClick={tutup}
                 href="/masuk"
-                className="mt-1 block rounded-md bg-blue-900 px-3 py-3 text-center font-semibold text-white"
+                className="mt-1 block rounded-md bg-institusi-600 px-3 py-3 text-center font-semibold text-white"
               >
                 Masuk
               </Link>
@@ -388,12 +389,7 @@ export function PublicHeader({ tahun = [] }: { tahun?: readonly number[] }) {
     <header className="relative z-20 border-b border-slate-200 bg-white">
       <div className="mx-auto flex min-h-[76px] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link href="/" aria-label="JDIH ITH, beranda" className="flex min-w-0 items-center gap-3">
-          <span
-            aria-hidden
-            className="grid size-11 shrink-0 place-items-center rounded-lg bg-blue-900 text-base font-black tracking-tight text-white"
-          >
-            ITH
-          </span>
+          <Image src="/logo-ith.webp" alt="" width={500} height={527} unoptimized className="h-10 w-auto shrink-0" />
           <span className="min-w-0 leading-tight">
             <span className="block truncate text-base font-bold text-slate-950">JDIH ITH</span>
             <span className="mt-1 hidden text-xs text-slate-600 sm:block">

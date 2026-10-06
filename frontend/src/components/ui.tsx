@@ -4,24 +4,24 @@ import { useEffect, useRef, useState } from 'react';
 import { GalatApi } from '@/lib/api-client';
 
 export function Button({ className = '', tone = 'primary', ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { tone?: 'primary' | 'secondary' | 'danger'; ref?: React.Ref<HTMLButtonElement> }) {
-  const tones = { primary: 'bg-blue-800 text-white hover:bg-blue-900', secondary: 'border border-slate-300 bg-white text-slate-800 hover:bg-slate-50', danger: 'bg-red-700 text-white hover:bg-red-800' };
+  const tones = { primary: 'bg-institusi-600 text-white hover:bg-institusi-700', secondary: 'border border-slate-300 bg-white text-slate-800 hover:bg-slate-50', danger: 'bg-red-700 text-white hover:bg-red-800' };
   return <button {...props} className={`inline-flex min-h-10 items-center justify-center rounded-md px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${tones[tone]} ${className}`} />;
 }
 
 export function Field({ label, id, className = '', ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) {
-  return <label htmlFor={id} className={`grid min-w-0 gap-1.5 text-sm font-medium text-slate-800 ${className}`}>{label}<input {...props} id={id} className="min-h-10 w-full min-w-0 rounded-md border border-slate-300 bg-white px-3 font-normal text-slate-950 placeholder:text-slate-400 focus:border-blue-700 focus:outline-2 focus:outline-offset-2 focus:outline-blue-700" /></label>;
+  return <label htmlFor={id} className={`grid min-w-0 gap-1.5 text-sm font-medium text-slate-800 ${className}`}>{label}<input {...props} id={id} className="min-h-10 w-full min-w-0 rounded-md border border-slate-300 bg-white px-3 font-normal text-slate-950 placeholder:text-slate-400 focus:border-institusi-700 focus:outline-2 focus:outline-offset-2 focus:outline-institusi-700" /></label>;
 }
 
 export function SelectField({ label, id, children, className = '', ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string }) {
-  return <label htmlFor={id} className={`grid min-w-0 gap-1.5 text-sm font-medium text-slate-800 ${className}`}>{label}<select {...props} id={id} className="min-h-10 w-full min-w-0 rounded-md border border-slate-300 bg-white px-3 font-normal text-slate-950 focus:border-blue-700 focus:outline-2 focus:outline-offset-2 focus:outline-blue-700">{children}</select></label>;
+  return <label htmlFor={id} className={`grid min-w-0 gap-1.5 text-sm font-medium text-slate-800 ${className}`}>{label}<select {...props} id={id} className="min-h-10 w-full min-w-0 rounded-md border border-slate-300 bg-white px-3 font-normal text-slate-950 focus:border-institusi-700 focus:outline-2 focus:outline-offset-2 focus:outline-institusi-700">{children}</select></label>;
 }
 
 export function TextAreaField({ label, id, className = '', ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }) {
-  return <label htmlFor={id} className={`grid min-w-0 gap-1.5 text-sm font-medium text-slate-800 ${className}`}>{label}<textarea {...props} id={id} className="min-h-24 w-full min-w-0 rounded-md border border-slate-300 bg-white px-3 py-2 font-normal text-slate-950 focus:border-blue-700 focus:outline-2 focus:outline-offset-2 focus:outline-blue-700" /></label>;
+  return <label htmlFor={id} className={`grid min-w-0 gap-1.5 text-sm font-medium text-slate-800 ${className}`}>{label}<textarea {...props} id={id} className="min-h-24 w-full min-w-0 rounded-md border border-slate-300 bg-white px-3 py-2 font-normal text-slate-950 focus:border-institusi-700 focus:outline-2 focus:outline-offset-2 focus:outline-institusi-700" /></label>;
 }
 
 export function Badge({ children, color = 'slate' }: { children: React.ReactNode; color?: 'slate' | 'green' | 'amber' | 'red' | 'blue' }) {
-  const colors = { slate: 'bg-slate-100 text-slate-700', green: 'bg-green-100 text-green-900', amber: 'bg-amber-100 text-amber-900', red: 'bg-red-100 text-red-900', blue: 'bg-blue-100 text-blue-900' };
+  const colors = { slate: 'bg-slate-100 text-slate-700', green: 'bg-green-100 text-green-900', amber: 'bg-amber-100 text-amber-900', red: 'bg-red-100 text-red-900', blue: 'bg-institusi-100 text-institusi-900' };
   return <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${colors[color]}`}>{children}</span>;
 }
 
