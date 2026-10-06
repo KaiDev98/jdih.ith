@@ -211,6 +211,49 @@ export class IdentityRepository {
     );
   }
 
+  /** Semua akun yang belum dihapus beserta perannya, terbaru di atas. */
+  accountList(db: Connection, values: string[]) {
+    return this.rows<
+      RowDataPacket & {
+        id: string;
+        nama: string;
+        email: string;
+        status: string;
+        unitKerja: string | null;
+        peran: string | null;
+        createdAt: string;
+      }
+    >(
+      db,
+      `SELECT CAST(u.id AS CHAR) id,u.nama,u.email,u.status,k.nama unitKerja,
+        GROUP_CONCAT(r.kode ORDER BY r.kode) peran,
+        DATE_FORMAT(u.created_at,'%Y-%m-%dT%H:%i:%sZ') createdAt
+       FROM pengguna u
+       LEFT JOIN pengguna_peran pp ON pp.pengguna_id=u.id
+       LEFT JOIN peran r ON r.id=pp.peran_id
+       LEFT JOIN unit_kerja k ON k.id=u.unit_kerja_id
+       WHERE u.deleted_at IS NULL
+       GROUP BY u.id,u.nama,u.email,u.status,k.nama,u.created_at
+       ORDER BY u.created_at DESC,u.id DESC
+       LIMIT ? OFFSET ?`,
+      values,
+    );
+  }
+
+  /**
+   * Hapus lunak: tandai terhapus, nonaktifkan, dan lepas email serta ikatan
+   * Google agar orang yang sama dapat mendaftar ulang. Baris tetap ada karena
+   * dirujuk dokumen, workflow, dan audit.
+   */
+  softDeleteUser(db: Connection, values: (string | number | Buffer | null)[]) {
+    return this.write(
+      db,
+      `UPDATE pengguna SET deleted_at=?,status='NONAKTIF',google_sub=NULL,
+        email=CONCAT('dihapus-',id,'@dihapus.invalid') WHERE id=? AND deleted_at IS NULL`,
+      values,
+    );
+  }
+
   insertUnit(db: Connection, values: (string | number | Buffer | null)[]) {
     return this.write(db, 'INSERT INTO unit_kerja(kode,nama) VALUES(?,?)', values);
   }

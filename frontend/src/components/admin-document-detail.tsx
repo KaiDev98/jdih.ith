@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import type { PreviewDampakPublikasi, Relasi } from '@jdih/shared';
-import { ambilApi, GalatApi } from '@/lib/api-client';
+import { ambilApi, ambilApiBerdaftar, GalatApi } from '@/lib/api-client';
 import { useSession, csrfHeaders } from '@/lib/sesi';
 import { AdminStatusHapus } from '@/components/admin-status-hapus';
 import { Button, Card, ConfirmAction, Field, PageTitle, SelectField, StateMessage, TextAreaField } from '@/components/ui';
@@ -21,7 +21,7 @@ export function AdminDocumentDetail({ id, versionId: requestedVersionId }: { id:
   function editCurrent(revision:boolean){setNewRevision(revision);setForm({judul:document?.judul??'',nomor:document?.nomor??'',tahun:document?.tahun==null?'':String(document.tahun),pic:document?.pic??'',tanggalPenetapan:document?.tanggalPenetapan??'',tingkatAkses:(document?.tingkatAkses as typeof form.tingkatAkses)??'publik',unitKerjaId:document?.unitKerjaId??''});setEditing(true);}
   async function saveVersion(){if(!document) return;const body={judul:form.judul,nomor:form.nomor||null,tahun:form.tahun?Number(form.tahun):null,pic:form.pic||null,tanggalPenetapan:form.tanggalPenetapan||null,tingkatAkses:form.tingkatAkses,unitKerjaId:form.unitKerjaId||null};if(newRevision)await post(`/admin/documents/${id}/versions`,body);else if(versionId)await ambilApi(`/admin/documents/versions/${versionId}`,{method:'PATCH',headers:csrfHeaders(csrfToken),muatan:body}).then(()=>setRefresh(x=>x+1));setEditing(false);}
   async function loadGrants(){setGrants(await ambilApi<Record<string,unknown>[]>(`/admin/documents/${id}/secret-grants`));}
-  useEffect(()=>{if(userQuery.trim().length<2)return;let current=true;const timer=setTimeout(()=>{void ambilApi<{data:{id:string;nama:string;email:string;unitKerja:string|null}[]}>('/admin/active-users',{kueri:{q:userQuery.trim(),halaman:1,perHalaman:20}}).then(r=>{if(current)setActiveUsers(r.data);}).catch(()=>{if(current)setActiveUsers([]);});},250);return()=>{current=false;clearTimeout(timer);};},[userQuery]);
+  useEffect(()=>{if(userQuery.trim().length<2)return;let current=true;const timer=setTimeout(()=>{void ambilApiBerdaftar<{id:string;nama:string;email:string;unitKerja:string|null}>('/admin/active-users',{kueri:{q:userQuery.trim(),halaman:1,perHalaman:20}}).then(r=>{if(current)setActiveUsers([...r.data]);}).catch(()=>{if(current)setActiveUsers([]);});},250);return()=>{current=false;clearTimeout(timer);};},[userQuery]);
   useEffect(()=>{if(document?.tingkatAkses!=='rahasia'||!pengguna?.izin.includes('secret.manage'))return;let current=true;void ambilApi<Record<string,unknown>[]>(`/admin/documents/${id}/secret-grants`).then((result)=>{if(current)setGrants(result);}).catch(()=>{});return()=>{current=false;};},[document?.tingkatAkses,pengguna?.izin,id]);
   async function grant(){await ambilApi(`/admin/documents/${id}/secret-grants`,{method:'POST',headers:csrfHeaders(csrfToken),muatan:{penggunaId:userId,alasan:grantReason,expiresAt:expires?new Date(expires).toISOString():undefined}});setUserId('');setGrantReason('');await loadGrants();}
   if(error)return <StateMessage title="Detail dokumen tidak dapat dibuka" kind="error">{error}<p className="mt-2">Daftar administrasi hanya dapat menemukan dokumen terbit. Untuk draf, API saat ini memerlukan ID yang diketahui sebelumnya.</p></StateMessage>;

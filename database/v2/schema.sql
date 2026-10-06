@@ -406,17 +406,28 @@ CREATE TABLE template_surat_versi (
   CONSTRAINT fk_template_versi_author FOREIGN KEY (created_by) REFERENCES pengguna (id) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB;
 
--- Nomor telepon kantor yang tampil di portal publik; diubah Admin lewat panel.
-CREATE TABLE kontak_kantor (
-  id TINYINT UNSIGNED NOT NULL COMMENT 'Satu baris saja (id=1)',
-  telepon VARCHAR(32) NOT NULL,
+-- Kontak kantor (telepon dan surel) yang tampil di portal publik; dikelola Admin.
+CREATE TABLE kontak_kantor_butir (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  jenis ENUM('TELEPON','SUREL') NOT NULL,
+  label VARCHAR(100) NULL,
+  nilai VARCHAR(254) NOT NULL,
+  urutan SMALLINT UNSIGNED NOT NULL DEFAULT 0,
   updated_by BIGINT UNSIGNED NULL COMMENT 'NULL bila berasal dari seed',
+  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-  PRIMARY KEY (id),
-  KEY idx_kontak_updated_by (updated_by),
-  CONSTRAINT ck_kontak_tunggal CHECK (id = 1),
-  CONSTRAINT ck_kontak_isi CHECK (CHAR_LENGTH(TRIM(telepon)) > 0),
-  CONSTRAINT fk_kontak_updated_by FOREIGN KEY (updated_by) REFERENCES pengguna (id) ON DELETE RESTRICT ON UPDATE RESTRICT
+  KEY idx_kontak_butir_urutan (urutan, id),
+  KEY idx_kontak_butir_updated_by (updated_by),
+  CONSTRAINT ck_kontak_butir_nilai CHECK (CHAR_LENGTH(TRIM(nilai)) > 0),
+  CONSTRAINT fk_kontak_butir_updated_by FOREIGN KEY (updated_by) REFERENCES pengguna (id) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE=InnoDB;
+
+-- Jumlah kunjungan portal publik per hari (tanpa data pribadi), untuk footer.
+CREATE TABLE kunjungan_harian (
+  tanggal DATE NOT NULL COMMENT 'Tanggal menurut WITA (Asia/Makassar)',
+  jumlah INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Pengunjung unik per peramban per hari',
+  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (tanggal)
 ) ENGINE=InnoDB;
 
 CREATE TABLE audit_log (

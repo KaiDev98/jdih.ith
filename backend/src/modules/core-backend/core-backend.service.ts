@@ -85,7 +85,10 @@ export class CoreBackendService {
       offset,
     ]);
     const totalHalaman = Math.ceil(totalButir / perHalaman);
+    // Sudah berbentuk tanggapan baku (`sukses`), agar BungkusTanggapanInterceptor
+    // tidak membungkusnya lagi; `meta` harus berada di tingkat atas.
     return {
+      sukses: true as const,
       data,
       meta: {
         halaman,
@@ -99,7 +102,8 @@ export class CoreBackendService {
   }
 
   async adminDocuments(actor: Actor, rawQuery: unknown, verificationOnly = false) {
-    if (verificationOnly) cekIzin(actor, ['workflow.approve', 'workflow.return'], true);
+    if (verificationOnly)
+      cekIzin(actor, ['workflow.approve', 'workflow.return', 'documents.read_admin'], true);
     else this.allow(actor, 'documents.read_admin');
     const query = z
       .strictObject({

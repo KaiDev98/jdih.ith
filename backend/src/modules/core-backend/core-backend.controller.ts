@@ -68,10 +68,9 @@ export class PublicMasterController {
 @Controller('admin/documents')
 export class DocumentsController {
   constructor(private readonly core: CoreBackendService) {}
-  @Get('verification-queue') @IzinSalahSatu('workflow.approve', 'workflow.return') queue(
-    @Query() query: unknown,
-    @Aktor() actor: PenggunaAktif,
-  ) {
+  @Get('verification-queue')
+  @IzinSalahSatu('workflow.approve', 'workflow.return', 'documents.read_admin')
+  queue(@Query() query: unknown, @Aktor() actor: PenggunaAktif) {
     return this.core.adminDocuments(actor, query, true);
   }
   @Get() @Izin('documents.read_admin') list(

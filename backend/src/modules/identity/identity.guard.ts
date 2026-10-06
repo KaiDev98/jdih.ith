@@ -1,4 +1,10 @@
-import { Injectable, SetMetadata, type CanActivate, type ExecutionContext } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  SetMetadata,
+  type CanActivate,
+  type ExecutionContext,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import type { Response } from 'express';
@@ -15,6 +21,12 @@ import { cekCsrf, cekIzin } from './security.js';
 const PENDING = 'jdih:pending-allowed';
 /** Only identity self-service; never use on domain resources. */
 export const PendingAllowed = () => SetMetadata(PENDING, true);
+const TANPA_CSRF = 'jdih:tanpa-csrf';
+/**
+ * Hanya untuk tulis publik tanpa sesi yang tidak mengubah data milik siapa pun,
+ * mis. pencatat kunjungan. Asal (Origin) tetap wajib sama dengan portal.
+ */
+export const TanpaCsrf = () => SetMetadata(TANPA_CSRF, true);
 export const SESSION_COOKIE = 'jdih_session';
 export const REGISTRATION_COOKIE = 'jdih_registration';
 export const FLOW_COOKIE = 'jdih_oauth';
@@ -42,7 +54,11 @@ export class IdentityGuard implements CanActivate {
       KUNCI_META_IZIN,
       targets,
     );
-    if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    const tanpaCsrf = this.reflector.getAllAndOverride<boolean>(TANPA_CSRF, targets) === true;
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && tanpaCsrf) {
+      if (req.headers.origin !== this.config.get('identitas.origin', { infer: true }))
+        throw new ForbiddenException('Asal permintaan tidak sah');
+    } else if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
       const cfg = this.config.get('identitas', { infer: true });
       // The registration marker is scoped to this route, not arbitrary public writes.
       const token = req.path.endsWith('/auth/register')

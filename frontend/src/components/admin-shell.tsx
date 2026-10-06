@@ -11,7 +11,7 @@ const links = [
   { label: 'Dasbor', href: '/admin', izin: 'dashboard.read' },
   { label: 'Semua Dokumen', href: '/admin/dokumen', izin: 'documents.read_admin' },
   { label: 'Buat Dokumen', href: '/admin/dokumen/baru', izin: 'documents.create' },
-  { label: 'Antrean Verifikasi', href: '/admin/dokumen/verifikasi', izin: ['workflow.approve','workflow.return'] },
+  { label: 'Antrean Verifikasi', href: '/admin/dokumen/verifikasi', izin: ['workflow.approve','workflow.return','documents.read_admin'] },
   { label: 'Pengguna', href: '/admin/pengguna', izin: 'users.read' },
   { label: 'Akses Rahasia', href: '/admin/dokumen', izin: 'secret.manage' },
   { label: 'Unit Kerja', href: '/admin/unit-kerja', izin: 'units.manage' },
@@ -45,7 +45,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <div className="flex items-center gap-3 text-sm"><span className="hidden text-slate-600 sm:inline">{pengguna.nama}</span><Link href="/" className="underline">Portal publik</Link><ConfirmAction label={busy ? 'Keluar…' : 'Keluar'} title="Keluar dari akun?" description="Sesi ini akan dicabut pada server." tone="secondary" onConfirm={logout} /></div>
     </header>
     <div className="mx-auto flex max-w-[1600px]">
-      <aside id="menu-admin" className={`${menu ? 'block' : 'hidden'} fixed inset-x-0 top-16 z-20 max-h-[calc(100vh-4rem)] overflow-auto border-b bg-white p-3 lg:sticky lg:top-16 lg:block lg:h-[calc(100vh-4rem)] lg:w-64 lg:shrink-0 lg:border-b-0 lg:border-r`}><nav aria-label="Menu administrasi" className="grid gap-1">{visible.map((item) => <Link key={item.href} href={item.href} aria-current={pathname === item.href ? 'page' : undefined} onClick={() => setMenu(false)} className={`rounded-md px-3 py-2 text-sm ${pathname === item.href ? 'bg-institusi-50 font-semibold text-institusi-900' : 'text-slate-700 hover:bg-slate-50'}`}>{item.label}</Link>)}</nav></aside>
+      <aside id="menu-admin" className={`${menu ? 'block' : 'hidden'} fixed inset-x-0 top-16 z-20 max-h-[calc(100vh-4rem)] supports-[height:100dvh]:max-h-[calc(100dvh-4rem)] overflow-auto border-b bg-white p-3 lg:sticky lg:top-16 lg:block lg:h-[calc(100vh-4rem)] lg:supports-[height:100dvh]:h-[calc(100dvh-4rem)] lg:w-64 lg:shrink-0 lg:border-b-0 lg:border-r`}><nav aria-label="Menu administrasi" className="grid gap-1">{visible.map((item) => <Link key={item.label} href={item.href} aria-current={pathname === item.href ? 'page' : undefined} onClick={() => setMenu(false)} className={`rounded-md px-3 py-2 text-sm ${pathname === item.href ? 'bg-institusi-50 font-semibold text-institusi-900' : 'text-slate-700 hover:bg-slate-50'}`}>{item.label}</Link>)}</nav></aside>
       <main id="isi-utama" className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
     </div>
   </div>;

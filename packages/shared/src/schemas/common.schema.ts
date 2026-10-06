@@ -10,9 +10,12 @@ export const skemaId = z
   );
 export const skemaSlug = z
   .string()
-  .min(1)
-  .max(191)
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+  .min(1, 'Slug wajib diisi')
+  .max(191, 'Slug terlalu panjang')
+  .regex(
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+    'Gunakan huruf kecil, angka, dan tanda hubung saja (mis. kalender-akademik-2026)',
+  );
 export const skemaParamId = z.strictObject({ id: skemaId });
 export const skemaParamSlug = z.strictObject({ slug: skemaSlug });
 export type ParamId = z.infer<typeof skemaParamId>;

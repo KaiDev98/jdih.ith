@@ -1,16 +1,30 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import type { RowDataPacket } from 'mysql2/promise';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import type { PenggunaAktif } from '@jdih/shared';
-import { skemaKontakKantor, skemaUbahKontakKantor } from '@jdih/shared';
+import {
+  BATAS_BUTIR_KONTAK,
+  skemaButirKontak,
+  skemaKontakKantor,
+  skemaSimpanButirKontak,
+} from '@jdih/shared';
 import { cekIzin } from '../../identity/security.js';
 import { AuditService } from '../../identity/audit.service.js';
 import { CoreBackendRepository } from '../core-backend.repository.js';
 
 interface BarisKontak extends RowDataPacket {
-  telepon: string;
+  id: string;
+  jenis: 'TELEPON' | 'SUREL';
+  label: string | null;
+  nilai: string;
 }
 
-/** Nomor telepon kantor (satu baris, id=1) yang tampil di footer dan halaman Kontak. */
+const KOLOM = 'CAST(id AS CHAR) id,jenis,label,nilai';
+
+/**
+ * Kontak kantor (telepon dan surel) yang tampil di footer dan halaman Kontak.
+ * Publik hanya membaca; Admin dengan izin contact.manage menambah, mengubah,
+ * dan menghapus butir. Setiap perubahan dicatat di audit.
+ */
 @Injectable()
 export class KontakService {
   constructor(
@@ -19,44 +33,99 @@ export class KontakService {
   ) {}
 
   async ambil() {
+    const butir = await this.repo.rows<BarisKontak>(
+      this.repo.pool,
+      `SELECT ${KOLOM} FROM kontak_kantor_butir ORDER BY urutan, id`,
+    );
+    return skemaKontakKantor.parse({ butir: butir.map((b) => ({ ...b })) });
+  }
+
+  private async kunci(db: PoolConnection, id: string) {
     const row = (
       await this.repo.rows<BarisKontak>(
-        this.repo.pool,
-        'SELECT telepon FROM kontak_kantor WHERE id=1',
+        db,
+        `SELECT ${KOLOM} FROM kontak_kantor_butir WHERE id=? FOR UPDATE`,
+        [id],
       )
     )[0];
     if (!row) throw new NotFoundException();
-    return skemaKontakKantor.parse({ telepon: row.telepon });
+    return row;
   }
 
-  async ubah(actor: PenggunaAktif, input: unknown) {
+  async tambah(actor: PenggunaAktif, input: unknown) {
     cekIzin(actor, ['contact.manage']);
-    const { telepon } = skemaUbahKontakKantor.parse(input);
+    const { jenis, label, nilai } = skemaSimpanButirKontak.parse(input);
     return this.repo.transaction(async (db) => {
-      const before = (
-        await this.repo.rows<BarisKontak>(
-          db,
-          'SELECT telepon FROM kontak_kantor WHERE id=1 FOR UPDATE',
-        )
-      )[0];
-      if (!before) throw new NotFoundException();
-      await this.repo.write(db, 'UPDATE kontak_kantor SET telepon=?,updated_by=? WHERE id=1', [
-        telepon,
-        actor.id,
-      ]);
+      const [hitung] = await this.repo.rows<RowDataPacket & { jumlah: number; urutan: number }>(
+        db,
+        'SELECT COUNT(*) jumlah, COALESCE(MAX(urutan),0) urutan FROM kontak_kantor_butir FOR UPDATE',
+      );
+      if (Number(hitung?.jumlah ?? 0) >= BATAS_BUTIR_KONTAK)
+        throw new ConflictException(`Kontak paling banyak ${BATAS_BUTIR_KONTAK} butir`);
+      await this.repo.write(
+        db,
+        'INSERT INTO kontak_kantor_butir(jenis,label,nilai,urutan,updated_by) VALUES(?,?,?,?,?)',
+        [jenis, label, nilai, Number(hitung?.urutan ?? 0) + 1, actor.id],
+      );
+      const id = await this.repo.id(db);
+      await this.audit.recordDomain(
+        {
+          module: 'settings',
+          action: 'CREATE_CONTACT',
+          entityType: 'kontak_kantor_butir',
+          entityId: id,
+          actorId: actor.id,
+          after: { jenis, label, nilai },
+        },
+        db,
+      );
+      return skemaButirKontak.parse({ id, jenis, label, nilai });
+    });
+  }
+
+  async ubah(actor: PenggunaAktif, id: string, input: unknown) {
+    cekIzin(actor, ['contact.manage']);
+    const { jenis, label, nilai } = skemaSimpanButirKontak.parse(input);
+    return this.repo.transaction(async (db) => {
+      const sebelum = await this.kunci(db, id);
+      await this.repo.write(
+        db,
+        'UPDATE kontak_kantor_butir SET jenis=?,label=?,nilai=?,updated_by=? WHERE id=?',
+        [jenis, label, nilai, actor.id, id],
+      );
       await this.audit.recordDomain(
         {
           module: 'settings',
           action: 'UPDATE_CONTACT',
-          entityType: 'kontak_kantor',
-          entityId: '1',
+          entityType: 'kontak_kantor_butir',
+          entityId: id,
           actorId: actor.id,
-          before: { telepon: before.telepon },
-          after: { telepon },
+          before: { jenis: sebelum.jenis, label: sebelum.label, nilai: sebelum.nilai },
+          after: { jenis, label, nilai },
         },
         db,
       );
-      return skemaKontakKantor.parse({ telepon });
+      return skemaButirKontak.parse({ id, jenis, label, nilai });
+    });
+  }
+
+  async hapus(actor: PenggunaAktif, id: string) {
+    cekIzin(actor, ['contact.manage']);
+    return this.repo.transaction(async (db) => {
+      const sebelum = await this.kunci(db, id);
+      await this.repo.write(db, 'DELETE FROM kontak_kantor_butir WHERE id=?', [id]);
+      await this.audit.recordDomain(
+        {
+          module: 'settings',
+          action: 'DELETE_CONTACT',
+          entityType: 'kontak_kantor_butir',
+          entityId: id,
+          actorId: actor.id,
+          before: { jenis: sebelum.jenis, label: sebelum.label, nilai: sebelum.nilai },
+        },
+        db,
+      );
+      return { id, dihapus: true };
     });
   }
 }

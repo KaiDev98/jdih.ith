@@ -13,15 +13,18 @@ export const KONTAK_INSTITUSI = {
     lokasi: 'Kampus 1 ITH',
     urlPeta: 'https://maps.app.goo.gl/iEoaX7dLgpjVVjVJ8',
   },
-  // Nomor telepon tidak disimpan di sini: Admin mengubahnya lewat panel
-  // (GET /public/contact). Surel tetap dari berkas ini.
-  surel: 'humas@ith.ac.id',
+  // Telepon dan surel tidak disimpan di sini: Admin mengelolanya lewat panel
+  // (GET /public/contact).
   situs: 'https://ith.ac.id',
-  /** Jam layanan, waktu setempat Parepare (WITA). */
+  /**
+   * Jam layanan, waktu setempat Parepare (WITA). `nomorHari` mengikuti
+   * Date.getDay() (0 = Minggu); `buka`/`tutup` dalam format 24 jam "HH:MM",
+   * null bila libur. Dipakai footer untuk menandai status buka saat ini.
+   */
   jamOperasional: [
-    { hari: 'Senin – Kamis', jam: '07.30 – 16.00 WITA' },
-    { hari: 'Jumat', jam: '07.30 – 16.30 WITA' },
-    { hari: 'Sabtu – Minggu', jam: 'Libur' },
+    { hari: 'Senin – Kamis', jam: '07.30 – 16.00 WITA', nomorHari: [1, 2, 3, 4], buka: '07:30', tutup: '16:00' },
+    { hari: 'Jumat', jam: '07.30 – 16.30 WITA', nomorHari: [5], buka: '07:30', tutup: '16:30' },
+    { hari: 'Sabtu – Minggu', jam: 'Libur', nomorHari: [6, 0], buka: null, tutup: null },
   ],
   mediaSosial: [
     { nama: 'Instagram', label: '@ith.campus', url: 'https://www.instagram.com/ith.campus' },

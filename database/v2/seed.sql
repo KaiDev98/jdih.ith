@@ -29,6 +29,7 @@ INSERT INTO izin (kode, nama, modul) VALUES
   ('users.approve', 'Menyetujui pendaftaran Dosen/Staf', 'users'),
   ('users.reject', 'Menolak pendaftaran dengan alasan', 'users'),
   ('users.set_status', 'Mengelola status akun', 'users'),
+  ('users.delete', 'Menghapus akun pengguna terdaftar', 'users'),
   ('units.manage', 'Mengelola unit dan resolusi unit manual', 'units'),
   ('master.manage', 'Mengelola jenis kategori dan tag', 'master'),
   ('secret.manage', 'Mengelola grant Rahasia', 'secret-access'),
@@ -39,30 +40,32 @@ INSERT INTO izin (kode, nama, modul) VALUES
   ('contact.manage', 'Mengelola kontak kantor', 'settings') AS incoming
 ON DUPLICATE KEY UPDATE nama = incoming.nama, modul = incoming.modul;
 
--- Provision minimum ordinary Admin permissions. Verification remains additional.
+-- Admin: semua izin, termasuk memverifikasi, mengubah status hukum, menarik dan
+-- menghapus dokumen, serta menghapus akun. Akun Superadmin tetap tidak dapat
+-- dihapus siapa pun (dijaga di layanan). Pembuat versi tetap tidak boleh
+-- menyetujui versinya sendiri.
 INSERT INTO peran_izin (peran_id, izin_id)
 SELECT p.id, i.id FROM peran p CROSS JOIN izin i
-WHERE p.kode = 'ADMIN' AND i.kode IN (
-  'documents.read_admin', 'documents.create', 'documents.edit', 'documents.upload',
-  'documents.revise', 'documents.delete', 'workflow.submit', 'legal.manage_relations',
-  'legal.correct_status',
-  'users.read', 'users.approve', 'users.reject', 'users.set_status',
-  'units.manage', 'master.manage', 'secret.manage', 'secret.read_admin',
-  'templates.manage', 'dashboard.read', 'audit.read', 'contact.manage'
-)
+WHERE p.kode = 'ADMIN'
 ON DUPLICATE KEY UPDATE izin_id = peran_izin.izin_id;
 
+-- Superadmin: semua izin KECUALI memverifikasi (hanya mengetahui antrean).
+-- Untuk dokumen terbit: ubah, cabut/tarik, hapus permanen; serta hapus akun.
 INSERT INTO peran_izin (peran_id, izin_id)
-SELECT p.id, i.id FROM peran p CROSS JOIN izin i WHERE p.kode = 'SUPERADMIN'
+SELECT p.id, i.id FROM peran p CROSS JOIN izin i
+WHERE p.kode = 'SUPERADMIN'
+  AND i.kode NOT IN ('workflow.approve', 'workflow.return', 'workflow.publish')
 ON DUPLICATE KEY UPDATE izin_id = peran_izin.izin_id;
 
 -- DOSEN_STAF access depends on active account + document policy, not a global
 -- secret permission. Admin verifier permissions can be explicitly provisioned
 -- through pengguna_izin by operations; no separate VERIFIER role is created.
 
--- Nilai awal nomor telepon kantor; selanjutnya diubah Admin lewat panel, seed tidak menimpanya.
-INSERT INTO kontak_kantor (id, telepon) VALUES (1, '+62 853-4088-9059') AS incoming
-ON DUPLICATE KEY UPDATE id = kontak_kantor.id;
+-- Nilai awal kontak kantor; selanjutnya dikelola Admin lewat panel, seed tidak menimpanya.
+INSERT INTO kontak_kantor_butir (id, jenis, nilai, urutan) VALUES
+  (1, 'TELEPON', '+62 853-4088-9059', 1),
+  (2, 'SUREL', 'humas@ith.ac.id', 2) AS incoming
+ON DUPLICATE KEY UPDATE id = kontak_kantor_butir.id;
 
 INSERT INTO jenis_dokumen (kode, nama, urutan) VALUES
   ('PERREK', 'Peraturan Rektor', 1),

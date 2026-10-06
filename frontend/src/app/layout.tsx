@@ -1,9 +1,17 @@
 import type { Metadata, Viewport } from 'next';
+import { Archivo } from 'next/font/google';
 
 import { PenyediaKueri } from '@/lib/penyedia-kueri';
 import { SessionProvider } from '@/lib/sesi';
 
 import './globals.css';
+
+/**
+ * Archivo variabel (berat + lebar). Lebar sempit dipakai untuk label punggung
+ * ordner dan label indeks, lebar normal untuk teks. Di-host sendiri oleh
+ * next/font sehingga lolos CSP `font-src 'self'`.
+ */
+const archivo = Archivo({ subsets: ['latin'], axes: ['wdth'], variable: '--font-archivo', display: 'swap' });
 
 const namaSitus = process.env.NEXT_PUBLIC_NAMA_SITUS ?? 'JDIH ITH Parepare';
 const namaInstitusi =
@@ -67,7 +75,7 @@ export const viewport: Viewport = {
 
 export default function TataLetakAkar({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id" suppressHydrationWarning>
+    <html lang="id" className={archivo.variable} suppressHydrationWarning>
       <body className="flex min-h-screen flex-col">
         <a href="#isi-utama" className="lewati-ke-isi">
           Lewati ke isi utama

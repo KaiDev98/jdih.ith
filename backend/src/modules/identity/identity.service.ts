@@ -158,6 +158,54 @@ export class IdentityService {
       String((halaman - 1) * perHalaman),
     ]);
   }
+  async accounts(halaman: number, perHalaman: number) {
+    const rows = await this.repo.accountList(this.repo.pool, [
+      String(perHalaman),
+      String((halaman - 1) * perHalaman),
+    ]);
+    return rows.map((r) => ({
+      id: r.id,
+      nama: r.nama,
+      email: r.email,
+      status: r.status,
+      unitKerja: r.unitKerja,
+      peran: r.peran ? r.peran.split(',') : [],
+      createdAt: r.createdAt,
+    }));
+  }
+
+  /**
+   * Admin atau Superadmin (izin users.delete) menghapus akun terdaftar: Dosen/Staf
+   * maupun Admin. Akun sendiri dan akun Superadmin tidak dapat dihapus siapa pun.
+   * Sesi akun itu langsung dicabut.
+   */
+  async deleteAccount(token: string, target: string) {
+    return this.repo.transaction(async (db) => {
+      const { user: actor } = await this.authenticate(token, db, true);
+      cekIzin(actor, ['users.delete']);
+      if (actor.id === target) throw new ConflictException('Akun sendiri tidak dapat dihapus');
+      const row = await this.repo.user(db, target, true);
+      if (!row || row.deleted_at) throw new NotFoundException();
+      const subject = await this.repo.principal(db, row);
+      if (subject.peran.includes('SUPERADMIN'))
+        throw new ForbiddenException('Akun Superadmin tidak dapat dihapus');
+      await this.repo.softDeleteUser(db, [utc(), target]);
+      await this.repo.revokeUserSessions(db, [utc(), target]);
+      await this.audit.record(
+        {
+          action: 'DELETE_ACCOUNT',
+          actorId: actor.id,
+          targetId: target,
+          beforeStatus: row.status,
+          afterStatus: 'DIHAPUS',
+          reason: `Peran: ${subject.peran.join(', ') || '-'}`,
+        },
+        db,
+      );
+      return { id: target, dihapus: true };
+    });
+  }
+
   async pendingDetail(id: string) {
     const row = await this.repo.user(this.repo.pool, id);
     if (!row || row.deleted_at || row.status !== 'MENUNGGU_VERIFIKASI')

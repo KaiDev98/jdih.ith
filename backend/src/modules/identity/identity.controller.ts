@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Patch,
   Post,
@@ -188,6 +189,12 @@ export class AccountsController {
     const q = skemaHalaman.parse(input);
     return this.identity.pending(q.halaman, q.perHalaman);
   }
+  @Get('accounts')
+  @Izin('users.read')
+  accounts(@Query() input: unknown) {
+    const q = skemaHalaman.parse(input);
+    return this.identity.accounts(q.halaman, q.perHalaman);
+  }
   @Get(':id')
   @Izin('users.read')
   detail(@Param() input: unknown) {
@@ -212,6 +219,11 @@ export class AccountsController {
       'reject',
       body,
     );
+  }
+  @Delete(':id')
+  @Izin('users.delete')
+  remove(@Param() param: unknown, @Req() req: PermintaanBerpengguna) {
+    return this.identity.deleteAccount(cookie(req, SESSION_COOKIE), skemaParamId.parse(param).id);
   }
   @Patch(':id/status')
   @Izin('users.set_status')

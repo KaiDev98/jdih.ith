@@ -18,6 +18,7 @@ export const IZIN = {
   USERS_APPROVE: 'users.approve',
   USERS_REJECT: 'users.reject',
   USERS_SET_STATUS: 'users.set_status',
+  USERS_DELETE: 'users.delete',
   UNITS_MANAGE: 'units.manage',
   MASTER_MANAGE: 'master.manage',
   SECRET_MANAGE: 'secret.manage',
@@ -140,6 +141,11 @@ export const KATALOG_IZIN: readonly MetaIzin[] = [
   {
     kode: 'users.set_status',
     nama: 'Mengelola status akun',
+    modul: 'users',
+  },
+  {
+    kode: 'users.delete',
+    nama: 'Menghapus akun pengguna terdaftar',
     modul: 'users',
   },
   {

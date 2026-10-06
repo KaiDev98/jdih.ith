@@ -57,7 +57,7 @@ test('enum contracts and permissions match approved physical SQL/seed', () => {
   )[1];
   const codes = [...block.matchAll(/\('([^']+)',/g)].map((m) => m[1]);
   assert.deepEqual([...c.SEMUA_IZIN].sort(), codes.sort());
-  assert.equal(codes.length, 25);
+  assert.equal(codes.length, 26);
 });
 test('BIGINT JSON ids preserve precision and reject coercion', () => {
   ok(c.skemaId, '18446744073709551615');

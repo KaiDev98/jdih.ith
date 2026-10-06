@@ -10,7 +10,7 @@ import { Badge, Button, Card, Field, SelectField, StateMessage } from '@/compone
 
 type Baris = HasilCariAnonim | HasilCariAuthorized;
 interface Hasil { data: readonly Baris[]; meta: MetaHalaman }
-interface Filter { q: string; jenisDokumenId: string; tahun: string; unitKerjaId: string; kategoriId: string; statusHukum: string }
+interface Filter { q: string; jenisDokumenId: string; tahun: string; kategoriId: string; statusHukum: string }
 interface Master { id: string; kode?: string; nama: string }
 
 /**
@@ -42,9 +42,8 @@ export function PencarianProduk({
   initialKategoriKode?: string;
 }) {
   const session = useSession();
-  const [filter, setFilter] = useState<Filter>({ q: initialQuery, jenisDokumenId: '', tahun: initialYear, unitKerjaId: '', kategoriId: '', statusHukum: '' });
+  const [filter, setFilter] = useState<Filter>({ q: initialQuery, jenisDokumenId: '', tahun: initialYear, kategoriId: '', statusHukum: '' });
   const [data, setData] = useState<Hasil>(); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [page, setPage] = useState(1);
-  const [units, setUnits] = useState<Master[]>([]);
   const [types, setTypes] = useState<Master[]>([]); const [categories, setCategories] = useState<Master[]>([]);
   // Pencarian pertama ditahan sampai data master tiba, karena kode dari menu
   // (mis. SOP-SAINS) baru dapat diterjemahkan menjadi id setelah master dimuat.
@@ -53,18 +52,17 @@ export function PencarianProduk({
   useEffect(() => {
     let current = true;
     void Promise.all([
-      ambilApi<Master[]>('/public/master/unit_kerja'),
       ambilApi<Master[]>('/public/master/jenis_dokumen'),
       ambilApi<Master[]>('/public/master/kategori'),
     ])
-      .then(([u, t, c]) => {
+      .then(([t, c]) => {
         if (!current) return;
-        setUnits(u); setTypes(t); setCategories(c);
+        setTypes(t); setCategories(c);
         const jenisDokumenId = t.find((item) => item.kode === initialJenisKode)?.id ?? '';
         const kategoriId = c.find((item) => item.kode === initialKategoriKode)?.id ?? '';
         setFilter((lama) => ({ ...lama, jenisDokumenId, kategoriId }));
       })
-      .catch(() => { if (current) { setUnits([]); setTypes([]); setCategories([]); } })
+      .catch(() => { if (current) { setTypes([]); setCategories([]); } })
       .finally(() => { if (current) setMasterSiap(true); });
     return () => { current = false; };
   }, [initialJenisKode, initialKategoriKode]);
@@ -82,7 +80,6 @@ export function PencarianProduk({
       const kategoriKode = categories.find((item) => item.id === values.kategoriId)?.kode;
       if (jenisKode) params.set('jenis', jenisKode);
       if (kategoriKode) params.set('kategori', kategoriKode);
-      if (values.unitKerjaId) params.set('unitKerjaId', values.unitKerjaId);
       if (values.statusHukum) params.set('statusHukum', values.statusHukum);
       window.history.replaceState(null, '', `/produk-hukum${params.size ? `?${params}` : ''}`);
     } catch (e) { setError(e instanceof GalatApi ? e.message : 'Pencarian tidak dapat dimuat.'); }
@@ -105,7 +102,6 @@ export function PencarianProduk({
       <Field label="Kata kunci" id="search-q" type="search" placeholder="Judul, nomor, tahun, tag…" value={filter.q} onChange={(e) => update('q', e.target.value)} />
       <Field label="Tahun" id="search-year" inputMode="numeric" maxLength={4} placeholder="2026" value={filter.tahun} onChange={(e) => update('tahun', e.target.value)} />
       <SelectField label="Status hukum" id="search-legal-status" value={filter.statusHukum} onChange={(e) => update('statusHukum', e.target.value)}><option value="">Semua status</option><option value="BERLAKU">Berlaku</option><option value="DIUBAH">Diubah</option><option value="DICABUT">Dicabut</option></SelectField>
-      <SelectField label="Unit kerja" id="search-unit" value={filter.unitKerjaId} onChange={(e) => update('unitKerjaId', e.target.value)}><option value="">Semua unit</option>{units.map((unit) => <option key={unit.id} value={unit.id}>{unit.nama}</option>)}</SelectField>
       <SelectField label="Jenis Produk Hukum" id="search-type-id" value={filter.jenisDokumenId} onChange={(e) => update('jenisDokumenId', e.target.value)}><option value="">Semua jenis</option>{types.map(t=><option key={t.id} value={t.id}>{t.nama}</option>)}</SelectField>
       <SelectField label="Kategori" id="search-category-id" value={filter.kategoriId} onChange={(e) => update('kategoriId', e.target.value)}><option value="">Semua kategori</option>{categories.map(c=><option key={c.id} value={c.id}>{c.nama}</option>)}</SelectField>
       <Button type="submit"><Search aria-hidden className="mr-2 size-4" />Terapkan pencarian</Button>
