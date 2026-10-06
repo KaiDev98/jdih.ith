@@ -42,17 +42,22 @@ const ringkasan = {
   tanggalPenetapan: skemaTanggal,
   statusHukum: skemaStatusHukum,
 };
-export const skemaHasilCariPublik = z.strictObject({ ...ringkasan, badge: z.literal('PUBLIK') });
-/** Anonymous display only: never clickable; no ID, slug, metadata, file, URL or capability. */
-export const skemaHasilCariInternalAnonim = z.strictObject({
-  judul: teksWajib(500, 'Judul'),
-  badge: z.literal('INTERNAL'),
-});
-export const skemaHasilCariAnonim = z.discriminatedUnion('badge', [
-  skemaHasilCariPublik,
-  skemaHasilCariInternalAnonim,
-]);
+/**
+ * Hasil cari untuk yang TIDAK berhak melihat dokumen Internal (pengunjung anonim
+ * maupun akun yang belum aktif). Hanya dokumen publik, dan sengaja tanpa label
+ * atau tingkat akses apa pun: publik tidak boleh tahu ada dokumen Internal,
+ * dan label "PUBLIK" pun sudah menyiratkan adanya tingkat lain.
+ */
+export const skemaHasilCariPublik = z.strictObject({ ...ringkasan });
+export const skemaHasilCariAnonim = skemaHasilCariPublik;
 export const skemaTanggapanCariAnonim = skemaTanggapanHalaman(skemaHasilCariAnonim);
+/**
+ * Tahun penetapan yang memiliki sekurang-kurangnya satu dokumen PUBLIK terbit,
+ * terurut menurun. Dipakai menu "Berdasarkan Tahun" dan pilihan tahun di beranda.
+ * Sengaja tidak menghitung dokumen Internal, agar tahun yang hanya berisi dokumen
+ * Internal tidak membocorkan keberadaannya.
+ */
+export const skemaTahunTersedia = z.array(skemaTahun);
 /** Only for an authenticated channel AFTER backend policy filtering. */
 export const skemaHasilCariAuthorized = z.strictObject({
   ...ringkasan,
@@ -63,3 +68,4 @@ export type KueriCariDokumen = z.infer<typeof skemaCariDokumen>;
 export type KueriCariDokumenAdmin = z.infer<typeof skemaCariDokumenAdmin>;
 export type HasilCariAnonim = z.infer<typeof skemaHasilCariAnonim>;
 export type HasilCariAuthorized = z.infer<typeof skemaHasilCariAuthorized>;
+export type TahunTersedia = z.infer<typeof skemaTahunTersedia>;

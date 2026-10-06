@@ -406,6 +406,19 @@ CREATE TABLE template_surat_versi (
   CONSTRAINT fk_template_versi_author FOREIGN KEY (created_by) REFERENCES pengguna (id) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB;
 
+-- Nomor telepon kantor yang tampil di portal publik; diubah Admin lewat panel.
+CREATE TABLE kontak_kantor (
+  id TINYINT UNSIGNED NOT NULL COMMENT 'Satu baris saja (id=1)',
+  telepon VARCHAR(32) NOT NULL,
+  updated_by BIGINT UNSIGNED NULL COMMENT 'NULL bila berasal dari seed',
+  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (id),
+  KEY idx_kontak_updated_by (updated_by),
+  CONSTRAINT ck_kontak_tunggal CHECK (id = 1),
+  CONSTRAINT ck_kontak_isi CHECK (CHAR_LENGTH(TRIM(telepon)) > 0),
+  CONSTRAINT fk_kontak_updated_by FOREIGN KEY (updated_by) REFERENCES pengguna (id) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE=InnoDB;
+
 CREATE TABLE audit_log (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   actor_id BIGINT UNSIGNED NULL COMMENT 'NULL untuk system/anonymous/operations',

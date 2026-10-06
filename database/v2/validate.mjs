@@ -23,7 +23,7 @@ const expected = [
   'sesi_pengguna','jenis_dokumen','kategori','tag','dokumen','dokumen_versi',
   'dokumen_versi_kategori','dokumen_versi_tag','dokumen_berkas','dokumen_relasi',
   'dokumen_akses_rahasia','dokumen_workflow','dokumen_status_hukum_riwayat',
-  'template_surat','template_surat_versi','audit_log'
+  'template_surat','template_surat_versi','kontak_kantor','audit_log'
 ].sort();
 const fks = [...schema.matchAll(/CONSTRAINT (\w+) FOREIGN KEY/g)].map(m => m[1]).sort();
 const checks = [...schema.matchAll(/CONSTRAINT (\w+) CHECK/g)].map(m => m[1]).sort();
@@ -34,7 +34,7 @@ assert.equal((schema.match(/ON DELETE RESTRICT ON UPDATE RESTRICT/g) ?? []).leng
 // Structural review of our deliberately regular DDL; not a MySQL syntax parser.
 const structures = new Map();
 for (const match of schema.matchAll(/CREATE TABLE (\w+) \(\n([\s\S]*?)\n\) ENGINE=InnoDB;/g)) {
-  const columns = new Map([...match[2].matchAll(/^ {2}(\w+) (BIGINT UNSIGNED|INT UNSIGNED|SMALLINT UNSIGNED|TINYINT|VARCHAR\(\d+\)|BINARY\(\d+\)|DATETIME\(6\)|DATE|TEXT|JSON|BOOLEAN|ENUM)/gm)].map(m => [m[1],m[2]]));
+  const columns = new Map([...match[2].matchAll(/^ {2}(\w+) (BIGINT UNSIGNED|INT UNSIGNED|SMALLINT UNSIGNED|TINYINT UNSIGNED|TINYINT|VARCHAR\(\d+\)|BINARY\(\d+\)|DATETIME\(6\)|DATE|TEXT|JSON|BOOLEAN|ENUM)/gm)].map(m => [m[1],m[2]]));
   const keys = [...match[2].matchAll(/(?:PRIMARY KEY|(?:UNIQUE )?KEY \w+) \(([^)]+)\)/g)].map(m => m[1].split(',').map(c => c.trim()));
   const candidateKeys = [...match[2].matchAll(/(?:PRIMARY KEY|UNIQUE KEY \w+) \(([^)]+)\)/g)].map(m => m[1].split(',').map(c => c.trim()));
   if (/\bid BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY/.test(match[2])) {
@@ -42,7 +42,7 @@ for (const match of schema.matchAll(/CREATE TABLE (\w+) \(\n([\s\S]*?)\n\) ENGIN
   }
   structures.set(match[1], {columns,keys,candidateKeys});
 }
-assert.equal(structures.size,23);
+assert.equal(structures.size,24);
 for (const name of [...fks,...checks,...indexes]) assert.ok(name.length <= 64, 'Identifier too long: '+name);
 assert.equal(new Set([...fks,...checks]).size, fks.length+checks.length, 'Duplicate constraint name');
 const statements = [...schema.matchAll(/CREATE TABLE (\w+) \(\n([\s\S]*?)\n\) ENGINE=InnoDB;/g),
@@ -154,7 +154,7 @@ assert.deepEqual(list("SELECT table_name FROM information_schema.tables WHERE ta
 for (const [kind, declared] of [['FOREIGN KEY',fks],['CHECK',checks],['UNIQUE',unique]]) {
   assert.deepEqual(list("SELECT constraint_name FROM information_schema.table_constraints WHERE table_schema=DATABASE() AND constraint_type='" + kind + "'"), declared, kind);
 }
-assert.equal(query("SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema=DATABASE() AND constraint_type='PRIMARY KEY'"), '23');
+assert.equal(query("SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema=DATABASE() AND constraint_type='PRIMARY KEY'"), '24');
 assert.equal(query("SELECT COUNT(*) FROM information_schema.referential_constraints WHERE constraint_schema=DATABASE() AND (delete_rule <> 'RESTRICT' OR update_rule <> 'RESTRICT')"), '0');
 assert.equal(query("SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema=DATABASE() AND constraint_type='CHECK' AND enforced <> 'YES'"), '0');
 const actualIndexes = list("SELECT DISTINCT index_name FROM information_schema.statistics WHERE table_schema=DATABASE() AND index_name <> 'PRIMARY'");

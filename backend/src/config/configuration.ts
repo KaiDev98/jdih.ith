@@ -48,6 +48,7 @@ export function konfigurasi() {
       secure: env.COOKIE_SECURE,
       origin: env.APP_URL,
       proxyHops: env.TRUST_PROXY_HOPS,
+      loginUji: env.LOGIN_UJI,
     },
 
     penyimpanan: {

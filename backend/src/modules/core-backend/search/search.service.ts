@@ -7,6 +7,7 @@ import {
   skemaHasilCariAuthorized,
   skemaTanggapanCariAnonim,
   skemaTanggapanCariAuthorized,
+  skemaTahunTersedia,
 } from '@jdih/shared';
 import { CoreBackendRepository } from '../core-backend.repository.js';
 
@@ -64,8 +65,10 @@ export class SearchService {
       actor.peran.includes('DOSEN_STAF') || actor.izin.includes('documents.read_admin')
     ));
     const anonymous = !authorized;
+    // Yang tidak berhak hanya melihat dokumen publik — dokumen Internal tidak
+    // muncul, tidak dihitung, dan tidak disiratkan dalam bentuk apa pun.
     const visibility = anonymous
-      ? "v.tingkat_akses IN ('publik','internal')"
+      ? "v.tingkat_akses='publik'"
       : `(v.tingkat_akses IN ('publik','internal') OR (v.tingkat_akses='rahasia' AND (
           (?=1) OR EXISTS(SELECT 1 FROM dokumen_akses_rahasia gr WHERE gr.dokumen_id=d.id AND gr.pengguna_id=? AND gr.revoked_at IS NULL AND (gr.expires_at IS NULL OR gr.expires_at>UTC_TIMESTAMP(6)))
         )))`;
@@ -111,19 +114,16 @@ export class SearchService {
     );
     const data = anonymous
       ? rows.map((r) =>
-          r.tingkatAkses === 'internal'
-            ? skemaHasilCariAnonim.parse({ judul: String(r.judul), badge: 'INTERNAL' })
-            : skemaHasilCariAnonim.parse({
-                id: String(r.id),
-                slug: String(r.slug),
-                tipe: String(r.tipe),
-                judul: String(r.judul),
-                nomor: r.nomor == null ? null : String(r.nomor),
-                tahun: r.tahun == null ? null : Number(r.tahun),
-                tanggalPenetapan: r.tanggalPenetapan == null ? null : String(r.tanggalPenetapan),
-                statusHukum: String(r.statusHukum),
-                badge: 'PUBLIK',
-              }),
+          skemaHasilCariAnonim.parse({
+            id: String(r.id),
+            slug: String(r.slug),
+            tipe: String(r.tipe),
+            judul: String(r.judul),
+            nomor: r.nomor == null ? null : String(r.nomor),
+            tahun: r.tahun == null ? null : Number(r.tahun),
+            tanggalPenetapan: r.tanggalPenetapan == null ? null : String(r.tanggalPenetapan),
+            statusHukum: String(r.statusHukum),
+          }),
         )
       : rows.map((r) =>
           skemaHasilCariAuthorized.parse({
@@ -174,7 +174,7 @@ export class SearchService {
       [...filter.values, query.perHalaman, offset],
     );
     const data = rows.map((row) =>
-      skemaHasilCariAnonim.parse({ ...row, badge: 'PUBLIK' }),
+      skemaHasilCariAnonim.parse(row),
     );
     const total = Number(countRows?.total ?? 0);
     return skemaTanggapanCariAnonim.parse({
@@ -189,6 +189,17 @@ export class SearchService {
         adaBerikutnya: offset + data.length < total,
       },
     });
+  }
+
+  /** Tahun yang memiliki dokumen publik terbit; tidak pernah menghitung Internal/Rahasia. */
+  async publicYears() {
+    const rows = await this.repo.rows<RowDataPacket & { tahun: number | string }>(
+      this.repo.pool,
+      `SELECT DISTINCT v.tahun FROM dokumen d JOIN dokumen_versi v ON v.id=d.current_published_version_id
+       WHERE d.deleted_at IS NULL AND v.status_workflow='TERBIT' AND v.tingkat_akses='publik' AND v.tahun IS NOT NULL
+       ORDER BY v.tahun DESC`,
+    );
+    return skemaTahunTersedia.parse(rows.map((row) => Number(row.tahun)));
   }
 
   async latestPublic() {

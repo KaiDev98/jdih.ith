@@ -188,12 +188,20 @@ export class LetterTemplatesService {
       `SELECT COUNT(*) total FROM template_surat t JOIN template_surat_versi v ON v.id=t.current_version_id WHERE t.aktif=1 AND t.deleted_at IS NULL AND v.status='ACTIVE' AND ${visible}`,
     );
     const offset = (page.halaman - 1) * page.perHalaman;
-    const rows = await this.repo.rows(
+    const rows = await this.repo.rows<
+      RowDataPacket & { id: string; slug: string; nama: string; tingkatAkses: 'PUBLIK' | 'INTERNAL' }
+    >(
       this.repo.pool,
       `SELECT CAST(t.id AS CHAR) id,t.slug,t.nama,v.tingkat_akses tingkatAkses FROM template_surat t JOIN template_surat_versi v ON v.id=t.current_version_id WHERE t.aktif=1 AND t.deleted_at IS NULL AND v.status='ACTIVE' AND ${visible} ORDER BY t.nama,t.id LIMIT ? OFFSET ?`,
       [page.perHalaman, offset],
     );
-    const data = rows.map((row) => ({ ...row, kemampuan: { download: true as const } }));
+    // Pengunjung anonim tidak menerima `tingkatAkses`: keberadaan format
+    // Internal tidak boleh tersirat dari bentuk tanggapan publik.
+    const data = rows.map(({ tingkatAkses, ...row }) => ({
+      ...row,
+      ...(includeInternal ? { tingkatAkses } : {}),
+      kemampuan: { download: true as const },
+    }));
     const total = Number(count?.total ?? 0);
     const response = {
       sukses: true as const, data,

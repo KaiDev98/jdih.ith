@@ -11,8 +11,8 @@ Branch pekerjaan: `niyato`; base commit `5000a81db2d02d1b3704d45512aab2a5d36ca20
 
 | File | Tujuan |
 | --- | --- |
-| [schema.sql](schema.sql) | 23 tabel, PK/FK, UNIQUE, CHECK, generated columns, indeks; import sekali ke DB V2 kosong |
-| [seed.sql](seed.sql) | Master 3 role, 23 permission, 5 jenis, 9 kategori SOP; tanpa akun nyata atau password |
+| [schema.sql](schema.sql) | 24 tabel, PK/FK, UNIQUE, CHECK, generated columns, indeks; import sekali ke DB V2 kosong |
+| [seed.sql](seed.sql) | Master 3 role, 25 permission, 5 jenis, 9 kategori SOP; tanpa akun nyata atau password |
 | [sample.sql](sample.sql) | Fixture sintetis sekali import, termasuk versioning dan akses; bukan data produksi |
 | [validate.mjs](validate.mjs) | Audit statis dan pengujian constraint runtime dengan transaksi rollback; hanya Node built-in dan Docker CLI |
 | [VALIDATION.md](VALIDATION.md) | Hasil pemeriksaan aktual, termasuk batas validasi yang belum dapat dijalankan |

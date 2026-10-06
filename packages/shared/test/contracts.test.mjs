@@ -57,7 +57,7 @@ test('enum contracts and permissions match approved physical SQL/seed', () => {
   )[1];
   const codes = [...block.matchAll(/\('([^']+)',/g)].map((m) => m[1]);
   assert.deepEqual([...c.SEMUA_IZIN].sort(), codes.sort());
-  assert.equal(codes.length, 23);
+  assert.equal(codes.length, 25);
 });
 test('BIGINT JSON ids preserve precision and reject coercion', () => {
   ok(c.skemaId, '18446744073709551615');
@@ -201,43 +201,17 @@ test('Secret grant optional expiry and no trusted client actors', () => {
   bad(c.skemaRevokeRahasia, { alasan: 'Cabut', revokedBy: '1' });
   bad(c.skemaRevokeRahasia, { alasan: ' ' });
 });
-const internal = { judul: 'Judul Internal', badge: 'INTERNAL' };
-test('anonymous Internal result accepts only title and badge', () => {
-  ok(c.skemaHasilCariInternalAnonim, internal);
-  ok(c.skemaHasilCariAnonim, internal);
-  assert.deepEqual(Object.keys(c.skemaHasilCariInternalAnonim.shape).sort(), ['badge', 'judul']);
-});
-for (const field of [
-  'id',
-  'slug',
-  'nomor',
-  'tahun',
-  'tipe',
-  'pic',
-  'statusHukum',
-  'tanggalPenetapan',
-  'unitKerjaId',
-  'kategoriId',
-  'file',
-  'berkas',
-  'download',
-  'preview',
-  'kemampuan',
-  'detailUrl',
-  'storageKey',
-  'createdBy',
-])
-  test('Internal result rejects leak ' + field, () => {
-    const value = { ...internal, [field]: field === 'id' ? '1' : 'secret' };
-    bad(c.skemaHasilCariInternalAnonim, value);
-    bad(c.skemaHasilCariAnonim, value);
-  });
-test('Secret has no anonymous result variant', () => {
-  assert.deepEqual(
-    c.skemaHasilCariAnonim.options.map((schema) => schema.shape.badge.value),
-    ['PUBLIK', 'INTERNAL'],
-  );
-  bad(c.skemaHasilCariAnonim, { ...internal, badge: 'RAHASIA' });
+// Pengunjung anonim hanya menerima dokumen publik; tidak ada varian Internal/Rahasia
+// dan tidak ada label akses apa pun, sehingga keberadaan Internal tidak tersirat.
+const publik = {
+  id: '1', slug: 'aturan', judul: 'Aturan', nomor: '1', tahun: 2026, tipe: 'Peraturan Rektor',
+  pic: 'Bagian Hukum', statusHukum: 'BERLAKU', tanggalPenetapan: '2026-01-01',
+};
+test('anonymous result has no Internal variant and no access label', () => {
+  assert.equal(c.skemaHasilCariInternalAnonim, undefined);
+  for (const extra of [{ badge: 'INTERNAL' }, { badge: 'PUBLIK' }, { tingkatAkses: 'internal' }])
+    bad(c.skemaHasilCariAnonim, { ...publik, ...extra });
+  bad(c.skemaHasilCariAnonim, { judul: 'Judul Internal', badge: 'INTERNAL' });
   bad(c.skemaCariDokumen, { tingkatAkses: 'rahasia' });
   bad(c.skemaCariDokumen, { statusWorkflow: 'DRAF' });
 });
@@ -279,12 +253,13 @@ const detail = {
   tanggalPenetapan: '2026-01-01',
   statusHukum: 'BERLAKU',
   pic: 'PIC bebas',
-  tingkatAkses: 'publik',
   berkasUtama: file,
   lampiran: [],
 };
 test('public detail exposes six metadata fields and authorized files', () => {
+  // Tampilan publik tidak memuat tingkat akses sama sekali.
   ok(c.skemaDetailDokumenPublik, detail);
+  bad(c.skemaDetailDokumenPublik, { ...detail, tingkatAkses: 'publik' });
   ok(c.skemaDetailDokumenAuthorized, { ...detail, tingkatAkses: 'internal' });
   ok(c.skemaDetailDokumenAuthorized, { ...detail, tingkatAkses: 'rahasia' });
   bad(c.skemaDetailDokumenPublik, { ...detail, tingkatAkses: 'rahasia' });
@@ -307,10 +282,11 @@ test('template list only title and download, no public Internal', () => {
     id: '1',
     slug: 'surat-tugas',
     nama: 'Surat Tugas',
-    tingkatAkses: 'PUBLIK',
     kemampuan: { download: true },
   };
+  // Daftar publik tidak memuat tingkat akses apa pun, termasuk PUBLIK.
   ok(c.skemaItemTemplatePublik, item);
+  bad(c.skemaItemTemplatePublik, { ...item, tingkatAkses: 'PUBLIK' });
   bad(c.skemaItemTemplatePublik, { ...item, tingkatAkses: 'INTERNAL' });
   ok(c.skemaItemTemplateAuthorized, { ...item, tingkatAkses: 'INTERNAL' });
   bad(c.skemaItemTemplateAuthorized, { ...item, tingkatAkses: 'RAHASIA' });

@@ -6,6 +6,7 @@ export const IZIN = {
   DOCUMENTS_EDIT: 'documents.edit',
   DOCUMENTS_UPLOAD: 'documents.upload',
   DOCUMENTS_REVISE: 'documents.revise',
+  DOCUMENTS_DELETE: 'documents.delete',
   WORKFLOW_SUBMIT: 'workflow.submit',
   WORKFLOW_RETURN: 'workflow.return',
   WORKFLOW_APPROVE: 'workflow.approve',
@@ -24,6 +25,7 @@ export const IZIN = {
   TEMPLATES_MANAGE: 'templates.manage',
   DASHBOARD_READ: 'dashboard.read',
   AUDIT_READ: 'audit.read',
+  CONTACT_MANAGE: 'contact.manage',
 } as const;
 export const skemaIzin = z.enum(IZIN);
 export type KodeIzin = z.infer<typeof skemaIzin>;
@@ -39,6 +41,7 @@ export const MODUL_IZIN = [
   'letter-templates',
   'dashboard',
   'audit',
+  'settings',
 ] as const;
 export type ModulIzin = (typeof MODUL_IZIN)[number];
 /** All writes and sensitive Secret reads; not a replacement for UI confirmation on every write. */
@@ -77,6 +80,11 @@ export const KATALOG_IZIN: readonly MetaIzin[] = [
   {
     kode: 'documents.revise',
     nama: 'Membuat revisi baru',
+    modul: 'documents',
+  },
+  {
+    kode: 'documents.delete',
+    nama: 'Menghapus dokumen secara permanen',
     modul: 'documents',
   },
   {
@@ -168,6 +176,11 @@ export const KATALOG_IZIN: readonly MetaIzin[] = [
     kode: 'audit.read',
     nama: 'Melihat audit sesuai kewenangan',
     modul: 'audit',
+  },
+  {
+    kode: 'contact.manage',
+    nama: 'Mengelola kontak kantor',
+    modul: 'settings',
   },
 ];
 export function cariIzin(kode: KodeIzin): MetaIzin | undefined {

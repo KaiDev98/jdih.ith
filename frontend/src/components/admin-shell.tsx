@@ -19,6 +19,7 @@ const links = [
   { label: 'Kategori', href: '/admin/kategori', izin: 'master.manage' },
   { label: 'Tag', href: '/admin/tag', izin: 'master.manage' },
   { label: 'Format Persuratan', href: '/admin/format-persuratan', izin: 'templates.manage' },
+  { label: 'Kontak Kantor', href: '/admin/kontak', izin: 'contact.manage' },
   { label: 'Audit', href: '/admin/audit', izin: 'audit.read' },
 ];
 const adminPermissions = new Set(links.flatMap((x) => Array.isArray(x.izin) ? x.izin : [x.izin]));

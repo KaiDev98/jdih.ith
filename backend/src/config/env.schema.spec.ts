@@ -51,6 +51,13 @@ describe('validasiEnv', () => {
       validasiEnv({ ...envMinimum, NODE_ENV: 'production', COOKIE_SECURE: 'false' }),
     ).toThrow(/COOKIE_SECURE/);
   });
+  it('LOGIN_UJI mati secara baku dan ditolak di produksi', () => {
+    expect(validasiEnv({ ...envMinimum }).LOGIN_UJI).toBe(false);
+    expect(validasiEnv({ ...envMinimum, LOGIN_UJI: 'true' }).LOGIN_UJI).toBe(true);
+    expect(() =>
+      validasiEnv({ ...envMinimum, NODE_ENV: 'production', LOGIN_UJI: 'true' }),
+    ).toThrow(/LOGIN_UJI/);
+  });
   it('menolak CORS berbeda dari origin frontend', () => {
     expect(() => validasiEnv({ ...envMinimum, CORS_ORIGIN: '*' })).toThrow(/CORS_ORIGIN/);
   });

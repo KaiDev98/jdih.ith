@@ -7,6 +7,7 @@ import {
   Param,
   Query,
   Req,
+  NotFoundException,
   Res,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -69,6 +70,24 @@ export class IdentityController {
     const flow = this.google.start();
     res.cookie(FLOW_COOKIE, flow.handle, { ...this.options(), maxAge: 600000 });
     res.redirect(flow.url);
+  }
+  /**
+   * Login uji lokal (LOGIN_UJI=true). Bila nonaktif, rute ini berperilaku seperti
+   * tidak ada. GET karena belum ada sesi untuk token CSRF; tujuan redirect tetap.
+   */
+  @Get('uji/:peran')
+  @Publik()
+  async loginUji(
+    @Param('peran') peran: string,
+    @Req() req: PermintaanBerpengguna,
+    @Res() res: Response,
+  ) {
+    this.privateResponse(res);
+    if (!this.config.get('identitas.loginUji', { infer: true })) throw new NotFoundException();
+    if (peran !== 'SUPERADMIN' && peran !== 'ADMIN') throw new NotFoundException();
+    const session = await this.identity.loginUji(peran, req.ip ?? '', req.get('user-agent') ?? '');
+    this.setSession(res, session);
+    res.redirect(`${this.config.get('identitas.origin', { infer: true })}/akun`);
   }
   @Get('google/callback')
   @Publik()

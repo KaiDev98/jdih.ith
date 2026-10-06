@@ -25,6 +25,12 @@ export class SearchController {
     return this.search.publicList(query);
   }
 
+  @Get('documents/years')
+  @Publik()
+  years() {
+    return this.search.publicYears();
+  }
+
   @Get('documents/latest')
   @Publik()
   latest() {

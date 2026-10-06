@@ -72,6 +72,16 @@ export class IdentityRepository {
       [sub, email],
     );
   }
+  /** Akun AKTIF pertama dengan peran tertentu; hanya untuk login uji lokal. */
+  async akunUji(db: Connection, peran: string) {
+    return (
+      await this.rows<UserRow>(
+        db,
+        "SELECT u.* FROM pengguna u JOIN pengguna_peran pp ON pp.pengguna_id=u.id JOIN peran p ON p.id=pp.peran_id WHERE p.kode=? AND u.status='AKTIF' AND u.deleted_at IS NULL ORDER BY u.id LIMIT 1 FOR UPDATE",
+        [peran],
+      )
+    )[0];
+  }
   async session(db: Connection, hash: Buffer, lock = false) {
     return (
       await this.rows<SessionRow>(

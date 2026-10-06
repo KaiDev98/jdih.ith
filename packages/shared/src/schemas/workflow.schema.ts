@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { teksWajib } from './common.schema.js';
+import { skemaStatusHukum } from '../enums.js';
 import { skemaKonfirmasiDampakPublikasi } from './relasi.schema.js';
 // Version ID is a route parameter. No actor, verifier, state or timestamp from the client.
 export const skemaAjukanDokumen = z.strictObject({
@@ -17,3 +18,10 @@ export type MuatanKembalikanRevisi = z.infer<typeof skemaKembalikanRevisi>;
 export type MuatanSetujuiDokumen = z.infer<typeof skemaSetujuiDokumen>;
 export type MuatanTerbitkanDokumen = z.infer<typeof skemaTerbitkanDokumen>;
 export type MuatanTarikDokumen = z.infer<typeof skemaTarikDokumen>;
+
+/** Admin mengubah status hukum dokumen secara langsung; alasan dicatat di riwayat. */
+export const skemaUbahStatusHukum = z.strictObject({
+  statusHukum: skemaStatusHukum,
+  alasan: teksWajib(1000, 'Alasan perubahan status'),
+});
+export type MuatanUbahStatusHukum = z.infer<typeof skemaUbahStatusHukum>;
