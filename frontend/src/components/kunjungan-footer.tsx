@@ -49,13 +49,13 @@ export function KunjunganFooter({ awal }: { awal: RingkasanKunjungan | null }) {
   return (
     <section aria-labelledby="judul-kunjungan">
       <h2 id="judul-kunjungan" className="flex items-center gap-2 text-sm font-semibold text-white">
-        <Users aria-hidden strokeWidth={1.75} className="size-4 text-institusi-100" />
+        <Users aria-hidden strokeWidth={1.75} className="size-4 text-institusi-400" />
         Kunjungan
       </h2>
       <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3" aria-live="polite">
         {butir.map((b) => (
           <div key={b.label} className="flex min-w-0 flex-col-reverse">
-            <dt className="text-sm text-institusi-100">{b.label}</dt>
+            <dt className="text-sm text-gigi-200">{b.label}</dt>
             <dd className="text-xl leading-tight font-extrabold tracking-[-0.01em] text-white tabular-nums">
               {angka.format(b.nilai)}
             </dd>

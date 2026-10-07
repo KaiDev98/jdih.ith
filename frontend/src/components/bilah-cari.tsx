@@ -72,7 +72,7 @@ export function BilahCari({ tipe, tahun }: { tipe: readonly Jenis[]; tahun: read
         )}
         <button
           type="submit"
-          className="tekan inline-flex min-h-12 shrink-0 items-center justify-center rounded-full bg-tinta px-6 text-base font-bold text-white hover:bg-[#0f1830] sm:min-h-14 sm:px-9 sm:text-lg"
+          className="tekan inline-flex min-h-12 shrink-0 items-center justify-center rounded-full bg-institusi-600 px-6 text-base font-bold text-white hover:bg-institusi-700 sm:min-h-14 sm:px-9 sm:text-lg"
         >
           Cari
         </button>
@@ -126,7 +126,7 @@ function PilihanPil({
       </label>
       <Ikon
         aria-hidden
-        className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-institusi-100"
+        className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-gigi-100"
       />
       <select
         id={id}

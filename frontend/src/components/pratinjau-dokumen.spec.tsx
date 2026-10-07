@@ -34,13 +34,13 @@ describe('PratinjauDokumen', () => {
       expect.objectContaining({ credentials: 'include' }),
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Lampiran 1' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Lampiran 1/ }));
     expect(await screen.findByTitle('Pratinjau lampiran-1.pdf')).toBeInTheDocument();
     expect(fetchMock).toHaveBeenLastCalledWith(
       '/api/v1/public/documents/contoh/files/2?mode=inline',
       expect.anything(),
     );
-    expect(screen.getByRole('button', { name: 'Lampiran 1' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: /^Lampiran 1/ })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
@@ -53,7 +53,6 @@ describe('PratinjauDokumen', () => {
     );
     render(<PratinjauDokumen slug="contoh" berkas={berkas.slice(0, 1)} />);
     expect(await screen.findByText(/Terlalu banyak pratinjau/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Dokumen utama' })).not.toBeInTheDocument();
   });
 
   it('does not fetch when the browser cannot show PDFs inline', () => {
@@ -62,7 +61,6 @@ describe('PratinjauDokumen', () => {
     vi.stubGlobal('fetch', fetchMock);
     render(<PratinjauDokumen slug="contoh" berkas={berkas} />);
     expect(screen.getByText(/tidak dapat menampilkan PDF/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Unduh' })).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

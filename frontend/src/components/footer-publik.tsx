@@ -69,9 +69,9 @@ export function statusLayanan(waktu: Date) {
 
 const kelasJudul = 'flex items-center gap-2 text-sm font-semibold text-white';
 /** Ikon garis tipis yang menyatu dengan teks, bukan ikon dalam kotak. */
-const kelasIkon = 'size-4 shrink-0 text-institusi-100';
+const kelasIkon = 'size-4 shrink-0 text-institusi-400';
 const kelasTautan =
-  'text-institusi-50 underline-offset-4 transition-colors duration-150 hover:text-white hover:underline';
+  'text-gigi-100 underline-offset-4 transition-colors duration-150 hover:text-white hover:underline';
 
 const TAUTAN_JELAJAH = [
   { label: 'Produk Hukum', href: '/produk-hukum' },
@@ -99,7 +99,7 @@ export function FooterPublik({
   const hariIni = sekarangWita(sekarang).hari;
 
   return (
-    <footer className="footer-oranye mt-16 text-[0.9375rem] text-institusi-50">
+    <footer className="footer-institusi mt-16 text-[0.9375rem] text-gigi-100">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid gap-9 py-10 md:grid-cols-2 lg:grid-cols-[1.1fr_1fr_0.9fr] lg:gap-14">
           <section aria-labelledby="judul-kantor">
@@ -132,7 +132,7 @@ export function FooterPublik({
                     <Mail aria-hidden strokeWidth={1.75} className={`${kelasIkon} mt-1.5`} />
                   )}
                   <span className="min-w-0">
-                    {butir.label && <span className="text-institusi-100">{butir.label}: </span>}
+                    {butir.label && <span className="text-gigi-300">{butir.label}: </span>}
                     <a
                       href={
                         butir.jenis === 'TELEPON'
@@ -149,7 +149,7 @@ export function FooterPublik({
             </address>
             <Link
               href="/kontak"
-              className="tekan mt-5 inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-institusi-800 hover:bg-institusi-50"
+              className="tekan mt-5 inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-institusi-600 px-5 text-sm font-semibold text-white hover:bg-institusi-500"
             >
               Hubungi kami <ArrowRight aria-hidden className="size-4" />
             </Link>
@@ -196,7 +196,7 @@ export function FooterPublik({
               </li>
             </ul>
           </nav>
-          <p className="flex items-center gap-2.5 text-institusi-100">
+          <p className="flex items-center gap-2.5 text-gigi-200">
             <span className="grid size-7 shrink-0 place-items-center rounded-md bg-white">
               <Image
                 src="/logo-ith.webp"

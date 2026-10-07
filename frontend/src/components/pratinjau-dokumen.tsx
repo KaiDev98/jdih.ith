@@ -1,22 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Download, LoaderCircle, Maximize2 } from 'lucide-react';
+import { ExternalLink, FileText, LoaderCircle, Maximize2, Paperclip } from 'lucide-react';
+import { alamatBerkas, pesanGagalBerkas, UnduhKecil } from './aksi-berkas';
 
 export type BerkasPratinjau = { id: string; nama: string; label: string };
-
-const alamatBerkas = (slug: string, fileId: string, mode: 'inline' | 'download') =>
-  `/api/v1/public/documents/${encodeURIComponent(slug)}/files/${encodeURIComponent(fileId)}?mode=${mode}`;
-
-/** Pesan galat tanpa menyiratkan ada berkas yang tertutup bagi pembaca. */
-function pesanGagal(status: number, aksi: 'pratinjau' | 'unduh') {
-  if (status === 404 || status === 403) return 'Berkas tidak tersedia.';
-  if (status === 429)
-    return aksi === 'pratinjau'
-      ? 'Terlalu banyak pratinjau dalam satu jam. Coba lagi nanti atau unduh berkasnya.'
-      : 'Batas unduhan tercapai. Coba lagi setelah satu jam.';
-  return aksi === 'pratinjau' ? 'Pratinjau gagal dimuat.' : 'Unduhan gagal.';
-}
 
 /** Peramban yang tidak bisa menampilkan PDF di halaman (mis. Chrome Android) menyatakannya di sini. */
 const tanpaLangganan = () => () => undefined;
@@ -36,19 +24,24 @@ function useLayarPenuhDidukung() {
   );
 }
 
-const tombolKecil =
-  'inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60';
-
 /**
- * Pratinjau PDF yang langsung tampil di halaman detail memakai penampil PDF
- * bawaan peramban (zoom, halaman, cetak). Berkas diambil sebagai blob agar hak
- * akses tetap diperiksa API dan galat dapat ditampilkan dengan rapi.
+ * Ruang baca dokumen: penampil PDF di kolom utama dan daftar berkas di samping.
+ * Memilih berkas di daftar langsung mengganti isi penampil. Penampil memakai
+ * PDF bawaan peramban; berkas diambil sebagai blob agar hak akses tetap
+ * diperiksa API dan galat dapat ditampilkan dengan rapi.
  */
-export function PratinjauDokumen({ slug, berkas }: { slug: string; berkas: BerkasPratinjau[] }) {
+export function PratinjauDokumen({
+  slug,
+  berkas,
+  bawahSamping,
+}: {
+  slug: string;
+  berkas: BerkasPratinjau[];
+  /** Isi di bawah daftar berkas pada kolom samping. */
+  bawahSamping?: React.ReactNode;
+}) {
   const [aktifId, setAktifId] = useState(berkas[0]?.id);
   const [hasil, setHasil] = useState<{ id: string; url?: string; pesan?: string }>();
-  const [unduhSibuk, setUnduhSibuk] = useState(false);
-  const [galatUnduh, setGalatUnduh] = useState('');
   const bingkai = useRef<HTMLDivElement>(null);
   const didukung = usePdfDidukung();
   const layarPenuh = useLayarPenuhDidukung();
@@ -61,7 +54,7 @@ export function PratinjauDokumen({ slug, berkas }: { slug: string; berkas: Berka
     let url = '';
     fetch(alamatBerkas(slug, idAktif, 'inline'), { credentials: 'include', signal: batal.signal })
       .then(async (response) => {
-        if (!response.ok) throw new Error(pesanGagal(response.status, 'pratinjau'));
+        if (!response.ok) throw new Error(pesanGagalBerkas(response.status, 'pratinjau'));
         url = URL.createObjectURL(await response.blob());
         setHasil({ id: idAktif, url });
       })
@@ -80,121 +73,129 @@ export function PratinjauDokumen({ slug, berkas }: { slug: string; berkas: Berka
 
   if (!aktif) return null;
   const terkini = hasil?.id === aktif.id ? hasil : undefined;
-
-  async function unduh(b: BerkasPratinjau) {
-    setUnduhSibuk(true);
-    setGalatUnduh('');
-    try {
-      const response = await fetch(alamatBerkas(slug, b.id, 'download'), {
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error(pesanGagal(response.status, 'unduh'));
-      const objectUrl = URL.createObjectURL(await response.blob());
-      const a = document.createElement('a');
-      a.href = objectUrl;
-      a.download = b.nama;
-      a.click();
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-    } catch (e) {
-      setGalatUnduh(e instanceof Error ? e.message : 'Unduhan gagal.');
-    } finally {
-      setUnduhSibuk(false);
-    }
-  }
+  const tombolAlat =
+    'inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-tinta';
 
   return (
-    <section aria-label="Pratinjau dokumen">
-      <div className="border-b border-slate-200">
-        {berkas.length > 1 ? (
-          <div className="-mb-px flex gap-6 overflow-x-auto" aria-label="Pilih berkas">
-            {berkas.map((b) => (
-              <button
-                key={b.id}
-                type="button"
-                aria-pressed={b.id === aktif.id}
-                onClick={() => {
-                  setAktifId(b.id);
-                  setGalatUnduh('');
-                }}
-                className={`shrink-0 border-b-2 pt-1 pb-2.5 text-sm font-semibold transition ${
-                  b.id === aktif.id
-                    ? 'border-institusi-600 text-tinta'
-                    : 'border-transparent text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                {b.label}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <h2 className="pt-1 pb-2.5 text-sm font-semibold text-tinta">{aktif.label}</h2>
-        )}
-      </div>
-      <div className="mt-3 flex items-center justify-between gap-3">
-        <p className="min-w-0 truncate text-xs text-slate-500" title={aktif.nama}>
-          {aktif.nama}
-        </p>
-        <div className="flex shrink-0 items-center gap-1">
-          {terkini?.url && layarPenuh && (
-            <button
-              type="button"
-              onClick={() => void bingkai.current?.requestFullscreen().catch(() => undefined)}
-              className={`${tombolKecil} text-slate-700 hover:bg-slate-100`}
-            >
-              <Maximize2 aria-hidden className="size-4" />
-              Layar penuh
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => void unduh(aktif)}
-            disabled={unduhSibuk}
-            className={`${tombolKecil} bg-institusi-600 text-white hover:bg-institusi-700`}
-          >
-            <Download aria-hidden className="size-4" />
-            {unduhSibuk ? 'Mengunduh…' : 'Unduh'}
-          </button>
-        </div>
-      </div>
-      {galatUnduh && (
-        <p role="alert" className="mt-2 text-sm text-red-700">
-          {galatUnduh}
-        </p>
-      )}
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
+      <aside
+        aria-labelledby="judul-berkas"
+        className="grid min-w-0 gap-4 lg:col-start-2 lg:row-start-1"
+      >
+        <section className="kartu-dokumen p-2">
+          <h2 id="judul-berkas" className="px-3 pt-3 pb-2 text-sm font-bold text-tinta">
+            Berkas ({berkas.length})
+          </h2>
+          <ul className="grid gap-1">
+            {berkas.map((b, i) => {
+              const dipilih = b.id === aktif.id;
+              const Ikon = i === 0 ? FileText : Paperclip;
+              return (
+                <li
+                  key={b.id}
+                  className={`flex items-center gap-1 rounded-xl pr-1 transition ${dipilih ? 'bg-institusi-50 ring-1 ring-institusi-200' : 'hover:bg-slate-50'}`}
+                >
+                  <button
+                    type="button"
+                    aria-pressed={dipilih}
+                    onClick={() => setAktifId(b.id)}
+                    className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-3 py-2.5 text-left"
+                  >
+                    <span
+                      className={`grid size-9 shrink-0 place-items-center rounded-lg ${dipilih ? 'bg-institusi-600 text-white' : 'bg-slate-100 text-slate-500'}`}
+                    >
+                      <Ikon aria-hidden className="size-4" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-tinta">{b.label}</span>
+                      <span className="block truncate text-xs text-slate-500" title={b.nama}>
+                        {b.nama}
+                      </span>
+                    </span>
+                  </button>
+                  <UnduhKecil slug={slug} fileId={b.id} nama={b.nama} />
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+        {bawahSamping}
+      </aside>
 
-      {didukung ? (
-        <div
-          ref={bingkai}
-          className="mt-2 h-[72vh] max-h-208 min-h-104 overflow-hidden rounded-md border border-slate-200 bg-slate-100"
+      <div className="grid min-w-0 gap-5 lg:col-start-1 lg:row-start-1">
+        <section
+          id="pratinjau"
+          aria-label="Pratinjau dokumen"
+          className="kartu-dokumen scroll-mt-24 p-3 sm:p-4"
         >
-          {terkini?.url ? (
-            <iframe
-              title={`Pratinjau ${aktif.nama}`}
-              src={terkini.url}
-              className="size-full border-0"
-            />
-          ) : terkini?.pesan ? (
-            <div className="grid h-full place-items-center p-6 text-center">
-              <div className="max-w-sm text-sm">
-                <p className="font-semibold text-slate-900">Pratinjau tidak dapat ditampilkan</p>
-                <p className="mt-1 text-slate-600">{terkini.pesan}</p>
-              </div>
+          <div className="flex items-center justify-between gap-3 px-1 pb-3">
+            <p className="min-w-0 truncate text-sm">
+              <span className="font-semibold text-tinta">{aktif.label}</span>
+              <span className="hidden text-slate-500 sm:inline"> · {aktif.nama}</span>
+            </p>
+            <div className="flex shrink-0 items-center gap-1">
+              <a
+                href={alamatBerkas(slug, aktif.id, 'inline')}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={tombolAlat}
+                title="Buka di tab baru"
+              >
+                <ExternalLink aria-hidden className="size-4" />
+                <span className="sr-only sm:not-sr-only">Tab baru</span>
+              </a>
+              {terkini?.url && layarPenuh && (
+                <button
+                  type="button"
+                  onClick={() => void bingkai.current?.requestFullscreen().catch(() => undefined)}
+                  className={tombolAlat}
+                  title="Layar penuh"
+                >
+                  <Maximize2 aria-hidden className="size-4" />
+                  <span className="sr-only sm:not-sr-only">Layar penuh</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {didukung ? (
+            <div
+              ref={bingkai}
+              className="h-[60vh] max-h-160 min-h-96 overflow-hidden rounded-xl bg-[#2a2a2e]"
+            >
+              {terkini?.url ? (
+                <iframe
+                  title={`Pratinjau ${aktif.nama}`}
+                  src={terkini.url}
+                  className="size-full border-0"
+                />
+              ) : terkini?.pesan ? (
+                <div className="grid h-full place-items-center p-6 text-center">
+                  <div className="max-w-sm text-sm">
+                    <p className="font-semibold text-white">Pratinjau tidak dapat ditampilkan</p>
+                    <p className="mt-1 text-slate-300">{terkini.pesan}</p>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  role="status"
+                  className="grid h-full place-items-center text-sm text-slate-300"
+                >
+                  <span className="flex items-center gap-2">
+                    <LoaderCircle aria-hidden className="size-4 animate-spin" />
+                    Memuat pratinjau…
+                  </span>
+                </div>
+              )}
             </div>
           ) : (
-            <div role="status" className="grid h-full place-items-center text-sm text-slate-500">
-              <span className="flex items-center gap-2">
-                <LoaderCircle aria-hidden className="size-4 animate-spin" />
-                Memuat pratinjau…
-              </span>
-            </div>
+            <p className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-700">
+              Peramban ini tidak dapat menampilkan PDF langsung di halaman. Unduh berkas atau buka
+              di tab baru untuk membacanya.
+            </p>
           )}
-        </div>
-      ) : (
-        <p className="mt-2 rounded-md border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
-          Peramban ini tidak dapat menampilkan PDF langsung di halaman. Gunakan tombol Unduh untuk
-          membaca berkasnya.
-        </p>
-      )}
-    </section>
+        </section>
+      </div>
+    </div>
   );
 }

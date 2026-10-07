@@ -25,6 +25,29 @@
   --color-institusi-900: #6c2f10;
   --color-institusi-950: #3d1706;
 
+  /* ── Biru roda gigi logo ITH ──────────────────────────────────────────────
+     Warna bidang besar (hero, footer) agar oranye kembali menjadi aksen dan
+     halaman tidak terasa monoton. Teks putih di atas 600 ke atas >= 4,5:1. */
+  --color-gigi-50: #eef5fc;
+  --color-gigi-100: #d8e8f8;
+  --color-gigi-200: #b3d1f1;
+  --color-gigi-300: #82b3e6;
+  --color-gigi-400: #4f8fd6;
+  --color-gigi-500: #2b70c0;
+  --color-gigi-600: #1d5ba3;
+  --color-gigi-700: #194a85;
+  --color-gigi-800: #183e6c;
+  --color-gigi-900: #17345a;
+  --color-gigi-950: #0f213b;
+
+  /* ── Hijau lingkaran logo ITH: sentuhan kecil dan status berlaku. ── */
+  --color-daun-50: #f1f9ec;
+  --color-daun-100: #def1d2;
+  --color-daun-400: #6cc243;
+  --color-daun-500: #4fa52a;
+  --color-daun-600: #3d8a1f;
+  --color-daun-700: #316c1b;
+
   /* ── Permukaan ────────────────────────────────────────────────────────────
      Tinta biru tua (roda gigi logo) untuk teks utama dan tombol sekunder, abu
      hangat-netral sebagai latar panel, kuning untuk seleksi teks. */
@@ -187,21 +210,47 @@
     transform: scale(0.97);
   }
 
-  /* Latar hero beranda: gradasi oranye logo yang halus, dari bata tua di kiri
-     ke oranye bata di kanan, dengan pendar terang lembut di kanan atas. Ujung
-     kanan sengaja tidak terlalu terang agar teks putih tetap kontras. */
+  /* Latar hero: biru roda gigi logo ITH, dari biru tua di kiri ke biru logo
+     di kanan, dengan pendar hijau lembut di kanan atas. Oranye tidak lagi
+     menjadi bidang besar, cukup sebagai aksen (tombol, sorotan judul). */
   .hero-beranda {
     background:
-      radial-gradient(55% 85% at 92% 0%, rgb(255 255 255 / 0.1), transparent 60%),
-      linear-gradient(120deg, #a3400c 0%, #bb4e0e 45%, #c95915 100%);
+      radial-gradient(40% 70% at 90% 10%, rgb(92 181 49 / 0.22), transparent 70%),
+      linear-gradient(120deg, #13315c 0%, #194a85 55%, #1f5fa6 100%);
   }
 
-  /* Footer: oranye bata sekeluarga dengan hero, sedikit lebih gelap dan rata
-     agar teks putih kecil tetap terbaca (kontras >= 4,5:1). */
-  .footer-oranye {
+  /* Hero halaman detail produk hukum: sekeluarga dengan hero beranda. Untuk
+     memakai foto kampus, isi --gambar-hero-dokumen di :root, mis.
+     --gambar-hero-dokumen: url('/gambar/hero-dokumen.jpg');
+     lapisan biru di atasnya menjaga teks putih tetap terbaca. */
+  .hero-dokumen {
     background:
-      radial-gradient(50% 140% at 100% 0%, rgb(255 255 255 / 0.06), transparent 60%),
-      #a3430c;
+      radial-gradient(40% 70% at 90% 10%, rgb(92 181 49 / 0.2), transparent 70%),
+      linear-gradient(120deg, rgb(19 49 92 / 0.95) 0%, rgb(25 74 133 / 0.92) 55%, rgb(31 95 166 / 0.9) 100%),
+      var(--gambar-hero-dokumen, none) center / cover no-repeat,
+      #13315c;
+  }
+
+  /* Garis tiga warna logo ITH (biru, hijau, oranye) sebagai penanda identitas. */
+  .garis-logo {
+    background: linear-gradient(90deg, #1d5ba3 0 33.4%, #4fa52a 33.4% 66.7%, #e0701a 66.7% 100%);
+  }
+
+  /* Kartu halaman detail: tepi tipis dan bayangan lembut berlapis. */
+  .kartu-dokumen {
+    border-radius: 1rem;
+    border: 1px solid rgb(226 232 240 / 0.9);
+    background: #fff;
+    box-shadow:
+      0 1px 2px rgb(15 23 42 / 0.04),
+      0 10px 28px -14px rgb(15 23 42 / 0.14);
+  }
+
+  /* Footer: biru tua roda gigi, rata agar teks kecil tetap terbaca. */
+  .footer-institusi {
+    background:
+      radial-gradient(50% 140% at 100% 0%, rgb(43 112 192 / 0.18), transparent 60%),
+      #0f213b;
   }
 
   /* Panel: putih, sudut lembut, garis tipis, bayangan berlapis rendah. */

@@ -60,9 +60,9 @@ export default async function Beranda() {
               id="judul-beranda"
               className="text-[2.25rem] leading-[1.06] font-extrabold tracking-[-0.025em] text-balance sm:text-5xl lg:text-[3.5rem]"
             >
-              Produk hukum ITH, <span className="text-institusi-100">terbuka dan tertata.</span>
+              Produk hukum ITH, <span className="text-institusi-300">terbuka dan tertata.</span>
             </h1>
-            <p className="mt-4 max-w-xl text-base leading-7 text-institusi-50 sm:text-lg sm:leading-8">
+            <p className="mt-4 max-w-xl text-base leading-7 text-gigi-100 sm:text-lg sm:leading-8">
               Cari peraturan, keputusan, instruksi, surat edaran, dan SOP Institut Teknologi
               Bacharuddin Jusuf Habibie yang telah diterbitkan.
             </p>
@@ -74,7 +74,7 @@ export default async function Beranda() {
             aria-hidden
             className="mr-6 hidden size-64 place-items-center rounded-full bg-white/10 ring-1 ring-white/20 lg:grid xl:size-72"
           >
-            <div className="grid size-48 place-items-center rounded-full bg-white shadow-[0_24px_48px_-20px_rgb(61_23_6/0.6)] xl:size-56">
+            <div className="grid size-48 place-items-center rounded-full bg-white shadow-[0_24px_48px_-20px_rgb(8_20_40/0.6)] xl:size-56">
               <Image
                 src="/logo-ith.webp"
                 alt=""
