@@ -411,7 +411,7 @@ export function PublicHeader({ tahun = [] }: { tahun?: readonly number[] }) {
   }, []);
   return (
     <header
-      className={`sticky top-0 z-30 border-b bg-white transition-[box-shadow,border-color] duration-200 ${tergulir ? 'border-slate-200/80 shadow-[0_6px_20px_-12px_rgb(23_35_64/0.25)]' : 'border-slate-200'}`}
+      className={`sticky top-0 z-30 bg-white transition-shadow duration-200 ${tergulir ? 'shadow-[0_6px_20px_-12px_rgb(23_35_64/0.25)]' : ''}`}
     >
       <div className="mx-auto flex min-h-[72px] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link
@@ -439,7 +439,7 @@ export function PublicHeader({ tahun = [] }: { tahun?: readonly number[] }) {
         </Link>
         <NavigasiPublik tahun={tahun} />
       </div>
-      <div aria-hidden className="garis-logo h-1" />
+      <div aria-hidden className="garis-logo h-0.5" />
     </header>
   );
 }

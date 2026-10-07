@@ -231,9 +231,21 @@
       #13315c;
   }
 
-  /* Garis tiga warna logo ITH (biru, hijau, oranye) sebagai penanda identitas. */
+  /* Garis aksen oranye di bawah navbar: tipis, penuh sampai tepi, dengan
+     kilau cahaya yang bergerak pelan. Kilau dimatikan bila pengguna memilih
+     mengurangi gerakan. */
   .garis-logo {
-    background: linear-gradient(90deg, #1d5ba3 0 33.4%, #4fa52a 33.4% 66.7%, #e0701a 66.7% 100%);
+    background:
+      linear-gradient(90deg, transparent, rgb(255 255 255 / 0.85), transparent) -40% 0 / 40% 100% no-repeat,
+      linear-gradient(90deg, #c2510e 0%, #e0701a 30%, #f39222 50%, #e0701a 70%, #c2510e 100%);
+    animation: kilau-garis 7s ease-in-out infinite;
+  }
+  @keyframes kilau-garis {
+    0% { background-position: -40% 0, 0 0; }
+    55%, 100% { background-position: 140% 0, 0 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .garis-logo { animation: none; }
   }
 
   /* Kartu halaman detail: tepi tipis dan bayangan lembut berlapis. */
