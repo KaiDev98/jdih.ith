@@ -21,7 +21,6 @@ interface Master { id: string; kode?: string; nama: string }
 const LABEL_AKSES = {
   publik: { teks: 'Publik', warna: 'green' },
   internal: { teks: 'Internal', warna: 'amber' },
-  rahasia: { teks: 'Rahasia', warna: 'red' },
 } as const;
 
 const STATUS_HUKUM = {

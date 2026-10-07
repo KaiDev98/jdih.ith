@@ -50,41 +50,20 @@ export interface ResourceDokumen {
   current: boolean;
   deleted: boolean;
 }
-export interface GrantDokumen {
-  dokumenId: string;
-  penggunaId: string;
-  expiresAt: Date | null;
-  revokedAt: Date | null;
-}
-/** Input resource/grant must come from a trusted repository, never request body. */
-export function cekAksesDokumen(
-  resource: ResourceDokumen,
-  user?: PenggunaAktif,
-  grant?: GrantDokumen,
-  now = new Date(),
-) {
+/** Input resource must come from a trusted repository, never request body. */
+export function cekAksesDokumen(resource: ResourceDokumen, user?: PenggunaAktif) {
   if (!resource.published || !resource.current || resource.deleted) throw new NotFoundException();
   if (resource.tingkatAkses === 'publik') return;
   const active = user?.status === 'AKTIF';
   const staff = active && user.peran.includes('DOSEN_STAF');
   const admin = active && user.peran.some((r) => r === 'ADMIN' || r === 'SUPERADMIN');
-  if (resource.tingkatAkses === 'internal') {
+  // Dibandingkan sebagai string agar nilai di luar tipe tetap jatuh ke penolakan.
+  if (String(resource.tingkatAkses) === 'internal') {
     if (staff || (admin && user.izin.includes('documents.read_admin'))) return;
     // 404, bukan 403: jawaban 403 membedakan "ada tetapi tertutup" dari "tidak
     // ada", sehingga keberadaan dokumen Internal dapat ditebak dari luar.
     throw new NotFoundException();
   }
-  if (
-    // Retain runtime fail-closed check even for input outside the TypeScript union.
-    String(resource.tingkatAkses) === 'rahasia' &&
-    active &&
-    ((admin && user.izin.includes('secret.read_admin')) ||
-      (staff &&
-        grant?.dokumenId === resource.id &&
-        grant.penggunaId === user.id &&
-        grant.revokedAt === null &&
-        (grant.expiresAt === null || grant.expiresAt > now)))
-  )
-    return;
+  // Tingkat akses lain (termasuk nilai di luar tipe) selalu ditolak.
   throw new NotFoundException();
 }

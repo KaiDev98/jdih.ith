@@ -4,9 +4,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { KonfigurasiApp } from '../../config/configuration.js';
 import { DownloadRateLimitService } from './download-rate-limit.service.js';
 
-function limiter(anonymous = 2, authenticated = 3) {
+function limiter(anonymous = 2, authenticated = 3, preview = 4) {
   const config = new ConfigService({
-    pembatasanLaju: { batasUnduhAnonim: anonymous, batasUnduhPengguna: authenticated },
+    pembatasanLaju: {
+      batasUnduhAnonim: anonymous,
+      batasUnduhPengguna: authenticated,
+      batasPratinjauAnonim: preview,
+      batasPratinjauPengguna: preview,
+    },
   }) as unknown as ConfigService<KonfigurasiApp, true>;
   return new DownloadRateLimitService(config);
 }
@@ -29,6 +34,18 @@ describe('download rate limit', () => {
       HttpException,
     );
     expect(() => service.consume({ penggunaId: 'another-user', ip: '203.0.113.10' })).not.toThrow();
+  });
+
+  it('counts previews separately from downloads, with their own limit', () => {
+    const service = limiter(1, 1, 2);
+    service.consume({ ip: '203.0.113.10' });
+    expect(() => service.consume({ ip: '203.0.113.10' })).toThrow(HttpException);
+    // Kuota unduhan habis, pratinjau tetap jalan sampai batasnya sendiri.
+    service.consume({ ip: '203.0.113.10' }, 'pratinjau');
+    service.consume({ ip: '203.0.113.10' }, 'pratinjau');
+    expect(() => service.consume({ ip: '203.0.113.10' }, 'pratinjau')).toThrow(
+      'Batas pratinjau tercapai',
+    );
   });
 
   it('starts a fresh fixed window after one hour', () => {

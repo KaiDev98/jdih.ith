@@ -12,6 +12,7 @@ import {
   PageTitle,
   SelectField,
   StateMessage,
+  TextAreaField,
 } from '@/components/ui';
 
 type Master = { id: string; nama: string; aktif?: boolean };
@@ -227,12 +228,12 @@ const LABEL_RUAS: Record<string, string> = {
   slug: 'Slug URL',
   jenisDokumenId: 'Jenis dokumen',
   'versi.judul': 'Judul',
+  'versi.deskripsi': 'Deskripsi singkat',
   'versi.nomor': 'Nomor',
   'versi.tahun': 'Tahun',
   'versi.pic': 'PIC',
   'versi.tanggalPenetapan': 'Tanggal penetapan',
   'versi.tingkatAkses': 'Tingkat akses',
-  'versi.unitKerjaId': 'Unit kerja',
   'versi.kategoriId': 'Kategori',
 };
 
@@ -261,7 +262,6 @@ export function AdminDocumentCreate() {
   const { csrfToken } = useSession();
   const [types, setTypes] = useState<Master[]>([]);
   const [categories, setCategories] = useState<Master[]>([]);
-  const [units, setUnits] = useState<Master[]>([]);
   const [code, setCode] = useState('');
   const [slug, setSlug] = useState('');
   const [slugManual, setSlugManual] = useState(false);
@@ -269,12 +269,12 @@ export function AdminDocumentCreate() {
   const [cobaKirim, setCobaKirim] = useState(false);
   const [type, setType] = useState('');
   const [title, setTitle] = useState('');
-  const [access, setAccess] = useState<'publik' | 'internal' | 'rahasia'>('publik');
+  const [description, setDescription] = useState('');
+  const [access, setAccess] = useState<'publik' | 'internal'>('publik');
   const [number, setNumber] = useState('');
   const [year, setYear] = useState('');
   const [pic, setPic] = useState('');
   const [date, setDate] = useState('');
-  const [unit, setUnit] = useState('');
   const [category, setCategory] = useState('');
   const [file, setFile] = useState<File>();
   const [error, setError] = useState('');
@@ -284,12 +284,10 @@ export function AdminDocumentCreate() {
     void Promise.all([
       ambilApi<Master[]>('/admin/master/jenis_dokumen'),
       ambilApi<Master[]>('/admin/master/kategori'),
-      ambilApi<Master[]>('/public/units'),
     ])
-      .then(([a, b, c]) => {
+      .then(([a, b]) => {
         setTypes(a);
         setCategories(b);
-        setUnits(c);
       })
       .catch((e: unknown) =>
         setError(e instanceof GalatApi ? e.message : 'Data pilihan tidak dapat dimuat.'),
@@ -314,12 +312,12 @@ export function AdminDocumentCreate() {
           jenisDokumenId: type,
           versi: {
             judul: title,
+            deskripsi: description.trim() || undefined,
             nomor: number || undefined,
             tahun: year ? Number(year) : undefined,
             pic: pic || undefined,
             tanggalPenetapan: date || undefined,
             tingkatAkses: access,
-            unitKerjaId: unit || undefined,
             kategoriId: category ? [category] : [],
           },
         },
@@ -398,6 +396,21 @@ export function AdminDocumentCreate() {
             onChange={(e) => ubahJudul(e.target.value)}
             maxLength={500}
           />
+          <div className="grid gap-1 sm:col-span-2">
+            <TextAreaField
+              label="Deskripsi singkat (opsional)"
+              id="doc-description"
+              rows={3}
+              maxLength={1000}
+              placeholder="mis. Mengatur tata cara pengajuan cuti bagi dosen dan tenaga kependidikan."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+            <p className="text-xs text-slate-500">
+              Satu sampai tiga kalimat tentang isi dokumen, agar pembaca tahu isinya sebelum membuka
+              berkas. Tampil di bawah judul pada halaman publik.
+            </p>
+          </div>
           <SelectField
             label="Jenis dokumen *"
             id="doc-type"
@@ -422,7 +435,6 @@ export function AdminDocumentCreate() {
           >
             <option value="publik">Publik</option>
             <option value="internal">Internal</option>
-            <option value="rahasia">Rahasia</option>
           </SelectField>
           <div className="grid gap-1">
             <Field
@@ -487,19 +499,6 @@ export function AdminDocumentCreate() {
             value={date}
             onChange={(e) => setDate(e.target.value)}
           />
-          <SelectField
-            label="Unit kerja"
-            id="doc-unit"
-            value={unit}
-            onChange={(e) => setUnit(e.target.value)}
-          >
-            <option value="">Tanpa unit</option>
-            {units.map((x) => (
-              <option key={x.id} value={x.id}>
-                {x.nama}
-              </option>
-            ))}
-          </SelectField>
           <SelectField
             label="Kategori"
             id="doc-category"

@@ -69,13 +69,8 @@ export class SearchService {
     // muncul, tidak dihitung, dan tidak disiratkan dalam bentuk apa pun.
     const visibility = anonymous
       ? "v.tingkat_akses='publik'"
-      : `(v.tingkat_akses IN ('publik','internal') OR (v.tingkat_akses='rahasia' AND (
-          (?=1) OR EXISTS(SELECT 1 FROM dokumen_akses_rahasia gr WHERE gr.dokumen_id=d.id AND gr.pengguna_id=? AND gr.revoked_at IS NULL AND (gr.expires_at IS NULL OR gr.expires_at>UTC_TIMESTAMP(6)))
-        )))`;
-    const authority = authorized ? actor : undefined;
-    const accessValues: (string | number)[] = authority
-      ? [authority.izin.includes('secret.read_admin') ? 1 : 0, authority.id]
-      : [];
+      : "v.tingkat_akses IN ('publik','internal')";
+    const accessValues: (string | number)[] = [];
     const where = [...filter.where, visibility].join(' AND ');
     const [countRows] = await this.repo.rows<RowDataPacket & { total: string }>(
       this.repo.pool,

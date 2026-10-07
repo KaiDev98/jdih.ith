@@ -1,6 +1,6 @@
 /** Canonical V2 values, aligned with database/v2/schema.sql. */
 import { z } from 'zod';
-export const TINGKAT_AKSES = ['publik', 'internal', 'rahasia'] as const;
+export const TINGKAT_AKSES = ['publik', 'internal'] as const;
 export const STATUS_WORKFLOW = [
   'DRAF',
   'DIAJUKAN',

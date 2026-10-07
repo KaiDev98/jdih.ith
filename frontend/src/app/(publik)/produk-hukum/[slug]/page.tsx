@@ -3,15 +3,48 @@ import type { Metadata } from 'next';
 import type { DetailDokumenAuthorized, DetailDokumenPublik } from '@jdih/shared';
 import { ambilDariPeladen } from '@/lib/api-peladen';
 import { GalatApi } from '@/lib/api-client';
-import { Badge, Card, StateMessage } from '@/components/ui';
-import { FileProduk } from '@/components/file-produk';
-import { HeroHalaman } from '@/components/hero-halaman';
+import { StateMessage } from '@/components/ui';
+import { PratinjauDokumen } from '@/components/pratinjau-dokumen';
 
 /** Tampilan publik tidak memuat `tingkatAkses`; hanya pengguna berhak yang menerimanya. */
 type Detail = DetailDokumenAuthorized | DetailDokumenPublik;
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  try { const doc = await ambilDariPeladen<Detail>(`/documents/${encodeURIComponent(slug)}`, { cache: 'no-store' }); return { title: doc.judul, description: `${doc.tipe} · ${doc.nomor}` }; } catch { return { title: 'Produk Hukum' }; }
+  try { const doc = await ambilDariPeladen<Detail>(`/documents/${encodeURIComponent(slug)}`, { cache: 'no-store' }); return { title: doc.judul, description: doc.deskripsi ?? `${doc.tipe} · ${doc.nomor}` }; } catch { return { title: 'Produk Hukum' }; }
+}
+
+const formatTanggal = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+const tanggal = (iso: string) => formatTanggal.format(new Date(`${iso.slice(0, 10)}T00:00:00Z`));
+
+const STATUS = {
+  BERLAKU: { teks: 'Berlaku', titik: 'bg-green-600', warna: 'text-green-800' },
+  DIUBAH: { teks: 'Diubah', titik: 'bg-amber-500', warna: 'text-amber-800' },
+  DICABUT: { teks: 'Dicabut', titik: 'bg-red-600', warna: 'text-red-800' },
+} as const;
+
+function StatusHukum({ status }: { status: keyof typeof STATUS }) {
+  const s = STATUS[status];
+  return <span className={`inline-flex items-center gap-1.5 font-medium ${s.warna}`}><span aria-hidden className={`size-2 rounded-full ${s.titik}`} />{s.teks}</span>;
+}
+
+/**
+ * Pemberitahuan untuk dokumen Diubah/Dicabut. Dokumen pengubah/pencabut dan
+ * alasannya hanya dikirim API bila pembaca boleh membukanya; selain itu hanya
+ * status dan tanggalnya yang disebut.
+ */
+function PemberitahuanStatus({ status, keterangan }: { status: 'DIUBAH' | 'DICABUT'; keterangan: Detail['keteranganStatus'] }) {
+  const dicabut = status === 'DICABUT';
+  return (
+    <div role="note" className={`mb-5 rounded-md border px-4 py-3 text-sm leading-relaxed ${dicabut ? 'border-red-200 bg-red-50 text-red-950' : 'border-amber-200 bg-amber-50 text-amber-950'}`}>
+      <p>
+        <strong className="font-semibold">{dicabut ? 'Dokumen ini telah dicabut' : 'Sebagian isi dokumen ini telah diubah'}</strong>
+        {keterangan && ` pada ${tanggal(keterangan.tanggal)}`}
+        {keterangan?.sumber && <> oleh <Link className="font-medium underline underline-offset-2" href={`/produk-hukum/${keterangan.sumber.slug}`}>{keterangan.sumber.judul}</Link></>}
+        .
+      </p>
+      {keterangan?.alasan && <p className="mt-1 whitespace-pre-line [overflow-wrap:anywhere]"><span className="font-semibold">Alasan:</span> {keterangan.alasan}</p>}
+    </div>
+  );
 }
 
 export default async function DetailProdukHukum({ params }: { params: Promise<{ slug: string }> }) {
@@ -19,21 +52,63 @@ export default async function DetailProdukHukum({ params }: { params: Promise<{ 
   let detail: Detail;
   try { detail = await ambilDariPeladen<Detail>(`/documents/${encodeURIComponent(slug)}`, { cache: 'no-store' }); }
   catch (error) { const notFound = error instanceof GalatApi && error.status === 404; return <div className="mx-auto max-w-4xl px-4 py-12"><StateMessage title={notFound ? 'Dokumen tidak ditemukan' : 'Dokumen belum dapat dimuat'} kind={notFound ? 'empty' : 'error'}>{notFound ? 'Dokumen yang Anda cari tidak ditemukan.' : 'Periksa koneksi, lalu coba lagi.'}</StateMessage><Link className="mt-5 inline-block font-semibold text-institusi-900 underline" href="/produk-hukum">Kembali ke Produk Hukum</Link></div>; }
-  const statusText: Record<string, string> = { BERLAKU: 'Berlaku', DIUBAH: 'Diubah', DICABUT: 'Dicabut' };
-  const warnaStatus = detail.statusHukum === 'BERLAKU' ? 'green' : detail.statusHukum === 'DIUBAH' ? 'amber' : 'red';
-  // Informasi yang ditampilkan sengaja dibatasi pada enam butir ini. Tingkat akses
-  // tidak ditampilkan kepada siapa pun di halaman publik.
-  const informasi: [string, React.ReactNode][] = [
-    ['Tipe', detail.tipe],
-    ['Judul', detail.judul],
+  const tahun = detail.tanggalPenetapan.slice(0, 4);
+  // Tingkat akses tidak ditampilkan kepada siapa pun di halaman publik.
+  const rincian: [string, React.ReactNode][] = [
+    ['Jenis', detail.tipe],
     ['Nomor', detail.nomor],
-    ['Tahun Penetapan', detail.tanggalPenetapan.slice(0, 4)],
-    ['Status', <Badge key="status" color={warnaStatus}>{statusText[detail.statusHukum]}</Badge>],
-    ['PIC', detail.pic],
+    ['Tahun', tahun],
+    ['Ditetapkan', tanggal(detail.tanggalPenetapan)],
+    ['Status', <StatusHukum key="status" status={detail.statusHukum} />],
+    ['Penanggung jawab', detail.pic],
   ];
-  return <article><HeroHalaman label={detail.tipe} judul={detail.judul}><Link href="/produk-hukum" className="text-sm font-semibold text-white underline decoration-white/50 underline-offset-4 hover:decoration-white">← Kembali ke Produk Hukum</Link></HeroHalaman><div className="mx-auto max-w-4xl px-4 py-3 sm:px-6 lg:px-8">
-    <dl className="grid gap-x-8 gap-y-5 border-b border-slate-200 py-6 sm:grid-cols-2">{informasi.map(([label, value]) => <div key={label} className={label === 'Judul' ? 'min-w-0 sm:col-span-2' : 'min-w-0'}><dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase">{label}</dt><dd className="mt-1 font-medium text-slate-950 [overflow-wrap:anywhere]">{value}</dd></div>)}</dl>
-    <section className="py-7"><h2 className="text-xl font-bold text-slate-950">Berkas dokumen</h2><Card className="mt-4"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="font-semibold text-slate-950">Dokumen Utama</h3><p className="mt-1 break-all text-sm text-slate-600">{detail.berkasUtama.namaAsli}</p></div><FileProduk slug={detail.slug} fileId={detail.berkasUtama.id} nama={detail.berkasUtama.namaAsli} /></div></Card>
-      {detail.lampiran.length > 0 && <div className="mt-6"><h3 className="font-semibold text-slate-900">Lampiran ({detail.lampiran.length})</h3><ul className="mt-3 grid gap-3">{detail.lampiran.map((file, index) => <li key={file.id}><Card><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-semibold text-slate-500">Lampiran {index + 1}</p><p className="mt-1 break-all font-medium text-slate-950">{file.namaAsli}</p></div><FileProduk slug={detail.slug} fileId={file.id} nama={file.namaAsli} /></div></Card></li>)}</ul></div>}
-    </section></div></article>;
+  const berkas = [
+    { id: detail.berkasUtama.id, nama: detail.berkasUtama.namaAsli, label: 'Dokumen utama' },
+    ...detail.lampiran.map((file, index) => ({ id: file.id, nama: file.namaAsli, label: `Lampiran ${String(index + 1)}` })),
+  ];
+
+  return (
+    <article className="bg-white">
+      <header className="border-b border-slate-200">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          <nav aria-label="Jejak halaman" className="text-sm text-slate-500">
+            <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <li><Link href="/" className="hover:text-slate-800 hover:underline">Beranda</Link></li>
+              <li aria-hidden>/</li>
+              <li><Link href="/produk-hukum" className="hover:text-slate-800 hover:underline">Produk Hukum</Link></li>
+              <li aria-hidden>/</li>
+              <li aria-current="page" className="text-slate-700">{detail.tipe}</li>
+            </ol>
+          </nav>
+          <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <span className="font-semibold text-institusi-700">{detail.tipe}</span>
+            <span aria-hidden className="h-4 w-px bg-slate-300" />
+            <StatusHukum status={detail.statusHukum} />
+          </div>
+          <h1 className="mt-2 max-w-4xl text-2xl leading-snug font-bold tracking-tight text-tinta [overflow-wrap:anywhere] sm:text-3xl">{detail.judul}</h1>
+          <p className="mt-2 text-slate-600">Nomor {detail.nomor} Tahun {tahun}</p>
+          {detail.deskripsi && <p className="mt-4 max-w-3xl leading-relaxed whitespace-pre-line text-slate-700 [overflow-wrap:anywhere]">{detail.deskripsi}</p>}
+        </div>
+      </header>
+
+      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_17rem] lg:gap-10 lg:px-8 lg:py-8">
+        <div className="min-w-0">
+          {detail.statusHukum !== 'BERLAKU' && <PemberitahuanStatus status={detail.statusHukum} keterangan={detail.keteranganStatus} />}
+          <PratinjauDokumen slug={detail.slug} berkas={berkas} />
+        </div>
+        <aside aria-labelledby="judul-rincian" className="min-w-0">
+          <h2 id="judul-rincian" className="text-sm font-semibold text-tinta">Rincian dokumen</h2>
+          <dl className="mt-3 divide-y divide-slate-200 border-y border-slate-200 text-sm">
+            {rincian.map(([label, value]) => (
+              <div key={label} className="grid grid-cols-[8.5rem_minmax(0,1fr)] gap-3 py-2.5 lg:grid-cols-1 lg:gap-0.5">
+                <dt className="text-slate-500">{label}</dt>
+                <dd className="text-slate-900 [overflow-wrap:anywhere]">{value}</dd>
+              </div>
+            ))}
+          </dl>
+          <Link href="/produk-hukum" className="mt-5 inline-block text-sm font-medium text-institusi-700 hover:underline">← Kembali ke daftar produk hukum</Link>
+        </aside>
+      </div>
+    </article>
+  );
 }

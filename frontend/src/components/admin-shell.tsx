@@ -13,7 +13,6 @@ const links = [
   { label: 'Buat Dokumen', href: '/admin/dokumen/baru', izin: 'documents.create' },
   { label: 'Antrean Verifikasi', href: '/admin/dokumen/verifikasi', izin: ['workflow.approve','workflow.return','documents.read_admin'] },
   { label: 'Pengguna', href: '/admin/pengguna', izin: 'users.read' },
-  { label: 'Akses Rahasia', href: '/admin/dokumen', izin: 'secret.manage' },
   { label: 'Unit Kerja', href: '/admin/unit-kerja', izin: 'units.manage' },
   { label: 'Jenis Dokumen', href: '/admin/jenis-dokumen', izin: 'master.manage' },
   { label: 'Kategori', href: '/admin/kategori', izin: 'master.manage' },

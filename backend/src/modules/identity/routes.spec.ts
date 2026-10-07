@@ -124,7 +124,7 @@ describe('AppModule HTTP security wiring (no database/network provider)', () => 
     const headers = { cookie: 'jdih_session=' + token };
     expect((await fetch(base + '/api/v1/admin/documents', { headers })).status).toBe(403);
     expect((await fetch(base + '/api/v1/admin/documents/verification-queue', { headers })).status).toBe(403);
-    expect((await fetch(base + '/api/v1/admin/active-users?q=ab', { headers })).status).toBe(403);
+    expect((await fetch(base + '/api/v1/admin/active-users?q=ab', { headers })).status).toBe(404);
     expect((await fetch(base + '/api/v1/admin/audit', { headers })).status).toBe(403);
     expect((await fetch(base + '/api/v1/public/master/constructor')).status).toBe(404);
   });

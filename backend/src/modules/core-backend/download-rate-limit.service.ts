@@ -9,6 +9,9 @@ interface CatatanBatas {
   jumlah: number;
 }
 
+/** Unduhan dan pratinjau dihitung terpisah agar pratinjau otomatis tidak menghabiskan kuota unduhan. */
+export type JenisAksesBerkas = 'unduh' | 'pratinjau';
+
 /** In-memory fixed-window limiter for authorized document/template downloads. */
 @Injectable()
 export class DownloadRateLimitService {
@@ -17,17 +20,22 @@ export class DownloadRateLimitService {
 
   constructor(private readonly config: ConfigService<KonfigurasiApp, true>) {}
 
-  consume(identitas: { penggunaId?: string; ip?: string }): void {
+  consume(identitas: { penggunaId?: string; ip?: string }, jenis: JenisAksesBerkas = 'unduh'): void {
     const terautentikasi = Boolean(identitas.penggunaId);
     const subjek = terautentikasi
       ? `pengguna:${identitas.penggunaId}`
       : `ip:${identitas.ip?.trim() ?? 'unknown'}`;
-    const kunci = `unduh:${subjek}`;
+    const kunci = `${jenis}:${subjek}`;
     const sekarang = Date.now();
     const batas = this.config.get('pembatasanLaju', { infer: true });
-    const jumlahMaksimum = terautentikasi
-      ? batas.batasUnduhPengguna
-      : batas.batasUnduhAnonim;
+    const jumlahMaksimum =
+      jenis === 'pratinjau'
+        ? terautentikasi
+          ? batas.batasPratinjauPengguna
+          : batas.batasPratinjauAnonim
+        : terautentikasi
+          ? batas.batasUnduhPengguna
+          : batas.batasUnduhAnonim;
     let catatan = this.catatan.get(kunci);
 
     if (!catatan || sekarang - catatan.mulai >= JENDELA_UNDUH_MS) {
@@ -36,7 +44,9 @@ export class DownloadRateLimitService {
     }
     if (catatan.jumlah >= jumlahMaksimum) {
       throw new HttpException(
-        'Batas unduhan tercapai. Coba lagi setelah satu jam.',
+        jenis === 'pratinjau'
+          ? 'Batas pratinjau tercapai. Coba lagi setelah satu jam.'
+          : 'Batas unduhan tercapai. Coba lagi setelah satu jam.',
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }

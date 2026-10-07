@@ -1,49 +1,422 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import type { PreviewDampakPublikasi, Relasi } from '@jdih/shared';
-import { ambilApi, ambilApiBerdaftar, GalatApi } from '@/lib/api-client';
-import { useSession, csrfHeaders } from '@/lib/sesi';
+import type { KeteranganStatus, PreviewDampakPublikasi } from '@jdih/shared';
+import { FileText, Paperclip, Pencil } from 'lucide-react';
+import { ambilApi, GalatApi } from '@/lib/api-client';
+import { csrfHeaders, useSession } from '@/lib/sesi';
+import {
+  LABEL_AKSES,
+  LABEL_STATUS_HUKUM,
+  LABEL_TAHAP,
+  TAHAP_BISA_DIUBAH,
+  ukuranBerkas,
+} from '@/lib/label-dokumen';
 import { AdminStatusHapus } from '@/components/admin-status-hapus';
-import { Button, Card, ConfirmAction, Field, PageTitle, SelectField, StateMessage, TextAreaField } from '@/components/ui';
+import {
+  Badge,
+  Button,
+  Card,
+  ConfirmAction,
+  PageTitle,
+  StateMessage,
+  TextAreaField,
+} from '@/components/ui';
 
-type Document = { id:string; kodeDokumen:string; slug:string; jenisDokumenId:string; statusHukum:string; currentPublishedVersionId:string|null; versionId:string; nomorVersi:number; statusWorkflow:string; tingkatAkses:string; nomor:string|null; tahun:number|null; judul:string; pic:string|null; unitKerjaId:string|null; tanggalPenetapan:string|null };
-type Detail = { document:Document; versions:Document[] };
-export function AdminDocumentDetail({ id, versionId: requestedVersionId }: { id:string; versionId?:string }) {
-  const { pengguna, csrfToken }=useSession(); const [detail,setDetail]=useState<Detail>(); const [error,setError]=useState(''); const [refresh,setRefresh]=useState(0); const [preview,setPreview]=useState<PreviewDampakPublikasi>(); const [note,setNote]=useState(''); const [target,setTarget]=useState(''); const [relationType,setRelationType]=useState('MENGUBAH'); const [grants,setGrants]=useState<Record<string,unknown>[]>([]); const [userId,setUserId]=useState(''); const [userQuery,setUserQuery]=useState(''); const [activeUsers,setActiveUsers]=useState<{id:string;nama:string;email:string;unitKerja:string|null}[]>([]); const [grantReason,setGrantReason]=useState(''); const [revokeReason,setRevokeReason]=useState(''); const [expires,setExpires]=useState(''); const [file,setFile]=useState<File>(); const [fileKind,setFileKind]=useState<'UTAMA'|'LAMPIRAN'>('UTAMA'); const [fileTitle,setFileTitle]=useState(''); const [editing,setEditing]=useState(false); const [newRevision,setNewRevision]=useState(false); const [form,setForm]=useState({judul:'',nomor:'',tahun:'',pic:'',tanggalPenetapan:'',tingkatAkses:'publik' as 'publik'|'internal'|'rahasia',unitKerjaId:''});
-  useEffect(()=>{void ambilApi<Detail>(`/admin/documents/${id}`,{kueri:{versionId:requestedVersionId}}).then(setDetail).catch(e=>setError(e instanceof GalatApi?e.message:'Detail dokumen tidak tersedia.'));},[id,requestedVersionId,refresh]);
-  const document=detail?.document; const versionId=document?.versionId;
-  async function post(url:string,body:unknown={}){await ambilApi(url,{method:'POST',headers:csrfHeaders(csrfToken),muatan:body});setRefresh(x=>x+1);}
-  async function upload(){if(!versionId||!file)throw new Error('Pilih file PDF.');const data=new FormData();data.set('file',file);data.set('jenisBerkas',fileKind);if(fileTitle.trim())data.set('judul',fileTitle.trim());data.set('urutan','0');await ambilApi(`/admin/documents/versions/${versionId}/files`,{method:'POST',headers:csrfHeaders(csrfToken),muatan:data});setFile(undefined);setFileTitle('');setRefresh(x=>x+1);}
-  async function loadPreview(){if(!versionId)return;setPreview(await ambilApi<PreviewDampakPublikasi>(`/admin/documents/versions/${versionId}/legal-impact`));}
-  async function publish(){if(!versionId||!preview)throw new Error('Tinjau dampak hukum terlebih dahulu.');await post(`/admin/documents/versions/${versionId}/publish`,{konfirmasi:{tokenKonfirmasi:preview.tokenKonfirmasi,disetujui:true,dampak:preview.dampak}});setPreview(undefined);}
-  function editCurrent(revision:boolean){setNewRevision(revision);setForm({judul:document?.judul??'',nomor:document?.nomor??'',tahun:document?.tahun==null?'':String(document.tahun),pic:document?.pic??'',tanggalPenetapan:document?.tanggalPenetapan??'',tingkatAkses:(document?.tingkatAkses as typeof form.tingkatAkses)??'publik',unitKerjaId:document?.unitKerjaId??''});setEditing(true);}
-  async function saveVersion(){if(!document) return;const body={judul:form.judul,nomor:form.nomor||null,tahun:form.tahun?Number(form.tahun):null,pic:form.pic||null,tanggalPenetapan:form.tanggalPenetapan||null,tingkatAkses:form.tingkatAkses,unitKerjaId:form.unitKerjaId||null};if(newRevision)await post(`/admin/documents/${id}/versions`,body);else if(versionId)await ambilApi(`/admin/documents/versions/${versionId}`,{method:'PATCH',headers:csrfHeaders(csrfToken),muatan:body}).then(()=>setRefresh(x=>x+1));setEditing(false);}
-  async function loadGrants(){setGrants(await ambilApi<Record<string,unknown>[]>(`/admin/documents/${id}/secret-grants`));}
-  useEffect(()=>{if(userQuery.trim().length<2)return;let current=true;const timer=setTimeout(()=>{void ambilApiBerdaftar<{id:string;nama:string;email:string;unitKerja:string|null}>('/admin/active-users',{kueri:{q:userQuery.trim(),halaman:1,perHalaman:20}}).then(r=>{if(current)setActiveUsers([...r.data]);}).catch(()=>{if(current)setActiveUsers([]);});},250);return()=>{current=false;clearTimeout(timer);};},[userQuery]);
-  useEffect(()=>{if(document?.tingkatAkses!=='rahasia'||!pengguna?.izin.includes('secret.manage'))return;let current=true;void ambilApi<Record<string,unknown>[]>(`/admin/documents/${id}/secret-grants`).then((result)=>{if(current)setGrants(result);}).catch(()=>{});return()=>{current=false;};},[document?.tingkatAkses,pengguna?.izin,id]);
-  async function grant(){await ambilApi(`/admin/documents/${id}/secret-grants`,{method:'POST',headers:csrfHeaders(csrfToken),muatan:{penggunaId:userId,alasan:grantReason,expiresAt:expires?new Date(expires).toISOString():undefined}});setUserId('');setGrantReason('');await loadGrants();}
-  if(error)return <StateMessage title="Detail dokumen tidak dapat dibuka" kind="error">{error}<p className="mt-2">Daftar administrasi hanya dapat menemukan dokumen terbit. Untuk draf, API saat ini memerlukan ID yang diketahui sebelumnya.</p></StateMessage>;
-  if(!document)return <StateMessage title="Memuat dokumen…"/>;
-  const versionStatus=document.statusWorkflow; const izin=pengguna?.izin??[];
-  return <div className="mx-auto max-w-6xl"><PageTitle title={document.judul} description={`${document.kodeDokumen} · versi ${document.nomorVersi} · ${document.tingkatAkses.toUpperCase()}`} action={<Link className="underline" href="/admin/dokumen">Kembali ke dokumen</Link>} />
-    <AdminStatusHapus key={document.statusHukum} id={id} judul={document.judul} statusHukum={document.statusHukum} onBerubah={()=>setRefresh(x=>x+1)} />
-    <div className="grid gap-5 lg:grid-cols-3"><Card className="lg:col-span-2"><h2 className="text-lg font-bold">Metadata dan status</h2><dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2"><div><dt className="text-slate-500">Workflow</dt><dd className="font-semibold">{versionStatus}</dd></div><div><dt className="text-slate-500">Status hukum</dt><dd>{document.statusHukum}</dd></div><div><dt className="text-slate-500">Nomor / Tahun</dt><dd>{document.nomor??'—'} / {document.tahun??'—'}</dd></div><div><dt className="text-slate-500">PIC</dt><dd>{document.pic??'—'}</dd></div><div><dt className="text-slate-500">Tanggal penetapan</dt><dd>{document.tanggalPenetapan??'—'}</dd></div><div><dt className="text-slate-500">Current published version</dt><dd>{document.currentPublishedVersionId??'Kosong'}</dd></div></dl><div className="mt-5 flex flex-wrap gap-3">{['DRAF','REVISI'].includes(versionStatus)&&izin.includes('workflow.submit')&&<ConfirmAction label="Ajukan verifikasi" title="Ajukan versi ini?" description="Versi akan masuk ke proses verifikasi. Pastikan metadata dan file UTAMA telah lengkap." onConfirm={()=>post(`/admin/documents/versions/${document.versionId}/submit`,{catatan:note||undefined})}/ >}{versionStatus==='DIAJUKAN'&&izin.includes('workflow.approve')&&<><ConfirmAction label="Setujui" title="Setujui versi ini?" description="Backend tetap memeriksa bahwa penyetuju bukan author versi." onConfirm={()=>post(`/admin/documents/versions/${document.versionId}/approve`,{catatan:note||undefined})}/><ConfirmAction label="Kembalikan" tone="secondary" title="Kembalikan untuk revisi?" description="Catatan revisi akan dicatat." disabled={!note.trim()} onConfirm={()=>post(`/admin/documents/versions/${document.versionId}/return`,{catatan:note})}/></>}{versionStatus==='DISETUJUI'&&izin.includes('workflow.publish')&&<Button onClick={()=>void loadPreview()}>Tinjau dampak hukum</Button>}{document.currentPublishedVersionId&&izin.includes('workflow.withdraw')&&<ConfirmAction tone="danger" label="Tarik dokumen" title="Tarik dokumen saat ini?" description="Tindakan ini mengosongkan current published pointer; versi lama tidak otomatis aktif kembali." disabled={!note.trim()} onConfirm={()=>post(`/admin/documents/${id}/withdraw`,{alasan:note})}/>}</div>{(['DRAF','REVISI','DIAJUKAN'].includes(versionStatus)||(Boolean(document.currentPublishedVersionId)&&izin.includes('workflow.withdraw')))&&<TextAreaField className="mt-4" label="Catatan workflow / alasan penarikan" id="workflow-note" value={note} onChange={e=>setNote(e.target.value)} maxLength={1000}/>}</Card>
-      <Card><h2 className="font-bold">Versi dokumen</h2><ul className="mt-3 grid gap-2 text-sm">{[document,...(detail?.versions??[])].map((v)=><li key={v.versionId} className="rounded border p-3">Versi {v.nomorVersi} · {v.statusWorkflow}</li>)}</ul></Card>
+type Document = {
+  id: string;
+  kodeDokumen: string;
+  slug: string;
+  jenisDokumenId: string;
+  statusHukum: string;
+  currentPublishedVersionId: string | null;
+  versionId: string;
+  nomorVersi: number;
+  statusWorkflow: string;
+  tingkatAkses: string;
+  nomor: string | null;
+  tahun: number | null;
+  judul: string;
+  deskripsi: string | null;
+  pic: string | null;
+  unitKerjaId: string | null;
+  tanggalPenetapan: string | null;
+};
+type Detail = {
+  document: Document;
+  versions: Document[];
+  keteranganStatus: KeteranganStatus | null;
+  keteranganPublik: KeteranganStatus | null;
+};
+type Berkas = {
+  id: string;
+  jenisBerkas: 'UTAMA' | 'LAMPIRAN';
+  judul: string | null;
+  namaAsli: string;
+  sizeBytes: string;
+};
+
+const tahapDari = (kode: string) => LABEL_TAHAP[kode] ?? { teks: kode, warna: 'slate' as const };
+
+/**
+ * Detail dokumen di panel admin: ringkasan, langkah berikutnya sesuai tahap,
+ * berkas, dan riwayat versi. Mengubah isi draf dilakukan di halaman "Ubah draf".
+ */
+export function AdminDocumentDetail({
+  id,
+  versionId: requestedVersionId,
+}: {
+  id: string;
+  versionId?: string;
+}) {
+  const { pengguna, csrfToken } = useSession();
+  const router = useRouter();
+  const [detail, setDetail] = useState<Detail>();
+  const [berkas, setBerkas] = useState<Berkas[]>([]);
+  const [error, setError] = useState('');
+  const [refresh, setRefresh] = useState(0);
+  const [preview, setPreview] = useState<PreviewDampakPublikasi>();
+  const [judulTarget, setJudulTarget] = useState<Record<string, string>>({});
+  const [note, setNote] = useState('');
+
+  useEffect(() => {
+    void ambilApi<Detail>(`/admin/documents/${id}`, { kueri: { versionId: requestedVersionId } })
+      .then((d) => {
+        setDetail(d);
+        return ambilApi<Berkas[]>(`/admin/documents/versions/${d.document.versionId}/files`).then(
+          setBerkas,
+        );
+      })
+      .catch((e: unknown) =>
+        setError(e instanceof GalatApi ? e.message : 'Detail dokumen tidak tersedia.'),
+      );
+  }, [id, requestedVersionId, refresh]);
+
+  const document = detail?.document;
+  const versionId = document?.versionId;
+
+  async function post(url: string, body: unknown = {}) {
+    await ambilApi(url, { method: 'POST', headers: csrfHeaders(csrfToken), muatan: body });
+    setNote('');
+    setRefresh((x) => x + 1);
+  }
+
+  async function loadPreview() {
+    if (!versionId) return;
+    const hasil = await ambilApi<PreviewDampakPublikasi>(
+      `/admin/documents/versions/${versionId}/legal-impact`,
+    );
+    setPreview(hasil);
+    const judul: Record<string, string> = {};
+    await Promise.all(
+      hasil.dampak.map((d) =>
+        ambilApi<{ document: { judul: string } }>(`/admin/documents/${d.targetDocumentId}`)
+          .then((r) => {
+            judul[d.targetDocumentId] = r.document.judul;
+          })
+          .catch(() => undefined),
+      ),
+    );
+    setJudulTarget(judul);
+  }
+
+  async function publish() {
+    if (!versionId || !preview) throw new Error('Tinjau dulu sebelum menerbitkan.');
+    await post(`/admin/documents/versions/${versionId}/publish`, {
+      konfirmasi: {
+        tokenKonfirmasi: preview.tokenKonfirmasi,
+        disetujui: true,
+        dampak: preview.dampak,
+      },
+    });
+    setPreview(undefined);
+  }
+
+  async function buatRevisi() {
+    if (!document) return;
+    await ambilApi(`/admin/documents/${id}/versions`, {
+      method: 'POST',
+      headers: csrfHeaders(csrfToken),
+      muatan: {
+        judul: document.judul,
+        deskripsi: document.deskripsi,
+        nomor: document.nomor,
+        tahun: document.tahun,
+        pic: document.pic,
+        tanggalPenetapan: document.tanggalPenetapan?.slice(0, 10) ?? null,
+        tingkatAkses: document.tingkatAkses,
+        unitKerjaId: document.unitKerjaId,
+      },
+    });
+    router.push(`/admin/dokumen/${id}/ubah`);
+  }
+
+  if (error)
+    return (
+      <StateMessage title="Detail dokumen tidak dapat dibuka" kind="error">
+        {error}
+      </StateMessage>
+    );
+  if (!document) return <StateMessage title="Memuat dokumen…" />;
+
+  const tahap = document.statusWorkflow;
+  const izin = pengguna?.izin ?? [];
+  const label = tahapDari(tahap);
+  const bisaDiubah = TAHAP_BISA_DIUBAH.includes(tahap);
+  const versiPublik = [document, ...detail.versions].find(
+    (v) => v.versionId === document.currentPublishedVersionId,
+  );
+  const butuhCatatan =
+    (tahap === 'DIAJUKAN' && izin.includes('workflow.return')) ||
+    (Boolean(document.currentPublishedVersionId) && izin.includes('workflow.withdraw'));
+
+  const fileUtama = berkas.find((b) => b.jenisBerkas === 'UTAMA');
+  const lampiran = berkas.filter((b) => b.jenisBerkas === 'LAMPIRAN');
+
+  return (
+    <div className="mx-auto max-w-6xl">
+      <PageTitle
+        title={document.judul}
+        description={`${document.kodeDokumen} · Versi ${document.nomorVersi}`}
+        action={
+          <Link className="underline" href="/admin/dokumen">
+            Kembali ke daftar dokumen
+          </Link>
+        }
+      />
+
+      <div className="grid gap-5 lg:grid-cols-3">
+        <div className="grid gap-5 lg:col-span-2">
+          <Card>
+            <h2 className="text-lg font-bold">Langkah berikutnya</h2>
+            <div className="mt-2 flex items-center gap-2 text-sm">
+              Tahap saat ini: <Badge color={label.warna}>{label.teks}</Badge>
+            </div>
+            <p className="mt-3 text-sm text-slate-700">
+              {bisaDiubah &&
+                (tahap === 'REVISI'
+                  ? 'Dokumen dikembalikan untuk diperbaiki. Ubah draf sesuai catatan, lalu ajukan lagi.'
+                  : 'Lengkapi data dan unggah dokumen utama, lalu ajukan untuk diverifikasi.')}
+              {tahap === 'DIAJUKAN' &&
+                'Periksa ulang data dan berkas. Setujui bila sudah benar, atau kembalikan dengan catatan perbaikan.'}
+              {tahap === 'DISETUJUI' &&
+                'Dokumen sudah disetujui. Tinjau akibatnya pada dokumen lain, lalu terbitkan agar tampil di portal.'}
+              {tahap === 'TERBIT' &&
+                'Dokumen sudah tampil di portal. Untuk mengubah isinya, buat revisi; versi sekarang tetap tampil sampai revisi diterbitkan.'}
+              {tahap === 'DITARIK' && 'Dokumen sudah tidak tampil di portal.'}
+            </p>
+
+            <div className="mt-5 flex flex-wrap items-start gap-3">
+              {bisaDiubah &&
+                (izin.includes('documents.edit') || izin.includes('documents.upload')) && (
+                  <Link
+                    href={`/admin/dokumen/${id}/ubah`}
+                    className="tekan inline-flex min-h-10 items-center gap-2 rounded-md border border-slate-300 bg-white px-4 font-semibold text-tinta hover:bg-slate-50"
+                  >
+                    <Pencil aria-hidden className="size-4" /> Ubah draf
+                  </Link>
+                )}
+              {bisaDiubah && izin.includes('workflow.submit') && (
+                <ConfirmAction
+                  label="Ajukan untuk diverifikasi"
+                  title="Ajukan dokumen ini?"
+                  description={
+                    fileUtama
+                      ? 'Dokumen masuk antrean verifikasi dan tidak bisa diubah sampai diverifikasi atau dikembalikan.'
+                      : 'Dokumen utama belum diunggah. Dokumen tetap bisa diajukan, tetapi tidak bisa diterbitkan sebelum ada dokumen utama.'
+                  }
+                  onConfirm={() =>
+                    post(`/admin/documents/versions/${document.versionId}/submit`, {})
+                  }
+                />
+              )}
+              {tahap === 'DIAJUKAN' && izin.includes('workflow.approve') && (
+                <ConfirmAction
+                  label="Setujui"
+                  title="Setujui dokumen ini?"
+                  description="Pastikan data dan berkas sudah benar. Setelah disetujui, dokumen siap diterbitkan."
+                  onConfirm={() =>
+                    post(`/admin/documents/versions/${document.versionId}/approve`, {})
+                  }
+                />
+              )}
+              {tahap === 'DIAJUKAN' && izin.includes('workflow.return') && (
+                <ConfirmAction
+                  label="Kembalikan untuk diperbaiki"
+                  tone="secondary"
+                  title="Kembalikan dokumen ini?"
+                  description="Dokumen kembali menjadi draf dengan catatan perbaikan Anda."
+                  disabled={!note.trim()}
+                  onConfirm={() =>
+                    post(`/admin/documents/versions/${document.versionId}/return`, {
+                      catatan: note,
+                    })
+                  }
+                />
+              )}
+              {tahap === 'DISETUJUI' && izin.includes('workflow.publish') && (
+                <Button onClick={() => void loadPreview()}>Tinjau lalu terbitkan</Button>
+              )}
+              {['TERBIT', 'DITARIK'].includes(tahap) && izin.includes('documents.revise') && (
+                <ConfirmAction
+                  label="Buat revisi"
+                  title="Buat revisi dokumen ini?"
+                  description="Revisi baru dibuat sebagai draf dengan data yang sama. Dokumen utama perlu diunggah ulang. Versi yang tampil sekarang tetap tampil sampai revisi diterbitkan."
+                  onConfirm={buatRevisi}
+                />
+              )}
+              {document.currentPublishedVersionId && izin.includes('workflow.withdraw') && (
+                <ConfirmAction
+                  tone="danger"
+                  label="Tarik dari portal"
+                  title="Tarik dokumen dari portal?"
+                  description="Dokumen tidak lagi tampil di portal publik. Isi alasan penarikan di kolom catatan."
+                  disabled={!note.trim()}
+                  onConfirm={() => post(`/admin/documents/${id}/withdraw`, { alasan: note })}
+                />
+              )}
+            </div>
+            {butuhCatatan && (
+              <TextAreaField
+                className="mt-4"
+                label="Catatan (wajib untuk mengembalikan atau menarik dokumen)"
+                id="workflow-note"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                maxLength={1000}
+              />
+            )}
+          </Card>
+
+          {preview && (
+            <Card className="border-amber-300">
+              <h2 className="text-lg font-bold">Sebelum terbit</h2>
+              {preview.dampak.length ? (
+                <>
+                  <p className="mt-1 text-sm">
+                    Saat terbit, dokumen lain berikut ikut berubah statusnya:
+                  </p>
+                  <ul className="mt-3 list-disc pl-5 text-sm">
+                    {preview.dampak.map((d) => (
+                      <li key={d.targetDocumentId}>
+                        <strong>
+                          {judulTarget[d.targetDocumentId] ?? `Dokumen #${d.targetDocumentId}`}
+                        </strong>
+                        : {LABEL_STATUS_HUKUM[d.statusSaatIni] ?? d.statusSaatIni} menjadi{' '}
+                        <strong>{LABEL_STATUS_HUKUM[d.statusUsulan] ?? d.statusUsulan}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <p className="mt-1 text-sm">Tidak ada dokumen lain yang ikut berubah status.</p>
+              )}
+              <div className="mt-4 flex flex-wrap gap-3">
+                <ConfirmAction
+                  label="Terbitkan sekarang"
+                  title="Terbitkan dokumen ini?"
+                  description="Dokumen akan tampil di portal sesuai aksesnya dan menjadi versi yang berlaku."
+                  onConfirm={publish}
+                />
+                <Button tone="secondary" onClick={() => setPreview(undefined)}>
+                  Batal
+                </Button>
+              </div>
+            </Card>
+          )}
+
+          <Card>
+            <h2 className="text-lg font-bold">Berkas</h2>
+            {fileUtama || lampiran.length ? (
+              <ul className="mt-3 grid gap-2 text-sm">
+                {[...(fileUtama ? [fileUtama] : []), ...lampiran].map((b) => (
+                  <li
+                    key={b.id}
+                    className="flex items-center gap-3 rounded-lg border border-slate-200 p-3"
+                  >
+                    {b.jenisBerkas === 'UTAMA' ? (
+                      <FileText aria-hidden className="size-5 shrink-0 text-slate-500" />
+                    ) : (
+                      <Paperclip aria-hidden className="size-5 shrink-0 text-slate-500" />
+                    )}
+                    <span className="min-w-0">
+                      <span className="block font-medium [overflow-wrap:anywhere]">
+                        {b.jenisBerkas === 'UTAMA' ? 'Dokumen utama' : (b.judul ?? 'Lampiran')}
+                      </span>
+                      <span className="block text-xs text-slate-500">
+                        {b.namaAsli} · {ukuranBerkas(b.sizeBytes)}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm text-amber-800">
+                Belum ada berkas.{bisaDiubah ? ' Unggah dokumen utama lewat "Ubah draf".' : ''}
+              </p>
+            )}
+          </Card>
+        </div>
+
+        <div className="grid content-start gap-5">
+          <Card>
+            <h2 className="text-lg font-bold">Ringkasan</h2>
+            <dl className="mt-3 grid gap-3 text-sm">
+              {[
+                ['Deskripsi singkat', document.deskripsi ?? '—'],
+                ['Nomor', document.nomor ?? '—'],
+                ['Tahun', document.tahun ?? '—'],
+                ['PIC', document.pic ?? '—'],
+                ['Tanggal penetapan', document.tanggalPenetapan?.slice(0, 10) ?? '—'],
+                ['Akses', LABEL_AKSES[document.tingkatAkses] ?? document.tingkatAkses],
+                ['Status hukum', LABEL_STATUS_HUKUM[document.statusHukum] ?? document.statusHukum],
+                ['Tampil di portal', versiPublik ? `Ya, versi ${versiPublik.nomorVersi}` : 'Belum'],
+              ].map(([k, v]) => (
+                <div key={k}>
+                  <dt className="text-slate-500">{k}</dt>
+                  <dd className="font-medium">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </Card>
+          <Card>
+            <h2 className="text-lg font-bold">Riwayat versi</h2>
+            <ul className="mt-3 grid gap-2 text-sm">
+              {[document, ...detail.versions]
+                .sort((a, b) => b.nomorVersi - a.nomorVersi)
+                .map((v) => {
+                  const t = tahapDari(v.statusWorkflow);
+                  return (
+                    <li key={v.versionId}>
+                      <Link
+                        href={`/admin/dokumen/${id}?versionId=${v.versionId}`}
+                        className={`flex items-center justify-between gap-2 rounded-lg border p-3 hover:bg-slate-50 ${v.versionId === document.versionId ? 'border-institusi-300 bg-institusi-50' : 'border-slate-200'}`}
+                      >
+                        <span className="font-medium">Versi {v.nomorVersi}</span>
+                        <Badge color={t.warna}>{t.teks}</Badge>
+                      </Link>
+                    </li>
+                  );
+                })}
+            </ul>
+          </Card>
+        </div>
+      </div>
+      <div className="mt-5">
+        <AdminStatusHapus
+          key={document.statusHukum}
+          id={id}
+          judul={document.judul}
+          statusHukum={document.statusHukum}
+          keterangan={detail.keteranganStatus}
+          keteranganPublik={
+            versiPublik?.tingkatAkses === 'publik' ? detail.keteranganPublik : undefined
+          }
+          onBerubah={() => setRefresh((x) => x + 1)}
+        />
+      </div>
     </div>
-    {izin.includes('documents.edit')&&izin.includes('documents.revise')&&<Card className="mt-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-bold">Metadata versi</h2><p className="text-sm text-slate-600">Edit tersedia untuk draf/revisi. Revisi baru mempertahankan riwayat versi.</p></div><div className="flex gap-2">{['DRAF','REVISI'].includes(versionStatus)&&<Button tone="secondary" onClick={()=>editCurrent(false)}>Ubah draf</Button>}<Button onClick={()=>editCurrent(true)}>Buat revisi</Button></div></div>{editing&&<div className="mt-5 grid gap-3 sm:grid-cols-2"><Field className="sm:col-span-2" label="Judul" id="edit-title" value={form.judul} onChange={e=>setForm({...form,judul:e.target.value})}/><Field label="Nomor" id="edit-number" value={form.nomor} onChange={e=>setForm({...form,nomor:e.target.value})}/><Field label="Tahun" id="edit-year" inputMode="numeric" value={form.tahun} onChange={e=>setForm({...form,tahun:e.target.value})}/><Field label="PIC" id="edit-pic" value={form.pic} onChange={e=>setForm({...form,pic:e.target.value})}/><Field label="Tanggal penetapan" id="edit-date" type="date" value={form.tanggalPenetapan} onChange={e=>setForm({...form,tanggalPenetapan:e.target.value})}/><SelectField label="Tingkat akses" id="edit-access" value={form.tingkatAkses} onChange={e=>setForm({...form,tingkatAkses:e.target.value as typeof form.tingkatAkses})}><option value="publik">Publik</option><option value="internal">Internal</option><option value="rahasia">Rahasia</option></SelectField><Field label="ID unit kerja (opsional)" id="edit-unit" value={form.unitKerjaId} onChange={e=>setForm({...form,unitKerjaId:e.target.value})}/><p className="text-xs text-slate-500 sm:col-span-2">Kategori dan tag yang tidak ditampilkan oleh endpoint detail perlu ditinjau ulang untuk revisi baru.</p><ConfirmAction label={newRevision?'Buat revisi':'Simpan metadata'} title={newRevision?'Buat revisi dokumen?':'Simpan metadata draf?'} description="Periksa metadata sebelum menyimpan perubahan." disabled={!form.judul.trim()} onConfirm={saveVersion}/><Button tone="secondary" onClick={()=>setEditing(false)}>Batal</Button></div>}</Card>}
-    {preview&&<Card className="mt-5 border-amber-300"><h2 className="font-bold">Tinjau dampak hukum</h2><p className="mt-1 text-sm">Periksa perubahan status yang akan diterapkan saat terbit. Konfirmasi manusia diperlukan.</p>{preview.dampak.length?<ul className="mt-3 list-disc pl-5 text-sm">{preview.dampak.map((d,i)=><li key={i}>Dokumen {d.targetDocumentId}: {d.statusSaatIni} → {d.statusUsulan} ({d.jenisRelasi})</li>)}</ul>:<p className="mt-3 text-sm">Tidak ada dampak relasi otomatis. Terbit tetap memerlukan konfirmasi.</p>}<div className="mt-4 flex gap-3"><ConfirmAction label="Konfirmasi dan terbitkan" title="Terbitkan versi ini?" description={preview.dampak.length?`Konfirmasi dampak: ${preview.dampak.map(d=>`dokumen ${d.targetDocumentId}, ${d.statusSaatIni} menjadi ${d.statusUsulan}`).join('; ')}. Setelah diterbitkan, versi ini menjadi versi publik terkini.`:'Tidak ada dampak status hukum dari relasi; versi ini tetap akan menjadi versi publik terkini.'} onConfirm={publish}/><Button tone="secondary" onClick={()=>setPreview(undefined)}>Batal</Button></div></Card>}
-    {['DRAF','REVISI'].includes(versionStatus)&&izin.includes('documents.upload')&&<Card className="mt-5"><h2 className="font-bold">Unggah file versi</h2><p className="mt-1 text-sm text-slate-600">PDF saja. File UTAMA wajib tersedia sebagai metadata sebelum publish; backend memeriksa storage pada unggah.</p><div className="mt-4 grid gap-3 sm:grid-cols-2"><SelectField label="Jenis berkas" id="kind" value={fileKind} onChange={e=>setFileKind(e.target.value as typeof fileKind)}><option value="UTAMA">UTAMA</option><option value="LAMPIRAN">LAMPIRAN</option></SelectField><Field label="Judul lampiran (opsional)" id="fileTitle" value={fileTitle} onChange={e=>setFileTitle(e.target.value)}/><Field className="sm:col-span-2" label="File PDF" id="file" type="file" accept="application/pdf,.pdf" onChange={e=>setFile(e.target.files?.[0])}/><ConfirmAction label="Unggah file" title="Unggah berkas versi ini?" description={`Berkas ${file?.name??''} akan diunggah sebagai ${fileKind}. Pastikan dokumen dan klasifikasinya benar.`} disabled={!file} onConfirm={upload}/></div></Card>}
-    {versionId&&['DRAF','REVISI'].includes(versionStatus)&&izin.includes('legal.manage_relations')&&<RelationPanel versionId={versionId} target={target} setTarget={setTarget} relationType={relationType} setRelationType={setRelationType} csrfToken={csrfToken} refresh={refresh} onChange={()=>setRefresh(x=>x+1)} />}
-    {document.tingkatAkses==='rahasia'&&izin.includes('secret.manage')&&<Card className="mt-5"><h2 className="font-bold">Grant dokumen Rahasia</h2><p className="text-sm text-slate-600">Cari pengguna Dosen/Staf aktif berdasarkan nama atau email.</p><div className="mt-4 grid gap-3 sm:grid-cols-2"><Field className="sm:col-span-2" label="Cari pengguna aktif" id="grant-user-search" value={userQuery} onChange={e=>{setUserQuery(e.target.value);setUserId('');}} placeholder="Ketik minimal 2 karakter"/><SelectField className="sm:col-span-2" label="Pengguna penerima grant" id="grant-user" value={userId} onChange={e=>setUserId(e.target.value)}><option value="">Pilih pengguna</option>{userQuery.trim().length>=2&&activeUsers.map(u=><option key={u.id} value={u.id}>{u.nama} · {u.email}{u.unitKerja?` · ${u.unitKerja}`:''}</option>)}</SelectField><Field label="Kedaluwarsa (opsional)" id="grant-expiry" type="datetime-local" value={expires} onChange={e=>setExpires(e.target.value)}/><TextAreaField label="Alasan grant" id="grant-reason" value={grantReason} onChange={e=>setGrantReason(e.target.value)}/><ConfirmAction label="Buat grant" title="Beri akses dokumen Rahasia?" description="Pastikan pengguna, dasar kebutuhan, dan masa berlaku sudah benar." disabled={!userId||!grantReason.trim()} onConfirm={grant}/></div><ul className="mt-5 grid gap-2 text-xs">{grants.map((g,i)=><li className="grid gap-2 rounded border p-3 sm:grid-cols-[1fr_auto]" key={String(g.id??i)}><span>Pengguna {String(g.penggunaId)} · {g.revokedAt?'Dicabut':g.expiresAt?`Kedaluwarsa ${String(g.expiresAt)}`:'Belum dicabut'} · {String(g.grantReason)}</span>{!g.revokedAt&&<ConfirmAction label="Cabut grant" tone="danger" title="Cabut grant Rahasia?" description="Pencabutan dicatat dan akses pengguna dihentikan." disabled={!revokeReason.trim()} onConfirm={async()=>{await ambilApi(`/admin/documents/${id}/secret-grants/${String(g.id)}/revoke`,{method:'POST',headers:csrfHeaders(csrfToken),muatan:{alasan:revokeReason}});setRevokeReason('');await loadGrants();}}/>}</li>)}</ul>{grants.some(g=>!g.revokedAt)&&<TextAreaField className="mt-4" label="Alasan pencabutan grant" id="revoke-reason" value={revokeReason} onChange={e=>setRevokeReason(e.target.value)}/>}</Card>}
-  </div>;
-}
-
-function RelationPanel({versionId,target,setTarget,relationType,setRelationType,csrfToken,refresh,onChange}:{versionId:string;target:string;setTarget:(s:string)=>void;relationType:string;setRelationType:(s:string)=>void;csrfToken:string|null;refresh:number;onChange:()=>void}){
-  const [rows,setRows]=useState<Relasi[]>([]); const [error,setError]=useState('');
-  useEffect(()=>{void ambilApi<Relasi[]>(`/admin/versions/${versionId}/relations`).then(setRows).catch(e=>setError(e instanceof GalatApi?e.message:'Relasi belum dapat dimuat.'));},[versionId,refresh]);
-  async function remove(id:string){await ambilApi(`/admin/versions/${versionId}/relations/${id}`,{method:'DELETE',headers:csrfHeaders(csrfToken)});onChange();}
-  async function create(){await ambilApi(`/admin/versions/${versionId}/relations`,{method:'POST',headers:csrfHeaders(csrfToken),muatan:{targetDocumentId:target,jenisRelasi:relationType}});setTarget('');onChange();}
-  return <Card className="mt-5"><h2 className="font-bold">Relasi hukum</h2><p className="mt-1 text-sm text-slate-600">Relasi menghubungkan versi ini dengan ID dokumen target; dampak status diperiksa dan dikonfirmasi manusia saat publish.</p>{error&&<p role="alert" className="text-sm text-red-800">{error}</p>}<ul className="my-3 grid gap-2 text-sm">{rows.map(r=><li className="flex flex-wrap items-center justify-between gap-2 rounded border p-3" key={r.id}>Dokumen {r.targetDocumentId} · {r.jenisRelasi}<ConfirmAction label="Hapus" tone="danger" title="Hapus relasi hukum?" description="Relasi ini akan dihapus dari versi draf." onConfirm={()=>remove(r.id)}/></li>)}</ul><div className="grid gap-3 sm:grid-cols-3"><Field label="ID dokumen target" id="relation-target" value={target} onChange={e=>setTarget(e.target.value)}/><SelectField label="Jenis relasi" id="relation-type" value={relationType} onChange={e=>setRelationType(e.target.value)}>{['MENGUBAH','MENCABUT','DASAR_HUKUM','TERKAIT'].map(v=><option key={v}>{v}</option>)}</SelectField><ConfirmAction label="Tambah relasi" title="Simpan relasi hukum?" description="Pastikan ID dokumen target dan jenis relasi sudah benar." disabled={!target.trim()} onConfirm={create}/></div></Card>;
+  );
 }

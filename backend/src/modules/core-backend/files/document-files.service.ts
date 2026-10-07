@@ -1,6 +1,11 @@
 import { createReadStream } from 'node:fs';
 import { rm } from 'node:fs/promises';
-import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import type { PenggunaAktif } from '@jdih/shared';
@@ -32,7 +37,7 @@ interface FileRow extends RowDataPacket {
 
 export interface BerkasDownloadTerotorisasi extends FileRow {
   dokumen_id: string;
-  tingkat_akses: 'publik' | 'internal' | 'rahasia';
+  tingkat_akses: 'publik' | 'internal';
   current: number;
   deleted: number;
 }
@@ -68,6 +73,17 @@ export class DocumentFilesService {
         if (!version) throw new NotFoundException();
         if (!['DRAF', 'REVISI'].includes(version.status_workflow))
           throw new UnprocessableEntityException('File hanya dapat ditambahkan pada draf/revisi');
+        if (metadata.jenisBerkas === 'UTAMA') {
+          const ada = await this.repo.rows(
+            db,
+            "SELECT id FROM dokumen_berkas WHERE dokumen_versi_id=? AND jenis_berkas='UTAMA' LIMIT 1 FOR UPDATE",
+            [versionId],
+          );
+          if (ada.length)
+            throw new ConflictException(
+              'Dokumen utama sudah ada; hapus dulu yang lama untuk menggantinya',
+            );
+        }
         await this.repo.write(
           db,
           'INSERT INTO dokumen_berkas(dokumen_versi_id,jenis_berkas,judul,storage_key,nama_asli,mime_type,size_bytes,checksum,urutan) VALUES(?,?,?,?,?,?,?,?,?)',
@@ -116,6 +132,63 @@ export class DocumentFilesService {
     }
   }
 
+  /** Berkas sebuah versi untuk halaman ubah draf di panel admin. */
+  async listForVersion(actor: PenggunaAktif, versionId: string) {
+    cekIzin(actor, ['documents.read_admin']);
+    return this.repo.rows<
+      RowDataPacket & {
+        id: string;
+        jenisBerkas: 'UTAMA' | 'LAMPIRAN';
+        judul: string | null;
+        namaAsli: string;
+        sizeBytes: string;
+      }
+    >(
+      this.repo.pool,
+      `SELECT CAST(id AS CHAR) id,jenis_berkas jenisBerkas,judul,nama_asli namaAsli,CAST(size_bytes AS CHAR) sizeBytes
+       FROM dokumen_berkas WHERE dokumen_versi_id=? ORDER BY jenis_berkas='LAMPIRAN',urutan,id`,
+      [versionId],
+    );
+  }
+
+  /** Hapus berkas yang salah unggah; hanya selama versi masih draf/revisi. */
+  async removeFromDraft(actor: PenggunaAktif, versionId: string, fileId: string) {
+    cekIzin(actor, ['documents.upload']);
+    const kunci = await this.repo.transaction(async (db) => {
+      const version = (
+        await this.repo.rows(db, 'SELECT status_workflow FROM dokumen_versi WHERE id=? FOR UPDATE', [
+          versionId,
+        ])
+      )[0] as (RowDataPacket & { status_workflow: string }) | undefined;
+      if (!version) throw new NotFoundException();
+      if (!['DRAF', 'REVISI'].includes(version.status_workflow))
+        throw new UnprocessableEntityException('Berkas hanya dapat dihapus pada draf/revisi');
+      const file = (
+        await this.repo.rows(
+          db,
+          'SELECT storage_key,jenis_berkas FROM dokumen_berkas WHERE id=? AND dokumen_versi_id=? FOR UPDATE',
+          [fileId, versionId],
+        )
+      )[0] as (RowDataPacket & { storage_key: string; jenis_berkas: string }) | undefined;
+      if (!file) throw new NotFoundException();
+      await this.repo.write(db, 'DELETE FROM dokumen_berkas WHERE id=?', [fileId]);
+      await this.audit.recordDomain(
+        {
+          module: 'documents',
+          action: 'DELETE_FILE',
+          entityType: 'dokumen_berkas',
+          entityId: fileId,
+          actorId: actor.id,
+          before: { status: file.jenis_berkas },
+        },
+        db,
+      );
+      return file.storage_key;
+    });
+    await this.storage.delete(kunci).catch(() => undefined);
+    return { id: fileId, dihapus: true };
+  }
+
   async assertPublishReady(db: PoolConnection, versionId: string) {
     const file = (
       await this.repo.rows<FileRow>(
@@ -138,7 +211,7 @@ export class DocumentFilesService {
       )
     )[0];
     if (!file) throw new NotFoundException();
-    await this.policy.assertRead(
+    this.policy.assertRead(
       {
         id: file.dokumen_id,
         tingkatAkses: file.tingkat_akses,

@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unnecessary-condition, @typescript-eslint/prefer-optional-chain */
 import {
   ConflictException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
@@ -15,8 +14,6 @@ import {
   skemaBuatVersiDokumen,
   skemaUbahVersiDokumen,
   skemaBuatRelasi,
-  skemaGrantRahasia,
-  skemaRevokeRahasia,
   skemaKesiapanPublikasi,
   skemaTerbitkanDokumen,
   skemaTarikDokumen,
@@ -117,7 +114,6 @@ export class CoreBackendService {
       .parse(rawQuery);
     const where = ['d.deleted_at IS NULL'];
     const values: (string | number)[] = [];
-    if (!actor.izin.includes('secret.read_admin')) where.push("v.tingkat_akses<>'rahasia'");
     if (verificationOnly) where.push("v.status_workflow='DIAJUKAN'");
     else if (query.statusWorkflow) {
       where.push('v.status_workflow=?');
@@ -133,26 +129,6 @@ export class CoreBackendService {
       `SELECT CAST(d.id AS CHAR) id,CAST(v.id AS CHAR) versionId,d.slug,CAST(d.jenis_dokumen_id AS CHAR) jenisDokumenId,j.nama tipe,v.judul,v.nomor,v.tahun,v.tingkat_akses tingkatAkses,v.status_workflow statusWorkflow,d.status_hukum statusHukum,v.published_at publishedAt ${from} ORDER BY v.updated_at DESC,v.id DESC LIMIT ? OFFSET ?`,
       `SELECT COUNT(*) total ${from}`,
       values,
-      query.halaman,
-      query.perHalaman,
-    );
-  }
-
-  async activeUsers(actor: Actor, rawQuery: unknown) {
-    this.allow(actor, 'secret.manage');
-    const query = z
-      .strictObject({
-        halaman: skemaHalaman.shape.halaman,
-        perHalaman: skemaHalaman.shape.perHalaman,
-        q: z.string().trim().min(2).max(100),
-      })
-      .parse(rawQuery);
-    const pattern = `%${query.q.replaceAll('!', '!!').replaceAll('%', '!%').replaceAll('_', '!_')}%`;
-    const from = "FROM pengguna p JOIN pengguna_peran pp ON pp.pengguna_id=p.id JOIN peran r ON r.id=pp.peran_id LEFT JOIN unit_kerja u ON u.id=p.unit_kerja_id WHERE p.status='AKTIF' AND p.deleted_at IS NULL AND r.kode='DOSEN_STAF' AND (p.nama LIKE ? ESCAPE '!' OR p.email LIKE ? ESCAPE '!')";
-    return this.halaman(
-      `SELECT CAST(p.id AS CHAR) id,p.nama,p.email,CAST(p.unit_kerja_id AS CHAR) unitKerjaId,u.nama unitKerja FROM pengguna p JOIN pengguna_peran pp ON pp.pengguna_id=p.id JOIN peran r ON r.id=pp.peran_id LEFT JOIN unit_kerja u ON u.id=p.unit_kerja_id WHERE p.status='AKTIF' AND p.deleted_at IS NULL AND r.kode='DOSEN_STAF' AND (p.nama LIKE ? ESCAPE '!' OR p.email LIKE ? ESCAPE '!') ORDER BY p.nama,p.id LIMIT ? OFFSET ?`,
-      `SELECT COUNT(DISTINCT p.id) total ${from}`,
-      [pattern, pattern],
       query.halaman,
       query.perHalaman,
     );
@@ -416,7 +392,7 @@ export class CoreBackendService {
       throw new NotFoundException('Unit kerja aktif tidak ditemukan');
     await this.repo.write(
       db,
-      "INSERT INTO dokumen_versi(dokumen_id,nomor_versi,status_workflow,tingkat_akses,nomor,tahun,judul,pic,unit_kerja_id,tanggal_penetapan,created_by) VALUES(?,?,'DRAF',?,?,?,?,?,?,?,?)",
+      "INSERT INTO dokumen_versi(dokumen_id,nomor_versi,status_workflow,tingkat_akses,nomor,tahun,judul,deskripsi,pic,unit_kerja_id,tanggal_penetapan,created_by) VALUES(?,?,'DRAF',?,?,?,?,?,?,?,?,?)",
       [
         did,
         n,
@@ -424,6 +400,7 @@ export class CoreBackendService {
         v.nomor ?? null,
         v.tahun ?? null,
         v.judul,
+        v.deskripsi ?? null,
         v.pic ?? null,
         v.unitKerjaId ?? null,
         v.tanggalPenetapan ?? null,
@@ -450,31 +427,38 @@ export class CoreBackendService {
     this.allow(actor, 'documents.read_admin');
     const rows = await this.repo.rows(
       this.repo.pool,
-      'SELECT CAST(d.id AS CHAR) id,d.kode_dokumen kodeDokumen,d.slug,CAST(d.jenis_dokumen_id AS CHAR) jenisDokumenId,d.status_hukum statusHukum,CAST(d.current_published_version_id AS CHAR) currentPublishedVersionId,CAST(v.id AS CHAR) versionId,v.nomor_versi nomorVersi,v.status_workflow statusWorkflow,v.tingkat_akses tingkatAkses,v.nomor,v.tahun,v.judul,v.pic,CAST(v.unit_kerja_id AS CHAR) unitKerjaId,v.tanggal_penetapan tanggalPenetapan FROM dokumen d LEFT JOIN dokumen_versi v ON v.dokumen_id=d.id WHERE d.id=? AND d.deleted_at IS NULL ORDER BY v.nomor_versi DESC',
+      'SELECT CAST(d.id AS CHAR) id,d.kode_dokumen kodeDokumen,d.slug,CAST(d.jenis_dokumen_id AS CHAR) jenisDokumenId,d.status_hukum statusHukum,CAST(d.current_published_version_id AS CHAR) currentPublishedVersionId,CAST(v.id AS CHAR) versionId,v.nomor_versi nomorVersi,v.status_workflow statusWorkflow,v.tingkat_akses tingkatAkses,v.nomor,v.tahun,v.judul,v.deskripsi,v.pic,CAST(v.unit_kerja_id AS CHAR) unitKerjaId,v.tanggal_penetapan tanggalPenetapan FROM dokumen d LEFT JOIN dokumen_versi v ON v.dokumen_id=d.id WHERE d.id=? AND d.deleted_at IS NULL ORDER BY v.nomor_versi DESC',
       [id],
     );
     if (!rows.length) throw new NotFoundException();
-    if (
-      (rows as any[]).some((r) => r.tingkatAkses === 'rahasia') &&
-      !actor.izin.includes('secret.read_admin')
-    )
-      throw new NotFoundException();
     const selected = requestedVersionId
       ? (rows as any[]).find((row) => row.versionId === requestedVersionId)
       : rows[0];
     if (!selected) throw new NotFoundException();
-    return { document: selected, versions: (rows as any[]).filter((row) => row.versionId !== selected.versionId) };
+    return {
+      document: selected,
+      versions: (rows as any[]).filter((row) => row.versionId !== selected.versionId),
+      keteranganStatus:
+        selected.statusHukum === 'BERLAKU'
+          ? null
+          : await this.keteranganStatus(id, selected.statusHukum, actor),
+      // Yang dilihat pengunjung tanpa masuk; bisa lebih sedikit bila sumbernya Internal.
+      keteranganPublik:
+        selected.statusHukum === 'BERLAKU'
+          ? null
+          : await this.keteranganStatus(id, selected.statusHukum),
+    };
   }
   async publicDetail(slug: string, actor?: Actor) {
     const r = (
       await this.repo.rows(
         this.repo.pool,
-        "SELECT CAST(d.id AS CHAR) id,CAST(v.id AS CHAR) versionId,d.slug,CAST(j.nama AS CHAR) tipe,v.tingkat_akses,d.status_hukum statusHukum,v.status_workflow,IF(d.current_published_version_id=v.id,1,0) current,IF(d.deleted_at IS NULL,0,1) deleted,v.judul,v.nomor,v.tanggal_penetapan tanggalPenetapan,v.pic FROM dokumen d JOIN dokumen_versi v ON v.id=d.current_published_version_id JOIN jenis_dokumen j ON j.id=d.jenis_dokumen_id WHERE d.slug=? AND v.status_workflow='TERBIT' AND d.deleted_at IS NULL",
+        "SELECT CAST(d.id AS CHAR) id,CAST(v.id AS CHAR) versionId,d.slug,CAST(j.nama AS CHAR) tipe,v.tingkat_akses,d.status_hukum statusHukum,v.status_workflow,IF(d.current_published_version_id=v.id,1,0) current,IF(d.deleted_at IS NULL,0,1) deleted,v.judul,v.deskripsi,v.nomor,v.tanggal_penetapan tanggalPenetapan,v.pic FROM dokumen d JOIN dokumen_versi v ON v.id=d.current_published_version_id JOIN jenis_dokumen j ON j.id=d.jenis_dokumen_id WHERE d.slug=? AND v.status_workflow='TERBIT' AND d.deleted_at IS NULL",
         [slug],
       )
     )[0] as any;
     if (!r) throw new NotFoundException();
-    await this.policy.assertRead(
+    this.policy.assertRead(
       {
         id: r.id,
         tingkatAkses: r.tingkat_akses,
@@ -496,10 +480,13 @@ export class CoreBackendService {
       slug: r.slug,
       tipe: r.tipe,
       judul: r.judul,
+      deskripsi: r.deskripsi ?? null,
       nomor: r.nomor,
       tanggalPenetapan: r.tanggalPenetapan,
       statusHukum: r.statusHukum,
       pic: r.pic,
+      keteranganStatus:
+        r.statusHukum === 'BERLAKU' ? null : await this.keteranganStatus(r.id, r.statusHukum, actor),
       berkasUtama: {
         id: main.id,
         jenisBerkas: 'UTAMA',
@@ -523,6 +510,53 @@ export class CoreBackendService {
     return bolehTahuTingkat
       ? skemaDetailDokumenAuthorized.parse({ ...response, tingkatAkses: r.tingkat_akses })
       : skemaDetailDokumenPublik.parse(response);
+  }
+  /**
+   * Keterangan mengapa dokumen berstatus Diubah/Dicabut, dari riwayat status:
+   * - tanggal & sumber: baris terakhir yang memindahkan dokumen ke status ini;
+   * - alasan: alasan yang ditulis Admin langsung pada dokumen ini (baris
+   *   "hanya alasan") bila ada, selain itu alasan baris perpindahan tadi.
+   * Dokumen pengubah/pencabut hanya disebut bila peminta boleh membacanya. Bila
+   * tidak, alasan yang berasal dari catatan relasinya ikut disembunyikan karena
+   * ditulis pada dokumen tertutup itu.
+   */
+  private async keteranganStatus(dokumenId: string, status: string, actor?: Actor) {
+    const rows = (await this.repo.rows(
+      this.repo.pool,
+      "SELECT DATE_FORMAT(h.confirmed_at,'%Y-%m-%d') tanggal,h.alasan,CAST(sv.dokumen_id AS CHAR) sumberId,IF(h.status_asal<=>h.status_tujuan,1,0) hanyaAlasan FROM dokumen_status_hukum_riwayat h LEFT JOIN dokumen_versi sv ON sv.id=h.source_version_id WHERE h.dokumen_id=? AND h.status_tujuan=? ORDER BY h.confirmed_at DESC,h.id DESC LIMIT 50",
+      [dokumenId, status],
+    )) as any[];
+    const iPindah = rows.findIndex((h) => Number(h.hanyaAlasan) === 0);
+    const pindah = iPindah >= 0 ? rows[iPindah] : undefined;
+    // Baris sebelum perpindahan (lebih baru) hanya berisi alasan; yang terbaru dipakai.
+    const alasanAdmin: string | null = (iPindah >= 0 ? rows.slice(0, iPindah) : rows)[0]?.alasan ?? null;
+    if (!rows.length) return null;
+    let sumber: { judul: string; slug: string; nomor: string | null } | null = null;
+    if (pindah?.sumberId) {
+      const s = (
+        await this.repo.rows(
+          this.repo.pool,
+          "SELECT CAST(d.id AS CHAR) id,d.slug,v.judul,v.nomor,v.tingkat_akses FROM dokumen d JOIN dokumen_versi v ON v.id=d.current_published_version_id WHERE d.id=? AND v.status_workflow='TERBIT' AND d.deleted_at IS NULL",
+          [pindah.sumberId],
+        )
+      )[0] as any;
+      if (s)
+        try {
+          this.policy.assertRead(
+            { id: s.id, tingkatAkses: s.tingkat_akses, published: true, current: true, deleted: false },
+            actor,
+          );
+          sumber = { judul: s.judul, slug: s.slug, nomor: s.nomor ?? null };
+        } catch {
+          sumber = null;
+        }
+    }
+    const alasanPindah = pindah && (!pindah.sumberId || sumber) ? pindah.alasan : null;
+    return {
+      tanggal: (pindah ?? rows[0]).tanggal,
+      alasan: alasanAdmin ?? alasanPindah ?? null,
+      sumber,
+    };
   }
   async updateDocument(actor: Actor, id: string, raw: unknown) {
     this.allow(actor, 'documents.edit');
@@ -623,6 +657,7 @@ export class CoreBackendService {
         throw new ConflictException('Versi yang diajukan tidak dapat diubah');
       const keys: Record<string, string> = {
         judul: 'judul',
+        deskripsi: 'deskripsi',
         nomor: 'nomor',
         tahun: 'tahun',
         pic: 'pic',
@@ -690,8 +725,8 @@ export class CoreBackendService {
       if (!valid) throw new ConflictException('Transisi workflow tidak sah');
       if (action === 'RETURN' && !note?.trim())
         throw new UnprocessableEntityException('Catatan revisi wajib diisi');
-      if (action === 'APPROVE' && String(v.created_by) === actor.id)
-        throw new ForbiddenException('Pembuat versi tidak dapat menyetujui versinya sendiri');
+      // Pembuat versi boleh menyetujui versinya sendiri: langkah ajukan lalu
+      // setujui tetap terpisah sebagai pengecekan ulang (keputusan pemilik proyek).
       await this.repo.write(
         db,
         action === 'APPROVE'
@@ -873,7 +908,7 @@ export class CoreBackendService {
       await this.files.assertPublishReady(db, id);
       const fresh = (await this.repo.rows(
         db,
-        "SELECT CAST(d.id AS CHAR) targetDocumentId,d.status_hukum statusSaatIni,r.jenis_relasi FROM dokumen_relasi r JOIN dokumen d ON d.id=r.target_document_id WHERE r.source_version_id=? AND r.jenis_relasi IN ('MENGUBAH','MENCABUT') ORDER BY d.id FOR UPDATE",
+        "SELECT CAST(d.id AS CHAR) targetDocumentId,d.status_hukum statusSaatIni,r.jenis_relasi,r.catatan FROM dokumen_relasi r JOIN dokumen d ON d.id=r.target_document_id WHERE r.source_version_id=? AND r.jenis_relasi IN ('MENGUBAH','MENCABUT') ORDER BY d.id FOR UPDATE",
         [id],
       )) as any[];
       if (
@@ -922,7 +957,8 @@ export class CoreBackendService {
             r.statusSaatIni,
             next,
             id,
-            'Dampak relasi hukum saat publikasi',
+            // Catatan relasi menjadi alasan yang dibaca publik; opsional.
+            String(r.catatan ?? '').trim() || null,
             actor.id,
             now,
           ],
@@ -1008,105 +1044,5 @@ export class CoreBackendService {
       return { id, versionId: vid, currentPublishedVersionId: null, statusWorkflow: 'DITARIK' };
     });
   }
-  async grants(actor: Actor, id: string) {
-    this.allow(actor, 'secret.manage');
-    return this.repo.rows(
-      this.repo.pool,
-      'SELECT CAST(g.id AS CHAR) id,CAST(g.pengguna_id AS CHAR) penggunaId,CAST(g.granted_by AS CHAR) grantedBy,g.granted_at grantedAt,g.expires_at expiresAt,g.revoked_at revokedAt,g.grant_reason grantReason,g.revoke_reason revokeReason FROM dokumen_akses_rahasia g WHERE g.dokumen_id=? ORDER BY g.id DESC',
-      [id],
-    );
-  }
-  async grant(actor: Actor, id: string, raw: unknown) {
-    this.allow(actor, 'secret.manage');
-    const b = skemaGrantRahasia.parse(raw);
-    return this.repo.transaction(async (db) => {
-      const d = (await this.repo.rows(db, 'SELECT id FROM dokumen WHERE id=? FOR UPDATE', [id]))[0];
-      if (!d) throw new NotFoundException();
-      if (
-        !(
-          await this.repo.rows(
-            db,
-            "SELECT id FROM dokumen_versi WHERE dokumen_id=? AND tingkat_akses='rahasia' LIMIT 1 FOR SHARE",
-            [id],
-          )
-        ).length
-      )
-        throw new ConflictException('Grant hanya berlaku untuk dokumen dengan versi Rahasia');
-      const u = (
-        await this.repo.rows(
-          db,
-          "SELECT p.id FROM pengguna p JOIN pengguna_peran pp ON pp.pengguna_id=p.id JOIN peran r ON r.id=pp.peran_id WHERE p.id=? AND p.status='AKTIF' AND p.deleted_at IS NULL AND r.kode='DOSEN_STAF' FOR UPDATE",
-          [b.penggunaId],
-        )
-      )[0];
-      if (!u) throw new NotFoundException('Pengguna Dosen/Staf aktif tidak ditemukan');
-      const prev = (
-        await this.repo.rows(
-          db,
-          'SELECT id,expires_at FROM dokumen_akses_rahasia WHERE dokumen_id=? AND pengguna_id=? AND revoked_at IS NULL FOR UPDATE',
-          [id, b.penggunaId],
-        )
-      )[0] as any;
-      if (
-        prev &&
-        (!prev.expires_at || new Date(String(prev.expires_at).replace(' ', 'T') + 'Z') > new Date())
-      )
-        throw new ConflictException('Grant aktif sudah ada');
-      if (prev)
-        await this.repo.write(
-          db,
-          "UPDATE dokumen_akses_rahasia SET revoked_at=UTC_TIMESTAMP(6),revoke_reason='Masa grant berakhir' WHERE id=?",
-          [prev.id],
-        );
-      await this.repo.write(
-        db,
-        'INSERT INTO dokumen_akses_rahasia(dokumen_id,pengguna_id,granted_by,expires_at,grant_reason) VALUES(?,?,?,?,?)',
-        [id, b.penggunaId, actor.id, b.expiresAt ?? null, b.alasan],
-      );
-      const gid = await this.repo.id(db);
-      await this.audit.recordDomain(
-        {
-          module: 'secret-access',
-          action: 'GRANT',
-          entityType: 'dokumen_akses_rahasia',
-          entityId: gid,
-          actorId: actor.id,
-          after: { targetId: b.penggunaId },
-        },
-        db,
-      );
-      return { id: gid, dokumenId: id, penggunaId: b.penggunaId, expiresAt: b.expiresAt ?? null };
-    });
-  }
-  async revoke(actor: Actor, id: string, gid: string, raw: unknown) {
-    this.allow(actor, 'secret.manage');
-    const b = skemaRevokeRahasia.parse(raw);
-    return this.repo.transaction(async (db) => {
-      const g = (
-        await this.repo.rows(
-          db,
-          'SELECT id FROM dokumen_akses_rahasia WHERE id=? AND dokumen_id=? AND revoked_at IS NULL FOR UPDATE',
-          [gid, id],
-        )
-      )[0];
-      if (!g) throw new NotFoundException();
-      await this.repo.write(
-        db,
-        'UPDATE dokumen_akses_rahasia SET revoked_at=UTC_TIMESTAMP(6),revoked_by=?,revoke_reason=? WHERE id=?',
-        [actor.id, b.alasan, gid],
-      );
-      await this.audit.recordDomain(
-        {
-          module: 'secret-access',
-          action: 'REVOKE',
-          entityType: 'dokumen_akses_rahasia',
-          entityId: gid,
-          actorId: actor.id,
-          after: { reason: b.alasan },
-        },
-        db,
-      );
-      return { id: gid, revoked: true };
-    });
-  }
+
 }

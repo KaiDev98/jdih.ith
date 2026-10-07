@@ -70,7 +70,12 @@ describe('download route rate limiting (HTTP)', () => {
     identity.authenticate.mockResolvedValue({ user: pengguna });
 
     const config = new ConfigService({
-      pembatasanLaju: { batasUnduhAnonim: 1, batasUnduhPengguna: 1 },
+      pembatasanLaju: {
+        batasUnduhAnonim: 1,
+        batasUnduhPengguna: 1,
+        batasPratinjauAnonim: 1,
+        batasPratinjauPengguna: 1,
+      },
     }) as unknown as ConfigService<KonfigurasiApp, true>;
     const module = await Test.createTestingModule({
       controllers: [PublicDocumentFilesController, PublicLetterTemplatesController],
@@ -103,11 +108,23 @@ describe('download route rate limiting (HTTP)', () => {
     expect(await first.text()).toBe('first-chunk-second-chunk');
     expect(pipe).toHaveBeenCalled();
 
-    const second = await fetch(url);
+    const second = await fetch(`${url}?mode=inline`);
     expect(second.status).toBe(429);
     expect(await second.text()).not.toContain('storage_key');
     expect(files.authorizeCurrent).toHaveBeenCalledTimes(2);
     expect(files.openAuthorized).toHaveBeenCalledTimes(1);
+  });
+
+  it('counts inline previews separately from downloads', async () => {
+    const url = `${base}/api/v1/public/documents/public/files/file-6`;
+    expect((await fetch(`${url}?mode=inline`)).status).toBe(200);
+    // Pratinjau habis, unduhan masih punya kuotanya sendiri; lalu habis juga.
+    expect((await fetch(`${url}?mode=inline`)).status).toBe(429);
+    const unduh = await fetch(`${url}?mode=download`);
+    expect(unduh.status).toBe(200);
+    expect(unduh.headers.get('content-disposition')).toContain('attachment');
+    expect((await fetch(`${url}?mode=download`)).status).toBe(429);
+    expect(files.openAuthorized).toHaveBeenCalledTimes(2);
   });
 
   it('limits authenticated Internal/Secret streams per server-derived user identity', async () => {

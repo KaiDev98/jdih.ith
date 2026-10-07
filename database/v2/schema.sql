@@ -186,10 +186,11 @@ CREATE TABLE dokumen_versi (
   dokumen_id BIGINT UNSIGNED NOT NULL,
   nomor_versi INT UNSIGNED NOT NULL,
   status_workflow ENUM('DRAF','DIAJUKAN','REVISI','DISETUJUI','TERBIT','DITARIK') NOT NULL DEFAULT 'DRAF',
-  tingkat_akses ENUM('publik','internal','rahasia') NOT NULL,
+  tingkat_akses ENUM('publik','internal') NOT NULL,
   nomor VARCHAR(100) NULL COMMENT 'Boleh belum lengkap saat DRAF; wajib saat publish',
   tahun SMALLINT UNSIGNED NULL,
   judul VARCHAR(500) NOT NULL,
+  deskripsi VARCHAR(1000) NULL COMMENT 'Ringkasan isi dokumen; opsional',
   pic VARCHAR(255) NULL COMMENT 'Free text versioned; wajib saat publish; bukan FK',
   unit_kerja_id BIGINT UNSIGNED NULL,
   tanggal_penetapan DATE NULL,
@@ -221,7 +222,6 @@ CREATE TABLE dokumen_versi (
     nomor IS NOT NULL AND CHAR_LENGTH(TRIM(nomor)) > 0 AND
     pic IS NOT NULL AND CHAR_LENGTH(TRIM(pic)) > 0 AND tanggal_penetapan IS NOT NULL
   )),
-  CONSTRAINT ck_versi_self_approval CHECK (verified_by IS NULL OR verified_by <> created_by),
   CONSTRAINT ck_versi_approval CHECK (status_workflow NOT IN ('DISETUJUI','TERBIT','DITARIK') OR (verified_by IS NOT NULL AND approved_at IS NOT NULL)),
   CONSTRAINT ck_versi_published CHECK (status_workflow NOT IN ('TERBIT','DITARIK') OR (published_at IS NOT NULL AND published_by IS NOT NULL)),
   CONSTRAINT ck_versi_superseded CHECK (superseded_at IS NULL OR (published_at IS NOT NULL AND superseded_at >= published_at)),
@@ -284,6 +284,8 @@ CREATE TABLE dokumen_relasi (
   CONSTRAINT fk_relasi_target FOREIGN KEY (target_document_id) REFERENCES dokumen (id) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB;
 
+-- Tidak dipakai lagi sejak tingkat akses Rahasia dihapus (patch-007); dipertahankan
+-- agar riwayat lama tetap ada. Aman dihapus setelah dipastikan tidak diperlukan.
 CREATE TABLE dokumen_akses_rahasia (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   dokumen_id BIGINT UNSIGNED NOT NULL,
@@ -342,14 +344,14 @@ CREATE TABLE dokumen_status_hukum_riwayat (
   status_asal ENUM('BERLAKU','DIUBAH','DICABUT') NULL,
   status_tujuan ENUM('BERLAKU','DIUBAH','DICABUT') NOT NULL,
   source_version_id BIGINT UNSIGNED NULL COMMENT 'Versi sumber dampak; NULL untuk koreksi eksplisit',
-  alasan VARCHAR(2000) NOT NULL,
+  alasan VARCHAR(2000) NULL COMMENT 'Opsional; NULL bila tidak ada keterangan',
   actor_id BIGINT UNSIGNED NOT NULL,
   confirmed_at DATETIME(6) NOT NULL,
   created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   KEY idx_hukum_document (dokumen_id, created_at, id),
   KEY idx_hukum_source (source_version_id),
   KEY idx_hukum_actor (actor_id, created_at),
-  CONSTRAINT ck_hukum_alasan CHECK (CHAR_LENGTH(TRIM(alasan)) > 0),
+  CONSTRAINT ck_hukum_alasan CHECK (alasan IS NULL OR CHAR_LENGTH(TRIM(alasan)) > 0),
   CONSTRAINT fk_hukum_document FOREIGN KEY (dokumen_id) REFERENCES dokumen (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT fk_hukum_source FOREIGN KEY (source_version_id) REFERENCES dokumen_versi (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT fk_hukum_actor FOREIGN KEY (actor_id) REFERENCES pengguna (id) ON DELETE RESTRICT ON UPDATE RESTRICT

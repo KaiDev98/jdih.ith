@@ -14,8 +14,20 @@ import {
   teksWajib,
   skemaTanggapan,
 } from './common.schema.js';
+/** Teks bebas opsional: kosong disimpan sebagai NULL. */
+function teksBebasOpsional(maksimum: number, label: string) {
+  return z
+    .string()
+    .trim()
+    .max(maksimum, `${label} paling banyak ${String(maksimum)} karakter`)
+    .transform((nilai) => nilai || null)
+    .nullable()
+    .optional();
+}
 const metadataVersi = {
   judul: teksWajib(500, 'Judul'),
+  /** Ringkasan isi dokumen untuk pembaca; opsional. */
+  deskripsi: teksBebasOpsional(1000, 'Deskripsi'),
   nomor: teksWajib(100, 'Nomor').nullable().optional(),
   tahun: skemaTahun.nullable().optional(),
   pic: teksWajib(255, 'PIC').nullable().optional(),
@@ -90,15 +102,33 @@ export const skemaBerkasLampiran = z.strictObject({
   ...berkasAuthorized,
   jenisBerkas: z.literal('LAMPIRAN'),
 });
+/**
+ * Keterangan untuk dokumen berstatus Diubah/Dicabut. `sumber` hanya diisi bila
+ * dokumen pengubah/pencabut boleh dibaca peminta; bila tidak, `alasan` juga
+ * dikosongkan agar isi dokumen tertutup tidak terbaca lewat keterangan ini.
+ */
+export const skemaKeteranganStatus = z.strictObject({
+  tanggal: skemaTanggal,
+  alasan: z.string().nullable(),
+  sumber: z
+    .strictObject({
+      judul: teksWajib(500, 'Judul'),
+      slug: skemaSlug,
+      nomor: z.string().nullable(),
+    })
+    .nullable(),
+});
 const detail = {
   id: skemaId,
   slug: skemaSlug,
   tipe: teksWajib(150, 'Tipe'),
   judul: teksWajib(500, 'Judul'),
+  deskripsi: z.string().nullable(),
   nomor: teksWajib(100, 'Nomor'),
   tanggalPenetapan: skemaTanggal,
   statusHukum: skemaStatusHukum,
   pic: teksWajib(255, 'PIC'),
+  keteranganStatus: skemaKeteranganStatus.nullable(),
   berkasUtama: skemaBerkasUtama,
   lampiran: z.array(skemaBerkasLampiran),
 };
@@ -123,3 +153,4 @@ export type VersiDokumenAdmin = z.infer<typeof skemaVersiDokumenAdmin>;
 export type MuatanMetaBerkas = z.infer<typeof skemaMetaBerkas>;
 export type DetailDokumenPublik = z.infer<typeof skemaDetailDokumenPublik>;
 export type DetailDokumenAuthorized = z.infer<typeof skemaDetailDokumenAuthorized>;
+export type KeteranganStatus = z.infer<typeof skemaKeteranganStatus>;

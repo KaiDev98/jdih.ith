@@ -93,6 +93,8 @@ export function konfigurasi() {
       batasUmum: env.THROTTLE_LIMIT,
       batasUnduhAnonim: env.UNDUH_LIMIT_ANONIM,
       batasUnduhPengguna: env.UNDUH_LIMIT_PENGGUNA,
+      batasPratinjauAnonim: env.PRATINJAU_LIMIT_ANONIM,
+      batasPratinjauPengguna: env.PRATINJAU_LIMIT_PENGGUNA,
     },
 
     log: {

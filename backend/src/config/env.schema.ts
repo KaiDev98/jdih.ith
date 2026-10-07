@@ -95,6 +95,13 @@ export const skemaEnv = z.object({
   /** Batas unduhan per jam: pengunjung anonim dan pengguna terautentikasi. */
   UNDUH_LIMIT_ANONIM: z.coerce.number().int().min(1).default(30),
   UNDUH_LIMIT_PENGGUNA: z.coerce.number().int().min(1).default(200),
+  /**
+   * Batas pratinjau (berkas dibuka di halaman) per jam. Lebih longgar dari
+   * unduhan karena pratinjau dimuat otomatis di setiap halaman detail dan
+   * pengunjung kampus sering berbagi satu IP.
+   */
+  PRATINJAU_LIMIT_ANONIM: z.coerce.number().int().min(1).default(300),
+  PRATINJAU_LIMIT_PENGGUNA: z.coerce.number().int().min(1).default(1000),
 
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   /** Mempercantik log agar terbaca manusia. Matikan di produksi (log JSON). */

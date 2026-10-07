@@ -290,11 +290,5 @@ export class IdentityRepository {
     );
   }
 
-  openGrant(db: Connection, values: (string | number | Buffer | null)[] = []) {
-    return this.rows<RowDataPacket & { expires_at: string | null; revoked_at: string | null }>(
-      db,
-      'SELECT expires_at,revoked_at FROM dokumen_akses_rahasia WHERE dokumen_id=? AND pengguna_id=? AND revoked_at IS NULL LIMIT 1',
-      values,
-    );
-  }
+
 }

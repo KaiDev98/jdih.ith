@@ -31,7 +31,7 @@ SELECT 901, 'DEMO-PUB', 'simulasi-publik', id, 9001 FROM jenis_dokumen WHERE kod
 INSERT INTO dokumen (id, kode_dokumen, slug, jenis_dokumen_id, created_by)
 SELECT 902, 'DEMO-INT', 'simulasi-internal', id, 9001 FROM jenis_dokumen WHERE kode = 'SOP';
 INSERT INTO dokumen (id, kode_dokumen, slug, jenis_dokumen_id, created_by)
-SELECT 903, 'DEMO-SEC', 'simulasi-rahasia', id, 9001 FROM jenis_dokumen WHERE kode = 'SKREK';
+SELECT 903, 'DEMO-INT2', 'simulasi-internal-2', id, 9001 FROM jenis_dokumen WHERE kode = 'SKREK';
 INSERT INTO dokumen (id, kode_dokumen, slug, jenis_dokumen_id, created_by)
 SELECT 904, 'DEMO-HISTORY', 'simulasi-riwayat', id, 9001 FROM jenis_dokumen WHERE kode = 'SEREK';
 
@@ -41,7 +41,7 @@ INSERT INTO dokumen_versi
 VALUES
   (9011,901,1,'TERBIT','publik','DEMO-01',2026,'Contoh Publik: versi lama tetap aktif','Bagian Hukum ITH','2026-01-01',9001,9001,9002,'2026-01-02',9002,'2026-01-03',NULL),
   (9021,902,1,'TERBIT','internal','DEMO-02',2026,'Contoh Internal: semua staf aktif','Bagian Hukum ITH','2026-01-01',9001,9001,9002,'2026-01-02',9002,'2026-01-03',NULL),
-  (9031,903,1,'TERBIT','rahasia','DEMO-03',2026,'Contoh Rahasia: hanya pengguna dengan grant','Penanggung Jawab Arsip ITH','2026-01-01',9001,9001,9002,'2026-01-02',9002,'2026-01-03',NULL),
+  (9031,903,1,'TERBIT','internal','DEMO-03',2026,'Contoh Internal kedua: hanya staf aktif','Penanggung Jawab Arsip ITH','2026-01-01',9001,9001,9002,'2026-01-02',9002,'2026-01-03',NULL),
   (9041,904,1,'TERBIT','publik','DEMO-04',2026,'Contoh Riwayat: versi superseded','Sekretariat Rektor','2026-01-01',9001,9001,9002,'2026-01-02',9002,'2026-01-03','2026-02-03'),
   (9042,904,2,'TERBIT','publik','DEMO-04',2026,'Contoh Riwayat: versi publik terkini','Koordinator Hukum','2026-02-01',9001,9001,9002,'2026-02-02',9002,'2026-02-03',NULL);
 
@@ -82,18 +82,6 @@ SELECT id, 9001 FROM dokumen_versi WHERE dokumen_id IN (901,902,903,904);
 -- Draft relation has NO side effect: target 902 stays BERLAKU.
 INSERT INTO dokumen_relasi (source_version_id, target_document_id, jenis_relasi, catatan)
 VALUES (9012,902,'MENGUBAH','Simulasi usulan; belum dikonfirmasi atau diterbitkan');
-
-INSERT INTO dokumen_akses_rahasia
-  (dokumen_id, pengguna_id, granted_by, granted_at, revoked_at, revoked_by, grant_reason, revoke_reason)
-VALUES (903,9003,9002,'2026-01-01','2026-01-02',9002,'Grant historis simulasi','Dicabut untuk simulasi riwayat');
-INSERT INTO dokumen_akses_rahasia (dokumen_id, pengguna_id, granted_by, grant_reason)
-VALUES (903,9003,9002,'Grant aktif simulasi');
-
--- Expired tetapi belum ditutup: tidak memberi akses dan masih memegang slot.
--- Regrant menutup row ini dalam transaksi; history dipertahankan.
-INSERT INTO dokumen_akses_rahasia
-  (dokumen_id,pengguna_id,granted_by,grant_reason,granted_at,expires_at)
-VALUES (903,9001,9002,'Simulasi expiry','2000-01-01','2000-01-02');
 
 INSERT INTO dokumen_workflow (dokumen_versi_id,status_asal,status_tujuan,action,actor_id,created_at)
 SELECT id,NULL,'DRAF','CREATE',9001,created_at FROM dokumen_versi WHERE id IN (9011,9021,9031,9041,9042,9012);

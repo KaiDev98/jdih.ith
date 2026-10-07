@@ -66,10 +66,14 @@ variables are not used by the V2 identity module. S3, Meilisearch, and Redis
 settings are optional future drivers and are not part of this deployment plan.
 
 The generic global limiter is 120 requests per 60 seconds per trusted client IP;
-the Identity controller overrides it to 20 per 60 seconds. Document preview and
-download streams, plus letter-template downloads, have an additional fixed
-one-hour limit: `UNDUH_LIMIT_ANONIM` per anonymous client IP (default 30) and
-`UNDUH_LIMIT_PENGGUNA` per authenticated account (default 200). Authorization
+the Identity controller overrides it to 20 per 60 seconds. Document download
+streams and letter-template downloads have an additional fixed one-hour limit:
+`UNDUH_LIMIT_ANONIM` per anonymous client IP (default 30) and
+`UNDUH_LIMIT_PENGGUNA` per authenticated account (default 200). Inline document
+previews (`?mode=inline`, loaded automatically on every public detail page) are
+counted in a separate bucket: `PRATINJAU_LIMIT_ANONIM` (default 300) and
+`PRATINJAU_LIMIT_PENGGUNA` (default 1000), so browsing does not use up the
+download quota of visitors sharing one campus IP. Authorization
 is resolved before counting/opening a file, so denied Secret resources retain
 not-found semantics and do not consume a download slot. A request beyond the
 applicable quota receives HTTP 429; file responses remain Node streams.

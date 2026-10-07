@@ -112,14 +112,6 @@ export class DocumentsController {
   }
 }
 
-@Controller('admin/active-users')
-export class ActiveUsersController {
-  constructor(private readonly core: CoreBackendService) {}
-  @Get() @Izin('secret.manage') list(@Query() query: unknown, @Aktor() actor: PenggunaAktif) {
-    return this.core.activeUsers(actor, query);
-  }
-}
-
 @Controller('admin/audit')
 export class AuditController {
   constructor(private readonly core: CoreBackendService) {}
@@ -196,29 +188,6 @@ export class LegalRelationsController {
     @Aktor() actor: PenggunaAktif,
   ) {
     return this.core.removeRelation(actor, id, rid);
-  }
-}
-
-@Controller('admin/documents/:id/secret-grants')
-export class SecretAccessController {
-  constructor(private readonly core: CoreBackendService) {}
-  @Get() @Izin('secret.manage') list(@Param('id') id: string, @Aktor() actor: PenggunaAktif) {
-    return this.core.grants(actor, id);
-  }
-  @Post() @Izin('secret.manage') grant(
-    @Param('id') id: string,
-    @Body() body: unknown,
-    @Aktor() actor: PenggunaAktif,
-  ) {
-    return this.core.grant(actor, id, body);
-  }
-  @Post(':grantId/revoke') @Izin('secret.manage') revoke(
-    @Param('id') id: string,
-    @Param('grantId') gid: string,
-    @Body() body: unknown,
-    @Aktor() actor: PenggunaAktif,
-  ) {
-    return this.core.revoke(actor, id, gid, body);
   }
 }
 

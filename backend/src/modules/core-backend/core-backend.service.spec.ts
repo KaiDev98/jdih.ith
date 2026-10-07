@@ -68,7 +68,6 @@ describe('CoreBackendService authorization boundary', () => {
     const user = fixture('AKTIF', []);
     await expect(service.adminDocuments(user, {})).rejects.toBeInstanceOf(ForbiddenException);
     await expect(service.adminDocuments(user, {}, true)).rejects.toBeInstanceOf(ForbiddenException);
-    await expect(service.activeUsers(user, { q: 'ab' })).rejects.toBeInstanceOf(ForbiddenException);
     await expect(service.auditList(user, {})).rejects.toBeInstanceOf(ForbiddenException);
     expect(repo.rows).not.toHaveBeenCalled();
     await expect(service.publicMaster('jenis_dokumen')).resolves.toEqual([]);

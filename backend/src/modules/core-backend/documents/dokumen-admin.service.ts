@@ -48,12 +48,34 @@ export class DokumenAdminService {
     const { statusHukum, alasan } = skemaUbahStatusHukum.parse(raw);
     return this.repo.transaction(async (db) => {
       const d = await this.kunci(db, id);
-      if (d.status_hukum === statusHukum) return { id, statusHukum };
+      if (d.status_hukum === statusHukum) {
+        // Status tidak berubah: hanya alasannya yang dilengkapi/diperbarui. Baris
+        // ini (asal = tujuan, tanpa sumber) ditulis langsung pada dokumen ini,
+        // sehingga selalu boleh dibaca siapa pun yang boleh membuka dokumennya.
+        if (!alasan) return { id, statusHukum };
+        await this.repo.write(
+          db,
+          'INSERT INTO dokumen_status_hukum_riwayat(dokumen_id,status_asal,status_tujuan,source_version_id,alasan,actor_id,confirmed_at) VALUES(?,?,?,NULL,?,?,?)',
+          [id, statusHukum, statusHukum, alasan, actor.id, utc()],
+        );
+        await this.audit.recordDomain(
+          {
+            module: 'legal-relations',
+            action: 'UPDATE_STATUS_REASON',
+            entityType: 'dokumen',
+            entityId: id,
+            actorId: actor.id,
+            after: { statusHukum, alasan },
+          },
+          db,
+        );
+        return { id, statusHukum };
+      }
       await this.repo.write(db, 'UPDATE dokumen SET status_hukum=? WHERE id=?', [statusHukum, id]);
       await this.repo.write(
         db,
         'INSERT INTO dokumen_status_hukum_riwayat(dokumen_id,status_asal,status_tujuan,source_version_id,alasan,actor_id,confirmed_at) VALUES(?,?,?,NULL,?,?,?)',
-        [id, d.status_hukum, statusHukum, alasan, actor.id, utc()],
+        [id, d.status_hukum, statusHukum, alasan ?? null, actor.id, utc()],
       );
       await this.audit.recordDomain(
         {
@@ -63,7 +85,7 @@ export class DokumenAdminService {
           entityId: id,
           actorId: actor.id,
           before: { statusHukum: d.status_hukum },
-          after: { statusHukum, alasan },
+          after: { statusHukum, alasan: alasan ?? null },
         },
         db,
       );

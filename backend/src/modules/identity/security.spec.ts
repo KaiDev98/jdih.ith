@@ -217,32 +217,12 @@ describe('document policy', () => {
         cekAksesDokumen({ ...resource, tingkatAkses: 'internal' }, { ...principal, status }),
       ).toThrow(NotFoundException),
     );
-  const secret = { ...resource, tingkatAkses: 'rahasia' as const };
-  const grant = { dokumenId: '8', penggunaId: '1', expiresAt: null, revokedAt: null };
-  it('Secret missing grant is not found', () => {
-    try {
-      cekAksesDokumen(secret, principal);
-      throw Error('allowed');
-    } catch (e) {
-      expect((e as { getStatus(): number }).getStatus()).toBe(404);
-    }
-  });
-  it('Secret explicit active grant allowed', () =>
-    expect(() => cekAksesDokumen(secret, principal, grant)).not.toThrow());
-  for (const patch of [
-    { expiresAt: new Date(0) },
-    { revokedAt: new Date() },
-    { penggunaId: 'other' },
-    { dokumenId: 'other' },
-  ])
-    it('invalid grant ' + JSON.stringify(patch), () =>
-      expect(() => cekAksesDokumen(secret, principal, { ...grant, ...patch })).toThrow(),
-    );
-  it('admin Secret requires explicit permission', () => {
-    expect(() => cekAksesDokumen(secret, { ...principal, peran: ['ADMIN'] })).toThrow();
-    expect(() =>
-      cekAksesDokumen(secret, { ...principal, peran: ['ADMIN'], izin: ['secret.read_admin'] }),
-    ).not.toThrow();
+  it('tingkat akses di luar publik/internal selalu tidak ditemukan', () => {
+    const asing = { ...resource, tingkatAkses: 'rahasia' } as unknown as Parameters<
+      typeof cekAksesDokumen
+    >[0];
+    for (const user of [undefined, principal, { ...principal, peran: ['ADMIN' as const] }])
+      expect(() => cekAksesDokumen(asing, user)).toThrow(NotFoundException);
   });
 });
 describe('global route guard', () => {

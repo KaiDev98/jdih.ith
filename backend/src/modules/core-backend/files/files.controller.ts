@@ -1,4 +1,15 @@
-import { Controller, Get, Param, Post, Query, Req, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
+import {
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+  Req,
+  Res,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { rm } from 'node:fs/promises';
 import { Aktor, Izin, Publik, type PermintaanBerpengguna } from '../../../common/decorators/otorisasi.decorator.js';
@@ -13,6 +24,22 @@ import { contentDisposition } from './file-headers.js';
 @Controller('admin/documents/versions')
 export class AdminDocumentFilesController {
   constructor(private readonly files: DocumentFilesService) {}
+
+  @Get(':versionId/files')
+  @Izin('documents.read_admin')
+  list(@Param('versionId') versionId: string, @Aktor() actor: PenggunaAktif) {
+    return this.files.listForVersion(actor, versionId);
+  }
+
+  @Delete(':versionId/files/:fileId')
+  @Izin('documents.upload')
+  remove(
+    @Param('versionId') versionId: string,
+    @Param('fileId') fileId: string,
+    @Aktor() actor: PenggunaAktif,
+  ) {
+    return this.files.removeFromDraft(actor, versionId, fileId);
+  }
 
   @Post(':versionId/files')
   @Izin('documents.upload')
@@ -55,9 +82,12 @@ export class PublicDocumentFilesController {
     // Resolve and authorize before rate accounting so unauthorized Secret
     // probes retain the same not-found semantics as missing resources.
     const authorized = await this.files.authorizeCurrent(slug, fileId, actor);
-    this.downloadLimits.consume({ penggunaId: actor?.id, ip: req.ip });
-    const file = await this.files.openAuthorized(authorized);
     const disposition = mode === 'inline' ? 'inline' : 'attachment';
+    this.downloadLimits.consume(
+      { penggunaId: actor?.id, ip: req.ip },
+      disposition === 'inline' ? 'pratinjau' : 'unduh',
+    );
+    const file = await this.files.openAuthorized(authorized);
     res.status(200);
     res.setHeader('Content-Type', file.mimeType);
     res.setHeader('Content-Length', String(file.size));

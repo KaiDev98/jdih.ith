@@ -22,6 +22,13 @@ export type MuatanTarikDokumen = z.infer<typeof skemaTarikDokumen>;
 /** Admin mengubah status hukum dokumen secara langsung; alasan dicatat di riwayat. */
 export const skemaUbahStatusHukum = z.strictObject({
   statusHukum: skemaStatusHukum,
-  alasan: teksWajib(1000, 'Alasan perubahan status'),
+  /** Opsional; kosong disimpan sebagai NULL. */
+  alasan: z
+    .string()
+    .trim()
+    .max(1000, 'Alasan paling banyak 1000 karakter')
+    .transform((nilai) => nilai || null)
+    .nullable()
+    .optional(),
 });
 export type MuatanUbahStatusHukum = z.infer<typeof skemaUbahStatusHukum>;

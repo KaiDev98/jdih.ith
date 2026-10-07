@@ -105,7 +105,7 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
       throw new Error('Unsafe MySQL target');
     identities = new IdentityRepository(pool);
     audit = new AuditService(identities);
-    policy = new DocumentPolicyService(identities, audit);
+    policy = new DocumentPolicyService();
     storageRoot = await mkdtemp(join(tmpdir(), 'jdih-core-storage-'));
     const config = new ConfigService({
       identitas: { key: 'integration-test-key' },
@@ -179,7 +179,7 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     const row = await identities.user(pool, id);
     return identities.principal(pool, row!);
   }
-  async function doc(level: 'publik' | 'internal' | 'rahasia' = 'publik') {
+  async function doc(level: 'publik' | 'internal' = 'publik') {
     const suffix = uid();
     const [types] = await pool.query<RowDataPacket[]>(
       'SELECT id FROM jenis_dokumen WHERE aktif=1 ORDER BY urutan LIMIT 1',
@@ -191,7 +191,7 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
       versi: { judul: `Dokumen ${suffix}`, tingkatAkses: level },
     });
   }
-  const ready = (judul: string, level: 'publik' | 'internal' | 'rahasia' = 'publik') => ({
+  const ready = (judul: string, level: 'publik' | 'internal' = 'publik') => ({
     judul,
     tingkatAkses: level,
     nomor: '1',
@@ -248,11 +248,6 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
       expect.objectContaining({ id: d.id, versionId: d.versionId, statusWorkflow: 'DIAJUKAN' }),
     ]));
     const active = await addStaff();
-    const pending = await addPendingStaff();
-    const lookup = await service.activeUsers(actor, { q: '@ith.ac.id', halaman: '1', perHalaman: '100' });
-    expect(lookup.data).toEqual(expect.arrayContaining([expect.objectContaining({ id: active.id, nama: active.nama, email: active.surel })]));
-    expect(lookup.data.some((user) => user.id === pending.id)).toBe(false);
-    await expect(service.activeUsers(active, { q: 'staff', halaman: '1', perHalaman: '10' })).rejects.toBeInstanceOf(ForbiddenException);
     const auditRows = await service.auditList(actor, { halaman: '1', perHalaman: '50', module: 'documents' });
     expect(auditRows.data).toEqual(expect.arrayContaining([expect.objectContaining({ module: 'documents', action: 'CREATE' })]));
     expect(auditRows.data[0]).not.toHaveProperty('beforeJson');
@@ -560,22 +555,6 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     await expect(files.openCurrent(internalSlug, internalMain.id)).rejects.toThrow();
     await expect(files.openCurrent(internalSlug, internalMain.id, await addStaff())).resolves.toMatchObject({ mimeType: 'application/pdf' });
 
-    const secret = await doc('rahasia');
-    await service.updateVersion(actor, secret.versionId, ready('Secret file', 'rahasia'));
-    const secretMain = await files.upload(actor, secret.versionId, await incomingFile('secret.pdf', pdf), { jenisBerkas: 'UTAMA' });
-    await approve(secret.versionId);
-    await publish(secret.versionId);
-    const staff = await addStaff();
-    const secretSlug = await documentSlug(secret.id);
-    await expect(files.openCurrent(secretSlug, secretMain.id)).rejects.toThrow();
-    await expect(files.openCurrent(secretSlug, secretMain.id, staff)).rejects.toThrow();
-    await service.grant(actor, secret.id, { penggunaId: staff.id, alasan: 'Uji file secret', expiresAt: null });
-    await expect(files.openCurrent(secretSlug, secretMain.id, staff)).resolves.toMatchObject({ mimeType: 'application/pdf' });
-    const [audited] = await pool.query<RowDataPacket[]>(
-      "SELECT COUNT(*) total FROM audit_log WHERE module='identity' AND action='SECRET_ACCESS' AND actor_id=? AND entity_id=?",
-      [staff.id, secret.id],
-    );
-    expect(Number(audited[0]?.total)).toBe(1);
   });
 
   it('blocks publish when a main-file storage object is missing or its checksum no longer matches', async () => {
@@ -683,11 +662,9 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     const tagId = String((tagResult as any).insertId);
     const publicDoc = await doc('publik');
     const internalDoc = await doc('internal');
-    const secretDoc = await doc('rahasia');
     for (const [target, level, title] of [
       [publicDoc, 'publik', `Search V2 public ${marker}`],
       [internalDoc, 'internal', `Search V2 internal ${marker}`],
-      [secretDoc, 'rahasia', `Search V2 secret ${marker}`],
     ] as const) {
       await service.updateVersion(actor, target.versionId, ready(title, level));
       if (target.id === publicDoc.id)
@@ -710,10 +687,6 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     const staff = await addStaff();
     const staffResults = await search.search({ q: marker }, staff);
     expect(staffResults.meta.totalButir).toBe(2);
-    await service.grant(actor, secretDoc.id, { penggunaId: staff.id, alasan: 'Search grant', expiresAt: null });
-    const granted = await search.search({ q: `secret ${marker}` }, staff);
-    expect(granted.data).toHaveLength(1);
-    expect(granted.data[0]).toMatchObject({ id: secretDoc.id, tingkatAkses: 'rahasia' });
     const pending = await addPendingStaff();
     const pendingResults = await search.search({ q: `internal ${marker}` }, pending);
     expect(pendingResults.data).toEqual([]);
@@ -732,45 +705,6 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     await publish(revision.id);
     expect((await search.search({ q: `public ${marker}` })).data).toHaveLength(0);
     expect((await search.search({ q: `revised ${marker}` })).data).toHaveLength(1);
-  });
-
-  it('rejects duplicate active Secret grants and permits expired-grant history plus regrant', async () => {
-    const target = await addStaff();
-    const d = await doc('rahasia');
-    await service.updateVersion(actor, d.versionId, ready('Secret published', 'rahasia'));
-    await approve(d.versionId);
-    await addFileMetadata(d.versionId, 'UTAMA');
-    await publish(d.versionId);
-    const resource = {
-      id: d.id,
-      tingkatAkses: 'rahasia' as const,
-      published: true,
-      current: true,
-      deleted: false,
-    };
-    await expect(policy.assertRead(resource, target)).rejects.toThrow();
-    const input = { penggunaId: target.id, alasan: 'Akses kerja', expiresAt: null };
-    const competingGrants = await Promise.allSettled([
-      service.grant(actor, d.id, input),
-      service.grant(second, d.id, input),
-    ]);
-    expect(competingGrants.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
-    const grant = competingGrants.find((result) => result.status === 'fulfilled')!.value;
-    await expect(policy.assertRead(resource, target)).resolves.toBeUndefined();
-    await pool.execute(
-      'UPDATE dokumen_akses_rahasia SET granted_at=UTC_TIMESTAMP(6)-INTERVAL 1 HOUR,expires_at=UTC_TIMESTAMP(6)-INTERVAL 1 SECOND WHERE id=?',
-      [grant.id],
-    );
-    await expect(policy.assertRead(resource, target)).rejects.toThrow();
-    const renewed = await service.grant(actor, d.id, input);
-    expect(renewed.id).not.toBe(grant.id);
-    const [history] = await pool.query<RowDataPacket[]>(
-      'SELECT COUNT(*) total FROM dokumen_akses_rahasia WHERE dokumen_id=? AND pengguna_id=?',
-      [d.id, target.id],
-    );
-    expect(Number(history[0]?.total)).toBe(2);
-    await service.revoke(actor, d.id, renewed.id, { alasan: 'Selesai' });
-    await expect(policy.assertRead(resource, target)).rejects.toThrow();
   });
 
   it('keeps category and tag assignments version-scoped and supports unassign', async () => {

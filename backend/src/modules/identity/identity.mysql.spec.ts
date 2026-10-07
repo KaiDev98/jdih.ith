@@ -7,7 +7,6 @@ import mysql from 'mysql2';
 import type { Pool, RowDataPacket } from 'mysql2/promise';
 import { ConfigService } from '@nestjs/config';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { NotFoundException } from '@nestjs/common';
 import { IdentityRepository } from './identity.repository.js';
 import { IdentityService } from './identity.service.js';
 import { AuditService } from './audit.service.js';
@@ -60,7 +59,7 @@ describe.skipIf(!enabled)('MySQL 8.4 identity/security integration', () => {
       audit,
       new ConfigService({ identitas: { key: 'mysql-integration-only-key', sessionSeconds: 600 } }),
     );
-    policy = new DocumentPolicyService(repo, audit);
+    policy = new DocumentPolicyService();
   }, 15000);
 
   afterAll(async () => {
@@ -120,48 +119,6 @@ describe.skipIf(!enabled)('MySQL 8.4 identity/security integration', () => {
     const row = (await repo.user(pool, id))!;
     return repo.principal(pool, row);
   }
-  async function secretResource(ownerId: string) {
-    const [types] = await pool.query<RowDataPacket[]>('SELECT id FROM jenis_dokumen ORDER BY id LIMIT 1');
-    const suffix = unique();
-    const result = await repo.write(
-      pool,
-      'INSERT INTO dokumen(kode_dokumen,slug,jenis_dokumen_id,created_by) VALUES(?,?,?,?)',
-      [`TEST-${suffix}`, `test-${suffix}`, String(types[0]!.id), ownerId],
-    );
-    return {
-      id: String(result.insertId),
-      tingkatAkses: 'rahasia' as const,
-      published: true,
-      current: true,
-      deleted: false,
-    };
-  }
-  async function addGrant(
-    documentId: string,
-    userId: string,
-    grantorId: string,
-    state: 'active' | 'expired' | 'revoked',
-  ) {
-    if (state === 'active')
-      await repo.write(
-        pool,
-        'INSERT INTO dokumen_akses_rahasia(dokumen_id,pengguna_id,granted_by,grant_reason) VALUES(?,?,?,?)',
-        [documentId, userId, grantorId, 'Integration test grant'],
-      );
-    else if (state === 'expired')
-      await repo.write(
-        pool,
-        'INSERT INTO dokumen_akses_rahasia(dokumen_id,pengguna_id,granted_by,granted_at,expires_at,grant_reason) VALUES(?,?,?,UTC_TIMESTAMP(6)-INTERVAL 2 HOUR,UTC_TIMESTAMP(6)-INTERVAL 1 HOUR,?)',
-        [documentId, userId, grantorId, 'Expired integration grant'],
-      );
-    else
-      await repo.write(
-        pool,
-        'INSERT INTO dokumen_akses_rahasia(dokumen_id,pengguna_id,granted_by,granted_at,revoked_at,grant_reason,revoke_reason) VALUES(?,?,?,UTC_TIMESTAMP(6)-INTERVAL 2 HOUR,UTC_TIMESTAMP(6),?,?)',
-        [documentId, userId, grantorId, 'Revoked integration grant', 'Revoked in test'],
-      );
-  }
-
   it('schema and seed are present and verifier is ADMIN plus permission, not a role', async () => {
     const [tables] = await pool.query<RowDataPacket[]>('SHOW TABLES');
     expect(tables).toHaveLength(25);
@@ -379,36 +336,5 @@ describe.skipIf(!enabled)('MySQL 8.4 identity/security integration', () => {
     expect(Number(logs!.total)).toBe(0);
   });
 
-  it('allows a current active Secret grant and records access audit', async () => {
-    const admin = await addAdmin();
-    const staff = await addUser('DOSEN_STAF');
-    const document = await secretResource(admin.id);
-    await addGrant(document.id, staff.id, admin.id, 'active');
-    await expect(policy.assertRead(document, await dbUser(staff.id))).resolves.toBeUndefined();
-    const [logs] = await repo.rows<RowDataPacket & { total: number }>(
-      pool,
-      "SELECT COUNT(*) total FROM audit_log WHERE action='SECRET_ACCESS' AND actor_id=? AND entity_id=?",
-      [staff.id, document.id],
-    );
-    expect(Number(logs!.total)).toBe(1);
-  });
 
-  it.each(['expired', 'revoked'] as const)('%s Secret grant is denied', async (state) => {
-    const admin = await addAdmin();
-    const staff = await addUser('DOSEN_STAF');
-    const document = await secretResource(admin.id);
-    await addGrant(document.id, staff.id, admin.id, state);
-    await expect(policy.assertRead(document, await dbUser(staff.id))).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
-  });
-
-  it('uses not-found semantics for an unauthorized Secret resource', async () => {
-    const admin = await addAdmin();
-    const staff = await addUser('DOSEN_STAF');
-    const document = await secretResource(admin.id);
-    await expect(policy.assertRead(document, await dbUser(staff.id))).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
-  });
 });

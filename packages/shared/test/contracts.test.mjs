@@ -5,7 +5,7 @@ import * as c from '../dist/index.js';
 const ok = (schema, value) => assert.equal(schema.safeParse(value).success, true);
 const bad = (schema, value) => assert.equal(schema.safeParse(value).success, false);
 const cases = [
-  ['access', c.skemaTingkatAkses, ['publik', 'internal', 'rahasia'], ['terbatas', 'PUBLIK']],
+  ['access', c.skemaTingkatAkses, ['publik', 'internal'], ['terbatas', 'PUBLIK', 'rahasia']],
   [
     'workflow',
     c.skemaStatusWorkflow,
@@ -249,10 +249,12 @@ const detail = {
   slug: 'contoh',
   tipe: 'SOP',
   judul: 'Contoh',
+  deskripsi: null,
   nomor: '1',
   tanggalPenetapan: '2026-01-01',
   statusHukum: 'BERLAKU',
   pic: 'PIC bebas',
+  keteranganStatus: null,
   berkasUtama: file,
   lampiran: [],
 };
@@ -261,8 +263,39 @@ test('public detail exposes six metadata fields and authorized files', () => {
   ok(c.skemaDetailDokumenPublik, detail);
   bad(c.skemaDetailDokumenPublik, { ...detail, tingkatAkses: 'publik' });
   ok(c.skemaDetailDokumenAuthorized, { ...detail, tingkatAkses: 'internal' });
-  ok(c.skemaDetailDokumenAuthorized, { ...detail, tingkatAkses: 'rahasia' });
+  bad(c.skemaDetailDokumenAuthorized, { ...detail, tingkatAkses: 'rahasia' });
   bad(c.skemaDetailDokumenPublik, { ...detail, tingkatAkses: 'rahasia' });
+});
+test('detail carries optional description and status note', () => {
+  const keterangan = {
+    tanggal: '2026-02-01',
+    alasan: 'Disesuaikan dengan peraturan baru',
+    sumber: { judul: 'Peraturan Baru', slug: 'peraturan-baru', nomor: '2' },
+  };
+  ok(c.skemaDetailDokumenPublik, {
+    ...detail,
+    deskripsi: 'Ringkasan isi',
+    statusHukum: 'DICABUT',
+    keteranganStatus: keterangan,
+  });
+  // Sumber tertutup bagi peminta: alasan dan sumber kosong.
+  ok(c.skemaDetailDokumenPublik, {
+    ...detail,
+    statusHukum: 'DIUBAH',
+    keteranganStatus: { tanggal: '2026-02-01', alasan: null, sumber: null },
+  });
+  bad(c.skemaKeteranganStatus, { ...keterangan, sumber: { ...keterangan.sumber, tingkatAkses: 'internal' } });
+  bad(c.skemaKeteranganStatus, { ...keterangan, actorId: '1' });
+});
+test('version description and status reason are optional; blank becomes null', () => {
+  const versi = { judul: 'Contoh', tingkatAkses: 'publik' };
+  ok(c.skemaBuatVersiDokumen, versi);
+  assert.equal(c.skemaBuatVersiDokumen.parse({ ...versi, deskripsi: '   ' }).deskripsi, null);
+  assert.equal(c.skemaBuatVersiDokumen.parse({ ...versi, deskripsi: ' Isi ' }).deskripsi, 'Isi');
+  bad(c.skemaBuatVersiDokumen, { ...versi, deskripsi: 'x'.repeat(1001) });
+  ok(c.skemaUbahStatusHukum, { statusHukum: 'DICABUT' });
+  assert.equal(c.skemaUbahStatusHukum.parse({ statusHukum: 'DICABUT', alasan: '' }).alasan, null);
+  bad(c.skemaUbahStatusHukum, { statusHukum: 'DICABUT', alasan: 'x'.repeat(1001) });
 });
 for (const field of [
   'createdBy',
