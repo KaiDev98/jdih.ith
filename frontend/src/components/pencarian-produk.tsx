@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FileSearch, Search } from 'lucide-react';
+import { Eye, FileSearch, Search } from 'lucide-react';
 import type { HasilCariAnonim, HasilCariAuthorized, MetaHalaman } from '@jdih/shared';
 import { ambilApi, ambilApiBerdaftar, GalatApi } from '@/lib/api-client';
 import { useSession } from '@/lib/sesi';
@@ -112,7 +112,7 @@ export function PencarianProduk({
       {!loading && !error && data && data.data.length > 0 && <div className="grid min-w-0 gap-3">{data.data.map((row) => {
         const akses = 'tingkatAkses' in row ? LABEL_AKSES[row.tingkatAkses] : undefined;
         const status = STATUS_HUKUM[row.statusHukum];
-        return <Card key={row.id} className="p-5 min-w-0"><div className="flex flex-wrap items-center gap-2">{akses && <Badge color={akses.warna}>{akses.teks}</Badge>}<span className="text-sm text-slate-600">{row.tipe}</span></div><h3 className="mt-3 min-w-0 text-lg font-bold text-slate-950 [overflow-wrap:anywhere]"><Link href={`/produk-hukum/${row.slug}`} className="break-words hover:text-institusi-900 hover:underline">{row.judul}</Link></h3><p className="mt-2 text-sm text-slate-600">{row.nomor}{row.tahun ? ` · ${row.tahun}` : ''}</p><div className="mt-4 flex items-center justify-between"><Badge color={status.warna}>{status.teks}</Badge><Link href={`/produk-hukum/${row.slug}`} className="inline-flex items-center gap-2 text-sm font-semibold text-institusi-900">Lihat detail <FileSearch aria-hidden className="size-4" /></Link></div></Card>;
+        return <Card key={row.id} className="p-5 min-w-0"><div className="flex flex-wrap items-center gap-2">{akses && <Badge color={akses.warna}>{akses.teks}</Badge>}<span className="text-sm text-slate-600">{row.tipe}</span></div><h3 className="mt-3 min-w-0 text-lg font-bold text-slate-950 [overflow-wrap:anywhere]"><Link href={`/produk-hukum/${row.slug}`} className="break-words hover:text-institusi-900 hover:underline">{row.judul}</Link></h3><p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-600 tabular-nums"><span>{row.nomor}{row.tahun ? ` · ${row.tahun}` : ''}</span><span className="inline-flex items-center gap-1 text-slate-500" title={`${row.dilihat.toLocaleString('id-ID')} orang telah melihat`}><Eye aria-hidden className="size-3.5" />{row.dilihat.toLocaleString('id-ID')}<span className="sr-only"> orang telah melihat</span></span></p><div className="mt-4 flex items-center justify-between"><Badge color={status.warna}>{status.teks}</Badge><Link href={`/produk-hukum/${row.slug}`} className="inline-flex items-center gap-2 text-sm font-semibold text-institusi-900">Lihat detail <FileSearch aria-hidden className="size-4" /></Link></div></Card>;
       })}</div>}
       {data && data.meta.totalHalaman > 1 && <div className="mt-6 flex items-center justify-between"><Button tone="secondary" disabled={!data.meta.adaSebelumnya || loading} onClick={() => void load(page - 1)}>Sebelumnya</Button><span className="text-sm text-slate-600">Halaman {page} dari {data.meta.totalHalaman}</span><Button tone="secondary" disabled={!data.meta.adaBerikutnya || loading} onClick={() => void load(page + 1)}>Berikutnya</Button></div>}
     </section>

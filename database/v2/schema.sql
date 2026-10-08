@@ -29,6 +29,8 @@ CREATE TABLE pengguna (
   email VARCHAR(254) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   nama VARCHAR(200) NOT NULL,
   avatar_url VARCHAR(2048) NULL,
+  password_hash VARCHAR(255) CHARACTER SET ascii COLLATE ascii_bin NULL COMMENT 'scrypt; hanya Admin/Superadmin, opsional di samping login Google',
+  password_diubah_at DATETIME(6) NULL,
   unit_kerja_id BIGINT UNSIGNED NULL,
   unit_manual VARCHAR(200) NULL,
   status ENUM('MENUNGGU_VERIFIKASI','AKTIF','DITOLAK','NONAKTIF') NOT NULL DEFAULT 'MENUNGGU_VERIFIKASI',
@@ -430,6 +432,17 @@ CREATE TABLE kunjungan_harian (
   jumlah INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Pengunjung unik per peramban per hari',
   updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
   PRIMARY KEY (tanggal)
+) ENGINE=InnoDB;
+
+-- Jumlah orang yang melihat dan mengunduh setiap produk hukum (tanpa data
+-- pribadi). Satu peramban dihitung sekali per dokumen per hari WITA.
+CREATE TABLE dokumen_statistik (
+  dokumen_id BIGINT UNSIGNED NOT NULL,
+  jumlah_lihat INT UNSIGNED NOT NULL DEFAULT 0,
+  jumlah_unduh INT UNSIGNED NOT NULL DEFAULT 0,
+  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (dokumen_id),
+  CONSTRAINT fk_statistik_dokumen FOREIGN KEY (dokumen_id) REFERENCES dokumen (id) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB;
 
 CREATE TABLE audit_log (

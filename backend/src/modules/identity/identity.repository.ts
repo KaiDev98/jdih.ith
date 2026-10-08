@@ -11,6 +11,8 @@ export interface UserRow extends RowDataPacket {
   email: string;
   nama: string;
   avatar_url: string | null;
+  password_hash: string | null;
+  password_diubah_at: string | null;
   unit_kerja_id: string | null;
   unit_manual: string | null;
   status: PenggunaAktif['status'];
@@ -70,6 +72,52 @@ export class IdentityRepository {
       db,
       'SELECT * FROM pengguna WHERE google_sub=? OR email=? ORDER BY id FOR UPDATE',
       [sub, email],
+    );
+  }
+  /** Akun yang belum dihapus berdasarkan email; untuk login password. */
+  async byEmail(db: Connection, email: string) {
+    return (
+      await this.rows<UserRow>(
+        db,
+        'SELECT * FROM pengguna WHERE email=? AND deleted_at IS NULL LIMIT 1 FOR UPDATE',
+        [email],
+      )
+    )[0];
+  }
+  setPassword(db: Connection, values: (string | number | Buffer | null)[]) {
+    return this.write(
+      db,
+      'UPDATE pengguna SET password_hash=?,password_diubah_at=? WHERE id=?',
+      values,
+    );
+  }
+  /** Cabut semua sesi pengguna kecuali sesi yang sedang dipakai. */
+  revokeOtherSessions(db: Connection, values: (string | number | Buffer | null)[]) {
+    return this.write(
+      db,
+      'UPDATE sesi_pengguna SET revoked_at=? WHERE pengguna_id=? AND id<>? AND revoked_at IS NULL',
+      values,
+    );
+  }
+  /** Ada akun (termasuk yang sudah dihapus) dengan email ini? Email unik di tabel. */
+  async emailTerpakai(db: Connection, email: string) {
+    return (
+      (await this.rows(db, 'SELECT id FROM pengguna WHERE email=? FOR UPDATE', [email])).length > 0
+    );
+  }
+  /** Akun Admin baru buatan Superadmin: langsung AKTIF, tanpa Google, dengan password awal. */
+  insertAdmin(db: Connection, values: (string | number | Buffer | null)[]) {
+    return this.write(
+      db,
+      "INSERT INTO pengguna(email,nama,status,verified_at,verified_by,password_hash,password_diubah_at) VALUES(?,?,'AKTIF',?,?,?,?)",
+      values,
+    );
+  }
+  assignAdminRole(db: Connection, values: (string | number | Buffer | null)[]) {
+    return this.write(
+      db,
+      "INSERT INTO pengguna_peran(pengguna_id,peran_id) SELECT ?,id FROM peran WHERE kode='ADMIN'",
+      values,
     );
   }
   /** Akun AKTIF pertama dengan peran tertentu; hanya untuk login uji lokal. */
@@ -289,6 +337,4 @@ export class IdentityRepository {
       values,
     );
   }
-
-
 }

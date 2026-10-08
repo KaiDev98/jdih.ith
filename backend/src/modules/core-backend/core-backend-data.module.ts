@@ -8,10 +8,11 @@ import { SearchService } from './search/search.service.js';
 import { LetterTemplatesService } from './templates/letter-templates.service.js';
 import { UploadInterceptor } from './storage/upload.interceptor.js';
 import { DownloadRateLimitService } from './download-rate-limit.service.js';
+import { StatistikDokumenService } from './statistik/statistik-dokumen.service.js';
 
 @Module({
   imports: [IdentityModule, StorageModule],
-  providers: [CoreBackendRepository, CoreBackendService, DocumentFilesService, SearchService, LetterTemplatesService, UploadInterceptor, DownloadRateLimitService],
-  exports: [CoreBackendRepository, CoreBackendService, DocumentFilesService, SearchService, LetterTemplatesService, UploadInterceptor, DownloadRateLimitService],
+  providers: [CoreBackendRepository, CoreBackendService, DocumentFilesService, SearchService, LetterTemplatesService, UploadInterceptor, DownloadRateLimitService, StatistikDokumenService],
+  exports: [CoreBackendRepository, CoreBackendService, DocumentFilesService, SearchService, LetterTemplatesService, UploadInterceptor, DownloadRateLimitService, StatistikDokumenService],
 })
 export class CoreBackendDataModule {}

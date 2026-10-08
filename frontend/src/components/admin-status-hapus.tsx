@@ -46,7 +46,7 @@ export function AdminStatusHapus({
   if (!bolehStatus && !bolehHapus) return null;
   const teksStatus = STATUS.find((s) => s.nilai === status)?.teks ?? status;
   // Status sama boleh disimpan bila hanya alasannya yang dilengkapi.
-  const hanyaAlasan = status === statusHukum;
+  const hanyaAlasan = status === statusHukum && status !== 'BERLAKU';
   const tertutupBagiUmum =
     keteranganPublik !== undefined &&
     Boolean(
@@ -136,7 +136,7 @@ export function AdminStatusHapus({
                   ? 'Alasan baru langsung tampil di portal publik dan dicatat di riwayat.'
                   : 'Perubahan status langsung tampil di portal publik dan dicatat di riwayat.'
               }
-              disabled={hanyaAlasan && (status === 'BERLAKU' || !alasan.trim())}
+              disabled={status === statusHukum && (status === 'BERLAKU' || !alasan.trim())}
               onConfirm={simpanStatus}
             />
           </div>

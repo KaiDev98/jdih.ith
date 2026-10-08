@@ -487,6 +487,7 @@ export class CoreBackendService {
       pic: r.pic,
       keteranganStatus:
         r.statusHukum === 'BERLAKU' ? null : await this.keteranganStatus(r.id, r.statusHukum, actor),
+      statistik: await this.statistikDokumen(r.id),
       berkasUtama: {
         id: main.id,
         jenisBerkas: 'UTAMA',
@@ -520,6 +521,17 @@ export class CoreBackendService {
    * tidak, alasan yang berasal dari catatan relasinya ikut disembunyikan karena
    * ditulis pada dokumen tertutup itu.
    */
+  /** Jumlah orang yang melihat dan mengunduh dokumen ini. */
+  private async statistikDokumen(dokumenId: string) {
+    const r = (
+      await this.repo.rows(
+        this.repo.pool,
+        'SELECT jumlah_lihat,jumlah_unduh FROM dokumen_statistik WHERE dokumen_id=?',
+        [dokumenId],
+      )
+    )[0] as any;
+    return { dilihat: Number(r?.jumlah_lihat ?? 0), diunduh: Number(r?.jumlah_unduh ?? 0) };
+  }
   private async keteranganStatus(dokumenId: string, status: string, actor?: Actor) {
     const rows = (await this.repo.rows(
       this.repo.pool,

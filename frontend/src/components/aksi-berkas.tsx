@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Check, Download, Link2 } from 'lucide-react';
+import { PERISTIWA_UNDUH } from './statistik-dokumen';
 
 export const alamatBerkas = (slug: string, fileId: string, mode: 'inline' | 'download') =>
   `/api/v1/public/documents/${encodeURIComponent(slug)}/files/${encodeURIComponent(fileId)}?mode=${mode}`;
@@ -33,6 +34,7 @@ export function useUnduh(slug: string, fileId: string, nama: string) {
       a.download = nama;
       a.click();
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      window.dispatchEvent(new Event(PERISTIWA_UNDUH));
     } catch (e) {
       setGalat(e instanceof Error ? e.message : 'Unduhan gagal.');
     } finally {

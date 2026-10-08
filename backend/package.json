@@ -12,6 +12,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:mysql:prepare": "node scripts/prepare-identity-test-db.mjs",
+    "superadmin:password": "tsx scripts/atur-password-superadmin.mts",
     "test:mysql": "vitest run src/modules/identity/identity.mysql.spec.ts src/modules/core-backend/core-backend.mysql.spec.ts",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",

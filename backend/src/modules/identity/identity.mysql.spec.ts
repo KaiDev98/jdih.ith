@@ -1,3 +1,4 @@
+import { hashPassword } from './password.js';
 import 'reflect-metadata';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -96,12 +97,16 @@ describe.skipIf(!enabled)('MySQL 8.4 identity/security integration', () => {
   }
   async function addAdmin() {
     const user = await addUser('ADMIN');
-    const result = await identity.login(
-      { sub: user.sub, email: user.email, nama: user.nama, avatar: null },
+    // Admin masuk lewat jalur password Admin, bukan Google.
+    await repo.write(pool, 'UPDATE pengguna SET password_hash=? WHERE id=?', [
+      await hashPassword('AdminUji12345'),
+      user.id,
+    ]);
+    const result = await identity.loginPassword(
+      { email: user.email, password: 'AdminUji12345' },
       '127.0.0.1',
       'mysql-test',
     );
-    if (!result) throw new Error('Provisioned test Admin was not recognized');
     return { ...user, token: result.token };
   }
   async function register(input: { unitKerjaId: string } | { unitManual: string }) {

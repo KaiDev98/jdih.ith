@@ -42,6 +42,17 @@ export const skemaEnv = z.object({
   GOOGLE_CLIENT_ID: z.string().min(1),
   GOOGLE_CLIENT_SECRET: z.string().min(1),
   GOOGLE_REDIRECT_URI: z.url(),
+  /**
+   * Domain email Google yang boleh masuk/mendaftar. Bawaan `ith.ac.id`. Isi `*`
+   * untuk menerima akun Google apa pun (mis. Gmail) saat uji coba; Google tetap
+   * memastikan email itu ada dan sudah terverifikasi.
+   */
+  GOOGLE_DOMAIN_DIIZINKAN: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^(\*|[a-z0-9.-]+\.[a-z]{2,})$/, 'Isi domain (mis. ith.ac.id) atau *')
+    .default('ith.ac.id'),
   SESSION_KEY: z.string().min(32),
   SESSION_TTL_SECONDS: z.coerce.number().int().min(300).max(604800).default(604800),
   COOKIE_SECURE: bolean.default(true),

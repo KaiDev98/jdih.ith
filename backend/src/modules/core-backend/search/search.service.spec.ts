@@ -3,7 +3,7 @@ import { SearchService } from './search.service.js';
 
 const publicRow = {
   id: '10', slug: 'aturan-publik', tipe: 'Peraturan Rektor', judul: 'Aturan publik', nomor: '4',
-  tahun: 2026, tanggalPenetapan: '2026-01-03', statusHukum: 'BERLAKU', tingkatAkses: 'publik',
+  tahun: 2026, tanggalPenetapan: '2026-01-03', statusHukum: 'BERLAKU', tingkatAkses: 'publik', dilihat: '7',
 };
 const internalRow = { ...publicRow, id: '20', slug: 'rahasia-internal', judul: 'Judul internal', tingkatAkses: 'internal' };
 

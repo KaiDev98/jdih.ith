@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ambilApi, GalatApi } from '@/lib/api-client';
 import { csrfHeaders, useSession } from '@/lib/sesi';
+import { KeyRound, UserPlus } from 'lucide-react';
 import { Badge, Card, ConfirmAction, Field, StateMessage } from '@/components/ui';
+import { Button } from '@/components/ui/button';
+import { DialogAturUlangPassword, DialogTambahAdmin } from '@/components/admin/dialog-kelola-admin';
 
 type Akun = {
   id: string;
@@ -38,6 +41,11 @@ export function DaftarAkun() {
   const [galat, setGalat] = useState('');
   const [cari, setCari] = useState('');
   const bolehHapus = pengguna?.izin.includes('users.delete') ?? false;
+  // Hanya Superadmin yang mengelola akun Admin (dicek ulang di backend).
+  const superadminAktif = pengguna?.peran.includes('SUPERADMIN') ?? false;
+  const [tambah, setTambah] = useState(false);
+  const [aturUlang, setAturUlang] = useState<Akun>();
+  const adaAksi = bolehHapus || superadminAktif;
 
   const muat = useCallback(() => {
     ambilApi<Akun[]>('/admin/users/accounts', { kueri: { halaman: 1, perHalaman: 100 } })
@@ -71,13 +79,21 @@ export function DaftarAkun() {
             {bolehHapus && ' Akun yang dihapus langsung keluar dan tidak dapat masuk lagi.'}
           </p>
         </div>
-        <Field
-          className="w-full sm:w-72"
-          label="Cari nama atau email"
-          id="cari-akun"
-          value={cari}
-          onChange={(e) => setCari(e.target.value)}
-        />
+        <div className="flex w-full flex-wrap items-end gap-3 sm:w-auto">
+          {superadminAktif && (
+            <Button onClick={() => setTambah(true)}>
+              <UserPlus />
+              Tambah Admin
+            </Button>
+          )}
+          <Field
+            className="w-full sm:w-72"
+            label="Cari nama atau email"
+            id="cari-akun"
+            value={cari}
+            onChange={(e) => setCari(e.target.value)}
+          />
+        </div>
       </div>
       {galat && (
         <div className="mt-4">
@@ -98,7 +114,7 @@ export function DaftarAkun() {
                 <th>Peran</th>
                 <th>Unit</th>
                 <th>Status</th>
-                {bolehHapus && <th className="sr-only">Aksi</th>}
+                {adaAksi && <th className="sr-only">Aksi</th>}
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -118,18 +134,26 @@ export function DaftarAkun() {
                     <td>
                       <Badge color={status.warna}>{status.teks}</Badge>
                     </td>
-                    {bolehHapus && (
+                    {adaAksi && (
                       <td className="py-2 text-right">
-                        {!diri && !superadmin && (
-                          <ConfirmAction
-                            label="Hapus"
-                            tone="danger"
-                            title="Hapus akun ini?"
-                            description={`Akun ${a.nama} (${a.email}) dihapus, sesi loginnya dicabut, dan tidak dapat masuk lagi. Tindakan ini tercatat di audit.`}
-                            confirmLabel="Ya, hapus akun"
-                            onConfirm={() => hapus(a.id)}
-                          />
-                        )}
+                        <div className="flex justify-end gap-2">
+                          {superadminAktif && !diri && !superadmin && a.peran.includes('ADMIN') && (
+                            <Button variant="outline" size="sm" onClick={() => setAturUlang(a)}>
+                              <KeyRound />
+                              Atur ulang password
+                            </Button>
+                          )}
+                          {bolehHapus && !diri && !superadmin && (
+                            <ConfirmAction
+                              label="Hapus"
+                              tone="danger"
+                              title="Hapus akun ini?"
+                              description={`Akun ${a.nama} (${a.email}) dihapus, sesi loginnya dicabut, dan tidak dapat masuk lagi. Tindakan ini tercatat di audit.`}
+                              confirmLabel="Ya, hapus akun"
+                              onConfirm={() => hapus(a.id)}
+                            />
+                          )}
+                        </div>
                       </td>
                     )}
                   </tr>
@@ -144,6 +168,8 @@ export function DaftarAkun() {
           )}
         </div>
       )}
+      <DialogTambahAdmin buka={tambah} onBukaChange={setTambah} onDibuat={muat} />
+      <DialogAturUlangPassword akun={aturUlang} onTutup={() => setAturUlang(undefined)} />
     </Card>
   );
 }

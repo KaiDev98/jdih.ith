@@ -23,7 +23,7 @@ const expected = [
   'sesi_pengguna','jenis_dokumen','kategori','tag','dokumen','dokumen_versi',
   'dokumen_versi_kategori','dokumen_versi_tag','dokumen_berkas','dokumen_relasi',
   'dokumen_akses_rahasia','dokumen_workflow','dokumen_status_hukum_riwayat',
-  'template_surat','template_surat_versi','kontak_kantor_butir','kunjungan_harian','audit_log'
+  'template_surat','template_surat_versi','kontak_kantor_butir','kunjungan_harian','dokumen_statistik','audit_log'
 ].sort();
 const fks = [...schema.matchAll(/CONSTRAINT (\w+) FOREIGN KEY/g)].map(m => m[1]).sort();
 const checks = [...schema.matchAll(/CONSTRAINT (\w+) CHECK/g)].map(m => m[1]).sort();
@@ -42,7 +42,7 @@ for (const match of schema.matchAll(/CREATE TABLE (\w+) \(\n([\s\S]*?)\n\) ENGIN
   }
   structures.set(match[1], {columns,keys,candidateKeys});
 }
-assert.equal(structures.size,25);
+assert.equal(structures.size,26);
 for (const name of [...fks,...checks,...indexes]) assert.ok(name.length <= 64, 'Identifier too long: '+name);
 assert.equal(new Set([...fks,...checks]).size, fks.length+checks.length, 'Duplicate constraint name');
 const statements = [...schema.matchAll(/CREATE TABLE (\w+) \(\n([\s\S]*?)\n\) ENGINE=InnoDB;/g),

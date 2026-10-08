@@ -118,6 +118,11 @@ export const skemaKeteranganStatus = z.strictObject({
     })
     .nullable(),
 });
+/** Jumlah orang (bukan klik) yang melihat dan mengunduh sebuah dokumen. */
+export const skemaStatistikDokumen = z.strictObject({
+  dilihat: z.number().int().min(0),
+  diunduh: z.number().int().min(0),
+});
 const detail = {
   id: skemaId,
   slug: skemaSlug,
@@ -129,6 +134,7 @@ const detail = {
   statusHukum: skemaStatusHukum,
   pic: teksWajib(255, 'PIC'),
   keteranganStatus: skemaKeteranganStatus.nullable(),
+  statistik: skemaStatistikDokumen,
   berkasUtama: skemaBerkasUtama,
   lampiran: z.array(skemaBerkasLampiran),
 };
@@ -154,3 +160,4 @@ export type MuatanMetaBerkas = z.infer<typeof skemaMetaBerkas>;
 export type DetailDokumenPublik = z.infer<typeof skemaDetailDokumenPublik>;
 export type DetailDokumenAuthorized = z.infer<typeof skemaDetailDokumenAuthorized>;
 export type KeteranganStatus = z.infer<typeof skemaKeteranganStatus>;
+export type StatistikDokumen = z.infer<typeof skemaStatistikDokumen>;

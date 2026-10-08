@@ -7,6 +7,7 @@ import { GalatApi } from '@/lib/api-client';
 import { StateMessage } from '@/components/ui';
 import { PratinjauDokumen } from '@/components/pratinjau-dokumen';
 import { AksiHero } from '@/components/aksi-berkas';
+import { StatistikLangsung } from '@/components/statistik-dokumen';
 
 /** Tampilan publik tidak memuat `tingkatAkses`; hanya pengguna berhak yang menerimanya. */
 type Detail = DetailDokumenAuthorized | DetailDokumenPublik;
@@ -103,6 +104,7 @@ export default async function DetailProdukHukum({ params }: { params: Promise<{ 
             <span className="rounded-full bg-white/15 px-3 py-0.5 font-semibold text-white">{detail.tipe}</span>
           </div>
           <h1 className="mt-4 max-w-4xl text-2xl leading-tight font-bold tracking-tight [overflow-wrap:anywhere] sm:text-3xl lg:text-4xl">{detail.judul}</h1>
+          <div className="mt-4"><StatistikLangsung slug={detail.slug} awal={detail.statistik} /></div>
           <div className="mt-6"><AksiHero slug={detail.slug} fileId={detail.berkasUtama.id} nama={detail.berkasUtama.namaAsli} /></div>
           <dl className="mt-8 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-white/20 pt-5 lg:grid-cols-4">
             {fakta.map(([label, value]) => (

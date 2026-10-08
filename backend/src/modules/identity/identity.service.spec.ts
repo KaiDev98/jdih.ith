@@ -127,12 +127,24 @@ describe('identity lifecycle', () => {
     ).rejects.toThrow();
     expect(f.repo.transaction).not.toHaveBeenCalled();
   });
-  it('preprovisioned Admin binds verified sub', async () => {
+  it('Google hanya untuk Dosen/Staf: Admin dan Superadmin ditolak, tanpa menautkan sub', async () => {
+    for (const peran of [['ADMIN'], ['SUPERADMIN'], ['ADMIN', 'SUPERADMIN']]) {
+      const f = fixture();
+      f.row.google_sub = null;
+      f.user.peran = peran as never;
+      await expect(f.service.login(identity, '', '')).rejects.toThrow();
+      f.row.google_sub = 'sub';
+      await expect(f.service.login(identity, '', '')).rejects.toThrow();
+      expect(f.writes.mock.calls.some(([, q]) => q.includes('SET google_sub'))).toBe(false);
+      expect(f.writes.mock.calls.some(([, q]) => q.includes('INSERT INTO sesi_pengguna'))).toBe(false);
+    }
+  });
+  it('Dosen/Staf dengan sub Google yang cocok mendapat sesi', async () => {
     const f = fixture();
-    f.row.google_sub = null;
-    f.user.peran = ['ADMIN'];
-    await f.service.login(identity, '', '');
-    expect(f.writes.mock.calls.some(([, q]) => q.includes('SET google_sub'))).toBe(true);
+    f.row.google_sub = 'sub';
+    f.user.peran = ['DOSEN_STAF'] as never;
+    const sesi = await f.service.login(identity, '', '');
+    expect(typeof sesi?.token).toBe('string');
   });
   it('cannot bind a conflicting sub or unprovisioned staff', async () => {
     const f = fixture();

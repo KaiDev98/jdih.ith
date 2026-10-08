@@ -102,8 +102,8 @@ export class SearchService {
       : [];
     const rows = await this.repo.rows(
       this.repo.pool,
-      `SELECT CAST(d.id AS CHAR) id,d.slug,j.nama tipe,v.judul,v.nomor,v.tahun,v.tanggal_penetapan tanggalPenetapan,d.status_hukum statusHukum,v.tingkat_akses tingkatAkses
-       FROM dokumen d JOIN dokumen_versi v ON v.id=d.current_published_version_id JOIN jenis_dokumen j ON j.id=d.jenis_dokumen_id
+      `SELECT CAST(d.id AS CHAR) id,d.slug,j.nama tipe,v.judul,v.nomor,v.tahun,v.tanggal_penetapan tanggalPenetapan,d.status_hukum statusHukum,v.tingkat_akses tingkatAkses,COALESCE(st.jumlah_lihat,0) dilihat
+       FROM dokumen d JOIN dokumen_versi v ON v.id=d.current_published_version_id JOIN jenis_dokumen j ON j.id=d.jenis_dokumen_id LEFT JOIN dokumen_statistik st ON st.dokumen_id=d.id
        WHERE ${where} ORDER BY ${relevance} LIMIT ? OFFSET ?`,
       [...filter.values, ...accessValues, ...relevanceValues, query.perHalaman, offset],
     );
@@ -118,6 +118,7 @@ export class SearchService {
             tahun: r.tahun == null ? null : Number(r.tahun),
             tanggalPenetapan: r.tanggalPenetapan == null ? null : String(r.tanggalPenetapan),
             statusHukum: String(r.statusHukum),
+            dilihat: Number(r.dilihat),
           }),
         )
       : rows.map((r) =>
@@ -130,6 +131,7 @@ export class SearchService {
             tahun: r.tahun == null ? null : Number(r.tahun),
             tanggalPenetapan: r.tanggalPenetapan == null ? null : String(r.tanggalPenetapan),
             statusHukum: String(r.statusHukum),
+            dilihat: Number(r.dilihat),
             tingkatAkses: String(r.tingkatAkses),
           }),
         );
@@ -163,13 +165,13 @@ export class SearchService {
     const offset = (query.halaman - 1) * query.perHalaman;
     const rows = await this.repo.rows(
       this.repo.pool,
-      `SELECT CAST(d.id AS CHAR) id,d.slug,j.nama tipe,v.judul,v.nomor,v.tahun,v.tanggal_penetapan tanggalPenetapan,d.status_hukum statusHukum
-       FROM dokumen d JOIN dokumen_versi v ON v.id=d.current_published_version_id JOIN jenis_dokumen j ON j.id=d.jenis_dokumen_id
+      `SELECT CAST(d.id AS CHAR) id,d.slug,j.nama tipe,v.judul,v.nomor,v.tahun,v.tanggal_penetapan tanggalPenetapan,d.status_hukum statusHukum,COALESCE(st.jumlah_lihat,0) dilihat
+       FROM dokumen d JOIN dokumen_versi v ON v.id=d.current_published_version_id JOIN jenis_dokumen j ON j.id=d.jenis_dokumen_id LEFT JOIN dokumen_statistik st ON st.dokumen_id=d.id
        WHERE ${where} ORDER BY v.published_at DESC,v.id DESC LIMIT ? OFFSET ?`,
       [...filter.values, query.perHalaman, offset],
     );
     const data = rows.map((row) =>
-      skemaHasilCariAnonim.parse(row),
+      skemaHasilCariAnonim.parse({ ...row, dilihat: Number(row.dilihat) }),
     );
     const total = Number(countRows?.total ?? 0);
     return skemaTanggapanCariAnonim.parse({

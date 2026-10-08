@@ -46,6 +46,7 @@ const ringkasan = {
   tahun: 2026,
   tanggalPenetapan: '2026-01-03',
   statusHukum: 'BERLAKU',
+  dilihat: 4,
 };
 
 beforeEach(() => {

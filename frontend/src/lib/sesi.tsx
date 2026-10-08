@@ -16,6 +16,18 @@ interface SesiState {
 }
 const KonteksSesi = createContext<SesiState | null>(null);
 
+/** Cek sesi; bila sempat terkena batas laju (429), coba lagi dua kali dengan jeda. */
+async function ambilSesi(): Promise<SesiHttp> {
+  for (let percobaan = 0; ; percobaan++) {
+    try {
+      return await ambilApi<SesiHttp>('/auth/me', { cache: 'no-store' });
+    } catch (error) {
+      if (!(error instanceof GalatApi) || error.status !== 429 || percobaan >= 2) throw error;
+      await new Promise((selesai) => setTimeout(selesai, 1500 * (percobaan + 1)));
+    }
+  }
+}
+
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<SesiState['state']>('loading');
   const [pengguna, setPengguna] = useState<PenggunaAktif>();
@@ -25,7 +37,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setState('loading');
     setGalat(undefined);
     try {
-      const result = await ambilApi<SesiHttp>('/auth/me', { cache: 'no-store' });
+      const result = await ambilSesi();
       setCsrfToken(result.csrfToken);
       if (result.terautentikasi) {
         setPengguna(result.pengguna);

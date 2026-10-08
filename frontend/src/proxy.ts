@@ -14,7 +14,7 @@ export function kebijakanCsp(nonce: string, lingkungan: LingkunganCsp): string {
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${pengembangan ? " 'unsafe-eval'" : ''}`,
     `style-src 'self' 'nonce-${nonce}'`,
-    'img-src \'self\' data: blob:',
+    'img-src \'self\' data: blob: https://lh3.googleusercontent.com',
     "font-src 'self' data:",
     `connect-src 'self'${pengembangan ? ' ws: wss:' : ''}`,
     "frame-src 'self' blob:",

@@ -215,6 +215,15 @@ test('anonymous result has no Internal variant and no access label', () => {
   bad(c.skemaCariDokumen, { tingkatAkses: 'rahasia' });
   bad(c.skemaCariDokumen, { statusWorkflow: 'DRAF' });
 });
+test('search items and detail carry view/download counts', () => {
+  const item = { id: '1', slug: 'aturan', judul: 'Aturan', nomor: '1', tahun: 2026, tipe: 'Peraturan Rektor', statusHukum: 'BERLAKU', tanggalPenetapan: '2026-01-01', dilihat: 12 };
+  ok(c.skemaHasilCariAnonim, item);
+  bad(c.skemaHasilCariAnonim, { ...item, dilihat: -1 });
+  const { dilihat: _, ...tanpa } = item;
+  bad(c.skemaHasilCariAnonim, tanpa);
+  ok(c.skemaStatistikDokumen, { dilihat: 0, diunduh: 0 });
+  bad(c.skemaStatistikDokumen, { dilihat: 1, diunduh: 1, pengunduh: ['a'] });
+});
 test('generic comma-list utilities preserve precision and reject invalid IDs', () => {
   assert.deepEqual(c.daftarIdTerpisahKoma.parse('1, 18446744073709551615'), [
     '1',
@@ -255,6 +264,7 @@ const detail = {
   statusHukum: 'BERLAKU',
   pic: 'PIC bebas',
   keteranganStatus: null,
+  statistik: { dilihat: 3, diunduh: 1 },
   berkasUtama: file,
   lampiran: [],
 };
@@ -345,4 +355,29 @@ test('legacy exports no longer present', () => {
     'skemaDokumenSubstansi',
   ])
     assert.equal(name in c, false);
+});
+
+test('superadmin creates admin accounts with strong initial passwords', () => {
+  const v = { nama: 'Admin Baru', email: ' Admin.Baru@Gmail.com ', password: 'AwalKuat2026' };
+  assert.equal(c.skemaBuatAdmin.parse(v).email, 'admin.baru@gmail.com');
+  bad(c.skemaBuatAdmin, { ...v, password: 'lemah' });
+  bad(c.skemaBuatAdmin, { ...v, peran: 'SUPERADMIN' });
+  bad(c.skemaBuatAdmin, { ...v, email: 'bukan-email' });
+  ok(c.skemaAturUlangPassword, { passwordBaru: 'BaruKuat2026' });
+  bad(c.skemaAturUlangPassword, { passwordBaru: 'pendek1' });
+});
+test('password login and change rules', () => {
+  ok(c.skemaLoginPassword, { email: 'Admin@ITH.ac.id ', password: 'x' });
+  assert.equal(c.skemaLoginPassword.parse({ email: ' Admin@ITH.ac.id', password: 'x' }).email, 'admin@ith.ac.id');
+  bad(c.skemaLoginPassword, { email: 'bukan-email', password: 'x' });
+  bad(c.skemaLoginPassword, { email: 'a@ith.ac.id', password: '' });
+  const baru = { passwordSaatIni: 'LamaSekali1', passwordBaru: 'BaruSekali22', konfirmasiPassword: 'BaruSekali22' };
+  ok(c.skemaUbahPassword, baru);
+  ok(c.skemaUbahPassword, { passwordBaru: 'BaruSekali22', konfirmasiPassword: 'BaruSekali22' });
+  bad(c.skemaUbahPassword, { ...baru, konfirmasiPassword: 'Beda1234567' });
+  bad(c.skemaUbahPassword, { ...baru, passwordBaru: 'pendek1', konfirmasiPassword: 'pendek1' });
+  bad(c.skemaUbahPassword, { ...baru, passwordBaru: 'tanpaangkasama', konfirmasiPassword: 'tanpaangkasama' });
+  bad(c.skemaUbahPassword, { ...baru, passwordBaru: '12345678901', konfirmasiPassword: '12345678901' });
+  bad(c.skemaUbahPassword, { passwordSaatIni: 'SamaPersis11', passwordBaru: 'SamaPersis11', konfirmasiPassword: 'SamaPersis11' });
+  bad(c.skemaStatusPassword, { punyaPassword: true, diubahPada: null, hash: 'x' });
 });

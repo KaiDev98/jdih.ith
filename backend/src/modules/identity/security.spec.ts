@@ -76,6 +76,13 @@ describe('Google identity validation', () => {
     it('fails closed ' + JSON.stringify(bad), () =>
       expect(() => verifiedClaims({ ...claims, ...bad }, 'client', 'nonce')).toThrow(),
     );
+  it('mode * menerima akun Google apa pun yang emailnya terverifikasi', () => {
+    const gmail = { ...claims, email: 'Seseorang@Gmail.com', hd: undefined };
+    expect(verifiedClaims(gmail, 'client', 'nonce', '*').email).toBe('seseorang@gmail.com');
+    expect(() => verifiedClaims({ ...gmail, email_verified: false }, 'client', 'nonce', '*')).toThrow();
+    expect(() => verifiedClaims({ ...gmail, nonce: 'salah' }, 'client', 'nonce', '*')).toThrow();
+    expect(() => verifiedClaims(gmail, 'client', 'nonce')).toThrow();
+  });
   it('verifies actual RSA signatures and rejects tampered, wrong audience and expired tokens', async () => {
     const keys = await generateKeyPair('RS256');
     const jwk = await exportJWK(keys.publicKey);

@@ -8,6 +8,7 @@ import { SearchModule } from './search/search.module.js';
 import { LetterTemplatesModule } from './templates/letter-templates.module.js';
 import { KontakModule } from './kontak/kontak.module.js';
 import { KunjunganModule } from './kunjungan/kunjungan.module.js';
+import { StatistikDokumenModule } from './statistik/statistik-dokumen.module.js';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { KunjunganModule } from './kunjungan/kunjungan.module.js';
     LetterTemplatesModule,
     KontakModule,
     KunjunganModule,
+    StatistikDokumenModule,
   ],
 })
 export class CoreBackendModule {}

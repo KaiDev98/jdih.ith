@@ -15,6 +15,7 @@ import { PublicDocumentFilesController } from './files/files.controller.js';
 import { LetterTemplatesService } from './templates/letter-templates.service.js';
 import type { TemplateDownloadTerotorisasi } from './templates/letter-templates.service.js';
 import { PublicLetterTemplatesController } from './templates/letter-templates.controller.js';
+import { StatistikDokumenService } from './statistik/statistik-dokumen.service.js';
 import { DownloadRateLimitService } from './download-rate-limit.service.js';
 
 const token = 'authorized-test-session';
@@ -39,23 +40,29 @@ function streamFile() {
   };
 }
 
+const statistik = { catatSekali: vi.fn(() => Promise.resolve(true)) };
+
 describe('download route rate limiting (HTTP)', () => {
   const files = {
-    authorizeCurrent: vi.fn<
-      (slug: string, fileId: string, actor?: PenggunaAktif) => Promise<BerkasDownloadTerotorisasi>
-    >(),
-    openAuthorized: vi.fn<
-      (file: BerkasDownloadTerotorisasi) => ReturnType<DocumentFilesService['openAuthorized']>
-    >(),
+    authorizeCurrent:
+      vi.fn<
+        (slug: string, fileId: string, actor?: PenggunaAktif) => Promise<BerkasDownloadTerotorisasi>
+      >(),
+    openAuthorized:
+      vi.fn<
+        (file: BerkasDownloadTerotorisasi) => ReturnType<DocumentFilesService['openAuthorized']>
+      >(),
   };
   const templates = {
-    authorizeOpen: vi.fn<
-      (slug: string, actor?: PenggunaAktif) => Promise<TemplateDownloadTerotorisasi>
-    >(),
-    openAuthorized: vi.fn<
-      (file: TemplateDownloadTerotorisasi, actor?: PenggunaAktif) =>
-        ReturnType<LetterTemplatesService['openAuthorized']>
-    >(),
+    authorizeOpen:
+      vi.fn<(slug: string, actor?: PenggunaAktif) => Promise<TemplateDownloadTerotorisasi>>(),
+    openAuthorized:
+      vi.fn<
+        (
+          file: TemplateDownloadTerotorisasi,
+          actor?: PenggunaAktif,
+        ) => ReturnType<LetterTemplatesService['openAuthorized']>
+      >(),
   };
   const identity = { authenticate: vi.fn() };
   let app: INestApplication;
@@ -84,6 +91,8 @@ describe('download route rate limiting (HTTP)', () => {
         { provide: LetterTemplatesService, useValue: templates },
         { provide: IdentityService, useValue: identity },
         { provide: DownloadRateLimitService, useValue: new DownloadRateLimitService(config) },
+        { provide: StatistikDokumenService, useValue: statistik },
+        { provide: ConfigService, useValue: config },
       ],
     }).compile();
     app = module.createNestApplication({ logger: false });
@@ -116,13 +125,17 @@ describe('download route rate limiting (HTTP)', () => {
   });
 
   it('counts inline previews separately from downloads', async () => {
+    statistik.catatSekali.mockClear();
     const url = `${base}/api/v1/public/documents/public/files/file-6`;
     expect((await fetch(`${url}?mode=inline`)).status).toBe(200);
+    // Pratinjau tidak menambah jumlah pengunduh.
+    expect(statistik.catatSekali).not.toHaveBeenCalled();
     // Pratinjau habis, unduhan masih punya kuotanya sendiri; lalu habis juga.
     expect((await fetch(`${url}?mode=inline`)).status).toBe(429);
     const unduh = await fetch(`${url}?mode=download`);
     expect(unduh.status).toBe(200);
     expect(unduh.headers.get('content-disposition')).toContain('attachment');
+    expect(statistik.catatSekali).toHaveBeenCalledTimes(1);
     expect((await fetch(`${url}?mode=download`)).status).toBe(429);
     expect(files.openAuthorized).toHaveBeenCalledTimes(2);
   });
@@ -143,31 +156,21 @@ describe('download route rate limiting (HTTP)', () => {
         : Promise.resolve({} as BerkasDownloadTerotorisasi),
     );
 
-    expect(
-      (await fetch(`${base}/api/v1/public/documents/secret/files/file-3`)).status,
-    ).toBe(404);
+    expect((await fetch(`${base}/api/v1/public/documents/secret/files/file-3`)).status).toBe(404);
 
     const allowed = await fetch(`${base}/api/v1/public/documents/public/files/file-4`);
     expect(allowed.status).toBe(200);
     expect(files.openAuthorized).toHaveBeenCalledOnce();
 
-    const secretWhileLimited = await fetch(
-      `${base}/api/v1/public/documents/secret/files/file-3`,
-    );
+    const secretWhileLimited = await fetch(`${base}/api/v1/public/documents/secret/files/file-3`);
     expect(secretWhileLimited.status).toBe(404);
-    expect(
-      (await fetch(`${base}/api/v1/public/documents/public/files/file-4`)).status,
-    ).toBe(429);
+    expect((await fetch(`${base}/api/v1/public/documents/public/files/file-4`)).status).toBe(429);
     expect(files.openAuthorized).toHaveBeenCalledOnce();
   });
 
   it('shares anonymous quota with public letter-template downloads', async () => {
-    expect(
-      (await fetch(`${base}/api/v1/public/documents/public/files/file-5`)).status,
-    ).toBe(200);
-    expect(
-      (await fetch(`${base}/api/v1/letter-templates/template/download`)).status,
-    ).toBe(429);
+    expect((await fetch(`${base}/api/v1/public/documents/public/files/file-5`)).status).toBe(200);
+    expect((await fetch(`${base}/api/v1/letter-templates/template/download`)).status).toBe(429);
     expect(templates.authorizeOpen).toHaveBeenCalledOnce();
     expect(templates.openAuthorized).not.toHaveBeenCalled();
   });

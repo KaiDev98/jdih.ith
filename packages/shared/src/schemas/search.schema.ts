@@ -41,6 +41,8 @@ const ringkasan = {
   tahun: skemaTahun.nullable(),
   tanggalPenetapan: skemaTanggal,
   statusHukum: skemaStatusHukum,
+  /** Jumlah orang yang telah melihat dokumen ini. */
+  dilihat: z.number().int().min(0),
 };
 /**
  * Hasil cari untuk yang TIDAK berhak melihat dokumen Internal (pengunjung anonim

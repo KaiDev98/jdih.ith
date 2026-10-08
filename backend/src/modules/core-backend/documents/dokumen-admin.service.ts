@@ -143,6 +143,7 @@ export class DokumenAdminService {
         await this.repo.write(db, `DELETE FROM ${sasaran} IN (${di})`, ids);
       await this.repo.write(db, 'DELETE FROM dokumen_akses_rahasia WHERE dokumen_id=?', [id]);
       await this.repo.write(db, 'DELETE FROM dokumen_versi WHERE dokumen_id=?', [id]);
+      await this.repo.write(db, 'DELETE FROM dokumen_statistik WHERE dokumen_id=?', [id]);
       await this.repo.write(db, 'DELETE FROM dokumen WHERE id=?', [id]);
       await this.audit.recordDomain(
         {

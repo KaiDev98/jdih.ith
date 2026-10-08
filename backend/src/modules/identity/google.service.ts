@@ -16,6 +16,7 @@ export async function verifyGoogleToken(
   key: JWTVerifyGetKey,
   clientId: string,
   nonce: string,
+  domain = 'ith.ac.id',
 ) {
   const { payload } = await jwtVerify(token, key, {
     algorithms: ['RS256'],
@@ -23,18 +24,29 @@ export async function verifyGoogleToken(
     audience: clientId,
     requiredClaims: ['exp', 'iat', 'sub', 'nonce'],
   });
-  return verifiedClaims(payload, clientId, nonce);
+  return verifiedClaims(payload, clientId, nonce, domain);
 }
-export function verifiedClaims(p: JWTPayload, clientId: string, nonce: string): GoogleIdentity {
+/**
+ * Klaim token Google yang sah. `domain` membatasi email (dan klaim `hd` Google
+ * Workspace); `*` menerima akun Google apa pun yang emailnya terverifikasi.
+ */
+export function verifiedClaims(
+  p: JWTPayload,
+  clientId: string,
+  nonce: string,
+  domain = 'ith.ac.id',
+): GoogleIdentity {
   const email = z.email().max(254).safeParse(p.email);
+  const domainCocok =
+    domain === '*' ||
+    (email.success && email.data.split('@')[1]?.toLowerCase() === domain && p.hd === domain);
   if (
     !['https://accounts.google.com', 'accounts.google.com'].includes(String(p.iss)) ||
     p.aud !== clientId ||
     (p.azp !== undefined && p.azp !== clientId) ||
     p.email_verified !== true ||
     !email.success ||
-    email.data.split('@')[1]?.toLowerCase() !== 'ith.ac.id' ||
-    p.hd !== 'ith.ac.id' ||
+    !domainCocok ||
     !sama(p.nonce, nonce) ||
     typeof p.sub !== 'string' ||
     !/^[\x21-\x7e]{1,255}$/.test(p.sub) ||
@@ -87,7 +99,7 @@ export class GoogleService {
       redirect_uri: cfg.redirectUri,
       response_type: 'code',
       scope: 'openid email profile',
-      hd: 'ith.ac.id',
+      ...(cfg.domainDiizinkan === '*' ? {} : { hd: cfg.domainDiizinkan }),
       state: flow.state,
       nonce: flow.nonce,
       code_challenge: hashToken(flow.verifier).toString('base64url'),
@@ -114,7 +126,13 @@ export class GoogleService {
       });
       if (!response.ok) throw new Error('exchange');
       const body = z.object({ id_token: z.string().max(20000) }).parse(await response.json());
-      return await verifyGoogleToken(body.id_token, this.jwks, cfg.clientId, flow.nonce);
+      return await verifyGoogleToken(
+        body.id_token,
+        this.jwks,
+        cfg.clientId,
+        flow.nonce,
+        cfg.domainDiizinkan,
+      );
     } catch {
       throw new UnauthorizedException('Verifikasi Google gagal');
     }

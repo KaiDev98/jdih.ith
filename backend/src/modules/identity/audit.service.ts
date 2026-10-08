@@ -15,7 +15,10 @@ export type SecurityAction =
   | 'REACTIVATE'
   | 'CREATE_UNIT'
   | 'SECRET_ACCESS'
-  | 'DELETE_ACCOUNT';
+  | 'DELETE_ACCOUNT'
+  | 'PASSWORD_CHANGE'
+  | 'CREATE_ADMIN'
+  | 'RESET_PASSWORD';
 export interface SecurityAudit {
   action: SecurityAction;
   actorId: string | null;

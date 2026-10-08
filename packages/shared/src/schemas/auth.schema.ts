@@ -63,6 +63,53 @@ export const skemaAuthMeHttp = z.discriminatedUnion('terautentikasi', [
     csrfToken: z.string(),
   }),
 ]);
+/** Login password lokal: hanya untuk akun Admin/Superadmin yang sudah membuat password. */
+export const skemaLoginPassword = z.strictObject({
+  email: z.string().trim().toLowerCase().pipe(skemaSurel),
+  password: z.string().min(1, 'Password wajib diisi').max(128),
+});
+/** Aturan password baru: panjang cukup dan memadukan huruf dengan angka. */
+export const skemaPasswordBaru = z
+  .string()
+  .min(10, 'Password minimal 10 karakter')
+  .max(128, 'Password maksimal 128 karakter')
+  .regex(/[A-Za-z]/, 'Password harus memuat huruf')
+  .regex(/[0-9]/, 'Password harus memuat angka');
+/**
+ * Ganti (atau buat pertama kali) password. Password saat ini wajib bila akun
+ * sudah punya password; backend memeriksanya, tidak cukup di sini.
+ */
+export const skemaUbahPassword = z
+  .strictObject({
+    passwordSaatIni: z.string().max(128).optional(),
+    passwordBaru: skemaPasswordBaru,
+    konfirmasiPassword: z.string().max(128),
+  })
+  .refine((v) => v.passwordBaru === v.konfirmasiPassword, {
+    message: 'Konfirmasi password tidak sama',
+    path: ['konfirmasiPassword'],
+  })
+  .refine((v) => !v.passwordSaatIni || v.passwordSaatIni !== v.passwordBaru, {
+    message: 'Password baru harus berbeda dari password saat ini',
+    path: ['passwordBaru'],
+  });
+export const skemaStatusPassword = z.strictObject({
+  punyaPassword: z.boolean(),
+  diubahPada: z.string().nullable(),
+});
+/** Superadmin membuat akun Admin dengan password awal (tanpa perlu login Google). */
+export const skemaBuatAdmin = z.strictObject({
+  nama: teksWajib(200, 'Nama'),
+  email: z.string().trim().toLowerCase().pipe(skemaSurel),
+  password: skemaPasswordBaru,
+});
+/** Superadmin mengatur ulang password akun Admin yang lupa. */
+export const skemaAturUlangPassword = z.strictObject({ passwordBaru: skemaPasswordBaru });
+export type MuatanBuatAdmin = z.infer<typeof skemaBuatAdmin>;
+export type MuatanAturUlangPassword = z.infer<typeof skemaAturUlangPassword>;
+export type MuatanLoginPassword = z.infer<typeof skemaLoginPassword>;
+export type MuatanUbahPassword = z.infer<typeof skemaUbahPassword>;
+export type StatusPassword = z.infer<typeof skemaStatusPassword>;
 export const skemaGoogleCallback = z.object({
   code: z.string().min(1).max(4096),
   state: z.string().min(1).max(128),

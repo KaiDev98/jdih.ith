@@ -30,7 +30,7 @@ export function BilahCari({ tipe, tahun }: { tipe: readonly Jenis[]; tahun: read
 
   return (
     <form action="/produk-hukum" role="search" className="min-w-0">
-      <div className="flex items-center rounded-full bg-white p-1.5 text-tinta shadow-[0_24px_56px_-24px_rgb(61_23_6/0.55)] ring-white/35 transition-shadow duration-200 focus-within:ring-4">
+      <div className="flex items-center rounded-full bg-white p-1.5 text-tinta shadow-[0_24px_56px_-24px_rgb(61_23_6/0.55)] ring-white/35 transition-[box-shadow] duration-300 focus-within:ring-4 focus-within:shadow-[0_28px_64px_-24px_rgb(8_20_40/0.7)]">
         <Search aria-hidden className="ml-4 size-5 shrink-0 text-institusi-600 sm:ml-5" />
         <label htmlFor="q-beranda" className="sr-only">
           Kata kunci
@@ -72,7 +72,7 @@ export function BilahCari({ tipe, tahun }: { tipe: readonly Jenis[]; tahun: read
         )}
         <button
           type="submit"
-          className="tekan inline-flex min-h-12 shrink-0 items-center justify-center rounded-full bg-institusi-600 px-6 text-base font-bold text-white hover:bg-institusi-700 sm:min-h-14 sm:px-9 sm:text-lg"
+          className="tekan inline-flex min-h-12 shrink-0 items-center justify-center rounded-full bg-institusi-600 px-6 text-base font-bold text-white hover:bg-institusi-700 hover:shadow-[0_8px_22px_-8px_rgb(194_81_14/0.75)] sm:min-h-14 sm:px-9 sm:text-lg"
         >
           Cari
         </button>

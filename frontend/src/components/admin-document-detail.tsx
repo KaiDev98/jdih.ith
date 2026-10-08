@@ -200,9 +200,13 @@ export function AdminDocumentDetail({
                   ? 'Dokumen dikembalikan untuk diperbaiki. Ubah draf sesuai catatan, lalu ajukan lagi.'
                   : 'Lengkapi data dan unggah dokumen utama, lalu ajukan untuk diverifikasi.')}
               {tahap === 'DIAJUKAN' &&
-                'Periksa ulang data dan berkas. Setujui bila sudah benar, atau kembalikan dengan catatan perbaikan.'}
+                (izin.includes('workflow.approve')
+                  ? 'Periksa ulang data dan berkas. Setujui bila sudah benar, atau kembalikan dengan catatan perbaikan.'
+                  : 'Dokumen sedang menunggu verifikasi oleh Admin. Akun Anda dapat memantau, tetapi tidak menyetujui atau mengembalikan dokumen.')}
               {tahap === 'DISETUJUI' &&
-                'Dokumen sudah disetujui. Tinjau akibatnya pada dokumen lain, lalu terbitkan agar tampil di portal.'}
+                (izin.includes('workflow.publish')
+                  ? 'Dokumen sudah disetujui. Tinjau akibatnya pada dokumen lain, lalu terbitkan agar tampil di portal.'
+                  : 'Dokumen sudah disetujui dan menunggu diterbitkan oleh Admin.')}
               {tahap === 'TERBIT' &&
                 'Dokumen sudah tampil di portal. Untuk mengubah isinya, buat revisi; versi sekarang tetap tampil sampai revisi diterbitkan.'}
               {tahap === 'DITARIK' && 'Dokumen sudah tidak tampil di portal.'}

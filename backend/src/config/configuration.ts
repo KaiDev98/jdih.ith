@@ -43,6 +43,7 @@ export function konfigurasi() {
       clientId: env.GOOGLE_CLIENT_ID,
       clientSecret: env.GOOGLE_CLIENT_SECRET,
       redirectUri: env.GOOGLE_REDIRECT_URI,
+      domainDiizinkan: env.GOOGLE_DOMAIN_DIIZINKAN,
       key: env.SESSION_KEY,
       sessionSeconds: env.SESSION_TTL_SECONDS,
       secure: env.COOKIE_SECURE,

@@ -20,6 +20,10 @@ import { DocumentFilesService } from './document-files.service.js';
 import { DownloadRateLimitService } from '../download-rate-limit.service.js';
 import { UploadInterceptor } from '../storage/upload.interceptor.js';
 import { contentDisposition } from './file-headers.js';
+import { ConfigService } from '@nestjs/config';
+import type { KonfigurasiApp } from '../../../config/configuration.js';
+import { StatistikDokumenService } from '../statistik/statistik-dokumen.service.js';
+import { bukanManusia } from '../kunjungan/kunjungan.controller.js';
 
 @Controller('admin/documents/versions')
 export class AdminDocumentFilesController {
@@ -66,6 +70,8 @@ export class PublicDocumentFilesController {
     private readonly files: DocumentFilesService,
     private readonly identity: IdentityService,
     private readonly downloadLimits: DownloadRateLimitService,
+    private readonly statistik: StatistikDokumenService,
+    private readonly config: ConfigService<KonfigurasiApp, true>,
   ) {}
 
   @Get(':slug/files/:fileId')
@@ -88,6 +94,12 @@ export class PublicDocumentFilesController {
       disposition === 'inline' ? 'pratinjau' : 'unduh',
     );
     const file = await this.files.openAuthorized(authorized);
+    // Unduhan (bukan pratinjau) menambah jumlah orang yang mengunduh; kegagalan
+    // pencatatan tidak boleh menggagalkan unduhan.
+    if (disposition === 'attachment' && !bukanManusia(req.get('user-agent')))
+      await this.statistik
+        .catatSekali(req, res, authorized.dokumen_id, 'unduh', this.config.get('identitas.secure', { infer: true }))
+        .catch(() => undefined);
     res.status(200);
     res.setHeader('Content-Type', file.mimeType);
     res.setHeader('Content-Length', String(file.size));

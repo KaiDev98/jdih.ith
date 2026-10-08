@@ -21,6 +21,7 @@ import {
   skemaAuthMeHttp,
   skemaLengkapiRegistrasi,
   skemaGoogleCallback,
+  skemaStatusPassword,
 } from '@jdih/shared';
 import {
   Izin,
@@ -37,11 +38,18 @@ import {
   PendingAllowed,
   REGISTRATION_COOKIE,
   SESSION_COOKIE,
+  TanpaCsrf,
 } from './identity.guard.js';
 import { csrfToken, tokenValid } from './security.js';
 
+/**
+ * Batas ketat 20/menit hanya untuk rute login, registrasi, dan refresh. Cek sesi
+ * (`me`) dan logout memakai batas umum karena dipanggil setiap kali halaman
+ * dibuka; dengan batas ketat, pengguna satu jaringan kampus cepat terkena 429.
+ */
+const BATAS_LOGIN = { umum: { limit: 20, ttl: 60000 } };
+
 @Controller('auth')
-@Throttle({ umum: { limit: 20, ttl: 60000 } })
 export class IdentityController {
   constructor(
     private readonly google: GoogleService,
@@ -65,6 +73,7 @@ export class IdentityController {
     res.cookie(SESSION_COOKIE, session.token, { ...this.options(), expires: session.expires });
   }
   @Get('google')
+  @Throttle(BATAS_LOGIN)
   @Publik()
   start(@Res() res: Response) {
     this.privateResponse(res);
@@ -77,6 +86,7 @@ export class IdentityController {
    * tidak ada. GET karena belum ada sesi untuk token CSRF; tujuan redirect tetap.
    */
   @Get('uji/:peran')
+  @Throttle(BATAS_LOGIN)
   @Publik()
   async loginUji(
     @Param('peran') peran: string,
@@ -91,6 +101,7 @@ export class IdentityController {
     res.redirect(`${this.config.get('identitas.origin', { infer: true })}/akun`);
   }
   @Get('google/callback')
+  @Throttle(BATAS_LOGIN)
   @Publik()
   async callback(@Query() query: unknown, @Req() req: PermintaanBerpengguna, @Res() res: Response) {
     this.privateResponse(res);
@@ -141,6 +152,7 @@ export class IdentityController {
     });
   }
   @Post('register')
+  @Throttle(BATAS_LOGIN)
   @Publik()
   async register(
     @Body() input: unknown,
@@ -161,6 +173,7 @@ export class IdentityController {
     return session.result;
   }
   @Post('refresh')
+  @Throttle(BATAS_LOGIN)
   @PendingAllowed()
   async refresh(@Req() req: PermintaanBerpengguna, @Res({ passthrough: true }) res: Response) {
     this.privateResponse(res);
@@ -169,6 +182,67 @@ export class IdentityController {
     return {
       csrfToken: csrfToken(session.token, this.config.get('identitas.key', { infer: true })),
     };
+  }
+  /** Login email + password khusus Admin (bukan Superadmin, bukan Dosen/Staf). */
+  @Post('login')
+  @Throttle(BATAS_LOGIN)
+  @Publik()
+  @TanpaCsrf()
+  async loginPassword(
+    @Body() input: unknown,
+    @Req() req: PermintaanBerpengguna,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    this.privateResponse(res);
+    const session = await this.identity.loginPassword(
+      input,
+      req.ip ?? '',
+      req.get('user-agent') ?? '',
+    );
+    this.setSession(res, session);
+    return { masuk: true };
+  }
+  /** Login email + password khusus Superadmin, lewat halaman masuknya sendiri. */
+  @Post('login/superadmin')
+  @Throttle(BATAS_LOGIN)
+  @Publik()
+  @TanpaCsrf()
+  async loginSuperadmin(
+    @Body() input: unknown,
+    @Req() req: PermintaanBerpengguna,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    this.privateResponse(res);
+    const session = await this.identity.loginPassword(
+      input,
+      req.ip ?? '',
+      req.get('user-agent') ?? '',
+      'superadmin',
+    );
+    this.setSession(res, session);
+    return { masuk: true };
+  }
+  /** Apakah akun yang sedang masuk sudah punya password, dan kapan terakhir diubah. */
+  @Get('password')
+  async statusPassword(
+    @Req() req: PermintaanBerpengguna,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    this.privateResponse(res);
+    return skemaStatusPassword.parse(await this.identity.statusPassword(req.pengguna!.id));
+  }
+  /** Buat atau ganti password akun sendiri; sesi lain dicabut setelah berhasil. */
+  @Post('password')
+  @Throttle(BATAS_LOGIN)
+  async ubahPassword(
+    @Body() input: unknown,
+    @Req() req: PermintaanBerpengguna,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    this.privateResponse(res);
+    return skemaStatusPassword.parse(
+      await this.identity.ubahPassword(cookie(req, SESSION_COOKIE), input),
+    );
   }
   @Post('logout')
   @PendingAllowed()
@@ -194,6 +268,26 @@ export class AccountsController {
   accounts(@Query() input: unknown) {
     const q = skemaHalaman.parse(input);
     return this.identity.accounts(q.halaman, q.perHalaman);
+  }
+  /** Superadmin membuat akun Admin (peran diperiksa di layanan). */
+  @Post('admins')
+  @Izin('users.read')
+  buatAdmin(@Body() body: unknown, @Req() req: PermintaanBerpengguna) {
+    return this.identity.buatAdmin(cookie(req, SESSION_COOKIE), body);
+  }
+  /** Superadmin mengatur ulang password akun Admin. */
+  @Post(':id/password')
+  @Izin('users.read')
+  aturUlangPassword(
+    @Param() param: unknown,
+    @Body() body: unknown,
+    @Req() req: PermintaanBerpengguna,
+  ) {
+    return this.identity.aturUlangPassword(
+      cookie(req, SESSION_COOKIE),
+      skemaParamId.parse(param).id,
+      body,
+    );
   }
   @Get(':id')
   @Izin('users.read')
