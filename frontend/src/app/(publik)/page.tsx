@@ -10,7 +10,8 @@ import { TandaStatus } from '@/components/tanda-status';
 import { PemicuMuncul } from '@/components/pemicu-muncul';
 import { tampilanJenis } from '@/lib/tampilan-jenis';
 import { AngkaNaik } from '@/components/angka-naik';
-import { IkonSop, KotakCentang } from '@/components/ikon-jenis';
+import { IkonSop } from '@/components/ikon-jenis';
+import { PemilihUnitSop } from '@/components/pemilih-unit-sop';
 
 export const metadata = {
   title: 'Beranda',
@@ -84,7 +85,7 @@ export default async function Beranda() {
               className="text-[2.25rem] leading-[1.06] font-extrabold tracking-[-0.025em] text-balance sm:text-5xl lg:text-[3.5rem]"
             >
               <span className="topeng-baris">
-                <span className="isi-baris">Produk hukum ITH,</span>
+                <span className="isi-baris">Produk Hukum ITH,</span>
               </span>{' '}
               <span className="topeng-baris">
                 <span className="isi-baris baris-2 text-institusi-300">
@@ -132,7 +133,7 @@ export default async function Beranda() {
 
       <section
         aria-labelledby="judul-regulasi-terbaru"
-        className="mx-auto max-w-7xl px-4 pt-12 pb-14 sm:px-6 lg:px-8 lg:pt-16"
+        className="mx-auto max-w-7xl px-4 pt-12 pb-6 sm:px-6 lg:px-8 lg:pt-16"
       >
         <div
           data-muncul="judul"
@@ -283,105 +284,62 @@ function JumlahPerJenis({ terbaru }: { terbaru: Terbaru[] }) {
 
 /**
  * SOP di bawah kartu regulasi terbaru, dibedakan dari kartu produk hukum:
- * satu panel indeks unit kerja. Kepala panel memuat ringkasan (jumlah SOP dan
- * unit, serta SOP terakhir terbit). Tiap unit menampilkan jumlah SOP-nya dan
- * garis tipis di tepi bawah yang panjangnya sebanding dengan unit terbanyak,
- * sehingga sebaran SOP terbaca sekilas. Kotak centang di depan nama unit
- * tercentang saat disorot, karena SOP pada dasarnya daftar periksa kerja.
+ * satu baris ringkas berlatar hangat. Unit kerja dipilih lewat dropdown yang
+ * langsung membuka daftar SOP unit itu, sehingga dua belas unit tidak perlu
+ * dibentangkan di beranda. Centang pada ikon tergores ulang saat disorot.
  */
 function PanelSop({ jenis, dokumen, jumlah, unit }: Terbaru & { unit: UnitBerjumlah[] }) {
   const href = tautanJenis(jenis.kode);
-  const terbanyak = Math.max(1, ...unit.map((u) => u.jumlah ?? 0));
   return (
-    <section aria-labelledby="judul-sop" data-muncul className="mt-14">
-      <div className="panel-sop overflow-hidden rounded-xl border border-tinta/10 bg-white">
-        <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-b border-slate-100 px-5 py-5 sm:px-6">
-          <div className="flex min-w-0 items-center gap-4">
-            <span
-              aria-hidden
-              className="ikon-sop grid size-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-700"
-            >
-              <IkonSop className="size-5" />
-            </span>
-            <div className="min-w-0">
-              <h3
-                id="judul-sop"
-                className="text-lg leading-tight font-extrabold tracking-[-0.01em]"
-              >
-                Standar Operasional Prosedur
-              </h3>
-              <p className="mt-1 text-sm text-slate-600">
-                Prosedur kerja baku setiap unit kerja di lingkungan ITH.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-6 sm:gap-8">
-            <dl className="flex gap-6 tabular-nums">
-              <div>
-                <dt className="text-xs text-slate-500">SOP terbit</dt>
-                <dd className="text-xl leading-tight font-extrabold">
-                  {jumlah === null ? '—' : ANGKA.format(jumlah)}
-                </dd>
-              </div>
-              <div className="border-l border-slate-200 pl-6">
-                <dt className="text-xs text-slate-500">Unit kerja</dt>
-                <dd className="text-xl leading-tight font-extrabold">
-                  {ANGKA.format(unit.length)}
-                </dd>
-              </div>
-            </dl>
-            <Link
-              href={href}
-              className="group inline-flex items-center gap-2 text-sm font-semibold text-institusi-700 hover:text-institusi-800"
-            >
-              Semua SOP{' '}
-              <ArrowRight aria-hidden className="gerak size-4 group-hover:translate-x-1" />
-            </Link>
+    <section aria-labelledby="judul-sop" data-muncul className="mt-6">
+      <div className="panel-sop relative flex flex-col gap-5 overflow-hidden rounded-2xl border border-[#d3e2f5] bg-[#eaf2fc] p-5 pl-6 shadow-[0_1px_2px_rgb(23_35_64/0.05)] sm:p-6 sm:pl-7 lg:flex-row lg:items-center lg:justify-between">
+        <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-[#1d4f99]" />
+        <div className="flex min-w-0 items-center gap-4">
+          <span
+            aria-hidden
+            className="ikon-sop grid size-12 shrink-0 place-items-center rounded-xl bg-white text-[#1d4f99] shadow-[0_4px_12px_-6px_rgb(29_79_153/0.45)] ring-1 ring-[#d3e2f5]"
+          >
+            <IkonSop className="size-5" />
+          </span>
+          <div className="min-w-0">
+            <h3 id="judul-sop" className="text-lg leading-tight font-extrabold tracking-[-0.01em]">
+              Standar Operasional Prosedur
+            </h3>
+            <p className="mt-1 text-sm text-slate-600 tabular-nums">
+              {jumlah === null ? 'SOP' : `${ANGKA.format(jumlah)} SOP terbit`} ·{' '}
+              {ANGKA.format(unit.length)} unit kerja
+              {dokumen && (
+                <>
+                  {' · '}Terbaru:{' '}
+                  <Link
+                    href={`/produk-hukum/${dokumen.slug}`}
+                    className="font-semibold text-tinta underline decoration-[#9dbbe3] underline-offset-4 [overflow-wrap:anywhere] hover:text-institusi-700 hover:decoration-institusi-400"
+                  >
+                    {dokumen.judul}
+                  </Link>
+                </>
+              )}
+            </p>
           </div>
         </div>
-        {dokumen && (
-          <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 border-b border-slate-100 bg-slate-50/70 px-5 py-3 text-sm sm:px-6">
-            <span className="huruf-label text-[0.6875rem] text-institusi-700">Terbit terakhir</span>
-            <Link
-              href={`/produk-hukum/${dokumen.slug}`}
-              className="font-semibold text-tinta [overflow-wrap:anywhere] hover:text-institusi-700"
-            >
-              {dokumen.judul}
-            </Link>
-            <span className="text-slate-500 tabular-nums">
-              No. {dokumen.nomor}
-              {dokumen.tahun ? ` · ${dokumen.tahun}` : ''}
-            </span>
-          </p>
-        )}
-        {unit.length > 0 && (
-          <ul className="grid grid-cols-2 gap-px bg-slate-100 lg:grid-cols-4">
-            {unit.map((u) => (
-              <li key={u.kode} className="bg-white">
-                <Link
-                  href={`${href}&kategori=${encodeURIComponent(u.kode)}`}
-                  className="unit-sop group relative flex h-full items-center gap-2.5 px-3 py-3.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-tinta focus-visible:bg-slate-50 focus-visible:outline-none sm:gap-3 sm:px-4"
-                >
-                  <KotakCentang className="size-4 shrink-0 text-slate-300 transition-colors duration-200 group-hover:text-institusi-400" />
-                  <span className="min-w-0 flex-1">{u.nama}</span>
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums transition-colors duration-150 ${u.jumlah ? 'bg-institusi-50 text-institusi-700 group-hover:bg-institusi-100' : 'bg-slate-100 text-slate-500'}`}
-                  >
-                    {u.jumlah === null ? '—' : ANGKA.format(u.jumlah)}
-                    <span className="sr-only"> SOP</span>
-                  </span>
-                  {u.jumlah ? (
-                    <span
-                      aria-hidden
-                      style={{ transform: `scaleX(${String(u.jumlah / terbanyak)})` }}
-                      className="absolute inset-x-0 bottom-0 h-0.5 origin-left bg-institusi-400/70"
-                    />
-                  ) : null}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center lg:shrink-0">
+          {unit.length > 0 && (
+            <PemilihUnitSop
+              unit={unit.map((u) => ({
+                href: `${href}&kategori=${encodeURIComponent(u.kode)}`,
+                nama: u.nama,
+                jumlah: u.jumlah,
+              }))}
+            />
+          )}
+          <Link
+            href={href}
+            className="tekan group inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-tinta px-5 text-sm font-semibold text-white hover:bg-institusi-800"
+          >
+            Semua SOP
+            <ArrowRight aria-hidden className="gerak size-4 group-hover:translate-x-1" />
+          </Link>
+        </div>
       </div>
     </section>
   );

@@ -421,7 +421,7 @@ export function NavigasiPublik({
   const sop = menuSop(jenis, unitSop);
   return (
     <>
-      <nav aria-label="Navigasi utama" className="hidden items-center gap-1 xl:flex">
+      <nav aria-label="Navigasi utama" className="hidden items-center gap-1 xl:flex 2xl:gap-2">
         {tautanSebelum.map((item) => (
           <Link key={item.href} href={item.href} className={kelasTautanDesktop}>
             {item.label}
@@ -582,7 +582,7 @@ export function PublicHeader({
     <header
       className={`sticky top-0 z-30 bg-white transition-shadow duration-200 ${tergulir ? 'shadow-[0_6px_20px_-12px_rgb(23_35_64/0.25)]' : ''}`}
     >
-      <div className="mx-auto flex min-h-[72px] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex min-h-[72px] max-w-[92rem] items-center justify-between gap-6 px-4 sm:px-6 lg:px-[clamp(2.5rem,20vw-13.5rem,4rem)]">
         <Link
           href="/"
           aria-label="JDIH ITH, beranda"
