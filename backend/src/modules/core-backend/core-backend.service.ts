@@ -18,7 +18,6 @@ import {
   skemaTerbitkanDokumen,
   skemaTarikDokumen,
   skemaStatusMaster,
-  skemaUnitKerja,
   skemaJenisDokumen,
   skemaKategori,
   skemaTag,
@@ -45,6 +44,8 @@ interface MasterPayload {
   aktif?: boolean;
   urutan?: number;
 }
+const UNIT_IKUT_KATEGORI =
+  'Unit kerja mengikuti kategori SOP. Ubah lewat menu Kategori.';
 const tr = (e: unknown): never => {
   if ((e as { code?: string })?.code === 'ER_DUP_ENTRY')
     throw new ConflictException('Data sudah digunakan.');
@@ -209,14 +210,13 @@ export class CoreBackendService {
     if (!['unit_kerja', 'jenis_dokumen', 'kategori', 'tag'].includes(table))
       throw new NotFoundException();
     this.allow(actor, table === 'unit_kerja' ? 'units.manage' : 'master.manage');
+    if (table === 'unit_kerja') throw new ConflictException(UNIT_IKUT_KATEGORI);
     const b = (
-      table === 'unit_kerja'
-        ? skemaUnitKerja.parse(input)
-        : table === 'jenis_dokumen'
-          ? skemaJenisDokumen.parse(input)
-          : table === 'kategori'
-            ? skemaKategori.parse(input)
-            : skemaTag.parse(input)
+      table === 'jenis_dokumen'
+        ? skemaJenisDokumen.parse(input)
+        : table === 'kategori'
+          ? skemaKategori.parse(input)
+          : skemaTag.parse(input)
     ) as MasterPayload;
     return this.repo
       .transaction(async (db) => {
@@ -227,20 +227,7 @@ export class CoreBackendService {
           )[0] as any;
           if (!before) throw new NotFoundException();
         }
-        if (table === 'unit_kerja') {
-          if (id)
-            await this.repo.write(
-              db,
-              'UPDATE unit_kerja SET kode=?,nama=?,parent_id=?,aktif=?,deleted_at=IF(?,NULL,deleted_at) WHERE id=?',
-              [b.kode, b.nama, b.parentId ?? null, b.aktif ?? true, b.aktif === true, id],
-            );
-          else
-            await this.repo.write(
-              db,
-              'INSERT INTO unit_kerja(kode,nama,parent_id,aktif) VALUES(?,?,?,?)',
-              [b.kode, b.nama, b.parentId ?? null, b.aktif ?? true],
-            );
-        } else if (table === 'jenis_dokumen') {
+        if (table === 'jenis_dokumen') {
           if (id)
             await this.repo.write(
               db,
@@ -267,6 +254,7 @@ export class CoreBackendService {
               b.nama,
               b.aktif ?? true,
             ]);
+          await this.selaraskanUnit(db, b, before?.kode as string | undefined);
         } else {
           if (id) await this.repo.write(db, 'UPDATE tag SET nama=? WHERE id=?', [b.nama, id]);
           else await this.repo.write(db, 'INSERT INTO tag(nama) VALUES(?)', [b.nama]);
@@ -288,6 +276,29 @@ export class CoreBackendService {
       })
       .catch(tr);
   }
+  /**
+   * Unit kerja mengikuti kategori SOP: setiap kategori punya unit dengan kode,
+   * nama, dan status aktif yang sama. Unit tidak pernah dihapus karena dirujuk
+   * akun dan versi dokumen; bila kode kategori berganti, unitnya ikut berganti.
+   */
+  private async selaraskanUnit(
+    db: Parameters<CoreBackendRepository['write']>[0],
+    b: MasterPayload,
+    kodeLama?: string,
+  ) {
+    if (kodeLama && kodeLama !== b.kode) {
+      await this.repo.write(db, 'UPDATE IGNORE unit_kerja SET kode=? WHERE kode=?', [
+        b.kode,
+        kodeLama,
+      ]);
+      await this.repo.write(db, 'UPDATE unit_kerja SET aktif=FALSE WHERE kode=?', [kodeLama]);
+    }
+    await this.repo.write(
+      db,
+      'INSERT INTO unit_kerja(kode,nama,aktif) VALUES(?,?,?) AS baru ON DUPLICATE KEY UPDATE nama=baru.nama,aktif=baru.aktif,deleted_at=NULL',
+      [b.kode, b.nama, b.aktif ?? true],
+    );
+  }
   async masterStatus(
     actor: Actor,
     table: 'unit_kerja' | 'jenis_dokumen' | 'kategori',
@@ -296,6 +307,7 @@ export class CoreBackendService {
   ) {
     if (!['unit_kerja', 'jenis_dokumen', 'kategori'].includes(table)) throw new NotFoundException();
     this.allow(actor, table === 'unit_kerja' ? 'units.manage' : 'master.manage');
+    if (table === 'unit_kerja') throw new ConflictException(UNIT_IKUT_KATEGORI);
     const { aktif } = skemaStatusMaster.parse(raw);
     return this.repo.transaction(async (db) => {
       const row = (
@@ -304,9 +316,15 @@ export class CoreBackendService {
       if (!row) throw new NotFoundException();
       await this.repo.write(
         db,
-        `UPDATE ${table} SET aktif=?${table === 'unit_kerja' ? ' ,deleted_at=IF(?,NULL,IF(?=0,UTC_TIMESTAMP(6),deleted_at))' : ''} WHERE id=?`,
-        table === 'unit_kerja' ? [aktif, aktif, aktif, id] : [aktif, id],
+        `UPDATE ${table} SET aktif=? WHERE id=?`,
+        [aktif, id],
       );
+      if (table === 'kategori')
+        await this.repo.write(
+          db,
+          'UPDATE unit_kerja u JOIN kategori k ON k.kode=u.kode SET u.aktif=k.aktif WHERE k.id=?',
+          [id],
+        );
       await this.audit.recordDomain(
         {
           module: 'master',

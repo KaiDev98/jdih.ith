@@ -5,7 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import { NotFoundException, type ExecutionContext } from '@nestjs/common';
 import type { PenggunaAktif } from '@jdih/shared';
-import { skemaLengkapiRegistrasi, skemaBuatUnit, skemaTolakAkun } from '@jdih/shared';
+import { skemaLengkapiRegistrasi, skemaTolakAkun } from '@jdih/shared';
 import {
   verifiedClaims,
   verifyGoogleToken,
@@ -182,16 +182,13 @@ describe('RBAC and CSRF', () => {
     expect(hashToken(token).length).toBe(32);
     expect(hashToken(token).toString()).not.toBe(token);
   });
-  it('registration and unit creation reject role/actor escalation', () => {
+  it('registration rejects role/actor escalation', () => {
     expect(skemaLengkapiRegistrasi.safeParse({ unitManual: 'TIK', peran: ['ADMIN'] }).success).toBe(
       false,
     );
     expect(
       skemaLengkapiRegistrasi.safeParse({ unitManual: 'TIK', googleSub: 'spoof' }).success,
     ).toBe(false);
-    expect(skemaBuatUnit.safeParse({ kode: 'TIK', nama: 'TIK', createdBy: '1' }).success).toBe(
-      false,
-    );
     expect(skemaTolakAkun.safeParse({ alasan: ' ' }).success).toBe(false);
   });
 });

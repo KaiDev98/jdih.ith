@@ -101,6 +101,7 @@ export const skemaStatusPassword = z.strictObject({
 export const skemaBuatAdmin = z.strictObject({
   nama: teksWajib(200, 'Nama'),
   email: z.string().trim().toLowerCase().pipe(skemaSurel),
+  unitKerjaId: skemaId,
   password: skemaPasswordBaru,
 });
 /** Superadmin mengatur ulang password akun Admin yang lupa. */
@@ -113,11 +114,6 @@ export type StatusPassword = z.infer<typeof skemaStatusPassword>;
 export const skemaGoogleCallback = z.object({
   code: z.string().min(1).max(4096),
   state: z.string().min(1).max(128),
-});
-/** Minimal master-unit creation used only for approved manual-unit resolution. */
-export const skemaBuatUnit = z.strictObject({
-  kode: teksWajib(40, 'Kode unit'),
-  nama: teksWajib(200, 'Nama unit'),
 });
 /** Presentation helper only, never a document authorization decision. */
 export function punyaSemuaIzin(

@@ -358,8 +358,10 @@ test('legacy exports no longer present', () => {
 });
 
 test('superadmin creates admin accounts with strong initial passwords', () => {
-  const v = { nama: 'Admin Baru', email: ' Admin.Baru@Gmail.com ', password: 'AwalKuat2026' };
+  const v = { nama: 'Admin Baru', email: ' Admin.Baru@Gmail.com ', unitKerjaId: '12', password: 'AwalKuat2026' };
   assert.equal(c.skemaBuatAdmin.parse(v).email, 'admin.baru@gmail.com');
+  bad(c.skemaBuatAdmin, { ...v, unitKerjaId: undefined });
+  bad(c.skemaBuatAdmin, { ...v, unitKerjaId: '' });
   bad(c.skemaBuatAdmin, { ...v, password: 'lemah' });
   bad(c.skemaBuatAdmin, { ...v, peran: 'SUPERADMIN' });
   bad(c.skemaBuatAdmin, { ...v, email: 'bukan-email' });

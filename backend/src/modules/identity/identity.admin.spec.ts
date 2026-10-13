@@ -1,5 +1,9 @@
 import 'reflect-metadata';
-import { ConflictException, ForbiddenException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { describe, expect, it, vi } from 'vitest';
 import type { Pool, PoolConnection, ResultSetHeader } from 'mysql2/promise';
@@ -21,11 +25,17 @@ const akun = (peran: string[], id = '1'): PenggunaAktif => ({
   izin: ['users.read'],
 });
 
-function siapkan({ aktor = akun(['SUPERADMIN']), emailAda = false, targetPeran = ['ADMIN'] } = {}) {
+function siapkan({
+  aktor = akun(['SUPERADMIN']),
+  emailAda = false,
+  targetPeran = ['ADMIN'],
+  unitAda = true,
+} = {}) {
   const repo = new IdentityRepository({} as Pool);
   const db = {} as PoolConnection;
   vi.spyOn(repo, 'transaction').mockImplementation((fn) => fn(db));
   vi.spyOn(repo, 'emailTerpakai').mockResolvedValue(emailAda);
+  vi.spyOn(repo, 'unitValid').mockResolvedValue(unitAda);
   vi.spyOn(repo, 'user').mockResolvedValue({ id: '5', deleted_at: null } as UserRow);
   vi.spyOn(repo, 'principal').mockResolvedValue(akun(targetPeran, '5'));
   const writes = vi
@@ -35,7 +45,12 @@ function siapkan({ aktor = akun(['SUPERADMIN']), emailAda = false, targetPeran =
   vi.spyOn(service, 'authenticate').mockResolvedValue({ user: aktor, session: {} as never });
   return { service, writes };
 }
-const baru = { nama: 'Admin Baru', email: 'Admin.Baru@gmail.com', password: 'AwalKuat2026' };
+const baru = {
+  nama: 'Admin Baru',
+  email: 'Admin.Baru@gmail.com',
+  unitKerjaId: '9014',
+  password: 'AwalKuat2026',
+};
 
 describe('IdentityService.buatAdmin', () => {
   it('Superadmin membuat Admin aktif dengan password ter-hash', async () => {
@@ -44,11 +59,13 @@ describe('IdentityService.buatAdmin', () => {
       id: '42',
       nama: 'Admin Baru',
       email: 'admin.baru@gmail.com',
+      unitKerjaId: '9014',
     });
     const insert = writes.mock.calls.find((c) => String(c[1]).startsWith('INSERT INTO pengguna('))!;
     const nilai = insert[2] as string[];
     expect(nilai).not.toContain('AwalKuat2026');
     expect(await cocokPassword('AwalKuat2026', nilai[4]!)).toBe(true);
+    expect(nilai[6]).toBe('9014');
     expect(writes.mock.calls.some((c) => String(c[1]).includes("kode='ADMIN'"))).toBe(true);
     expect(writes.mock.calls.some((c) => String(c[1]).includes('INSERT INTO audit_log'))).toBe(
       true,
@@ -61,6 +78,14 @@ describe('IdentityService.buatAdmin', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
     await expect(siapkan({ emailAda: true }).service.buatAdmin('t', baru)).rejects.toBeInstanceOf(
       ConflictException,
+    );
+  });
+
+  it('unit kerja wajib dipilih dan harus unit aktif', async () => {
+    const { unitKerjaId: _, ...tanpaUnit } = baru;
+    await expect(siapkan().service.buatAdmin('t', tanpaUnit)).rejects.toThrow();
+    await expect(siapkan({ unitAda: false }).service.buatAdmin('t', baru)).rejects.toBeInstanceOf(
+      UnprocessableEntityException,
     );
   });
 });

@@ -66,6 +66,16 @@ export const skemaHasilCariAuthorized = z.strictObject({
   tingkatAkses: skemaTingkatAkses,
 });
 export const skemaTanggapanCariAuthorized = skemaTanggapanHalaman(skemaHasilCariAuthorized);
+/**
+ * Jumlah hasil per jenis dokumen untuk penyaring yang sama (tanpa penyaring
+ * jenis). Mengikuti aturan akses pencarian: yang tidak berhak hanya menghitung
+ * dokumen publik.
+ */
+export const skemaFasetCari = z.strictObject({
+  total: z.number().int().min(0),
+  perJenis: z.array(z.strictObject({ jenisDokumenId: skemaId, jumlah: z.number().int().min(0) })),
+});
+export type FasetCari = z.infer<typeof skemaFasetCari>;
 export type KueriCariDokumen = z.infer<typeof skemaCariDokumen>;
 export type KueriCariDokumenAdmin = z.infer<typeof skemaCariDokumenAdmin>;
 export type HasilCariAnonim = z.infer<typeof skemaHasilCariAnonim>;

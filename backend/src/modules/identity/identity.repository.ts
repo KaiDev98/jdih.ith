@@ -105,11 +105,11 @@ export class IdentityRepository {
       (await this.rows(db, 'SELECT id FROM pengguna WHERE email=? FOR UPDATE', [email])).length > 0
     );
   }
-  /** Akun Admin baru buatan Superadmin: langsung AKTIF, tanpa Google, dengan password awal. */
+  /** Akun Admin baru buatan Superadmin: langsung AKTIF, tanpa Google, dengan unit dan password awal. */
   insertAdmin(db: Connection, values: (string | number | Buffer | null)[]) {
     return this.write(
       db,
-      "INSERT INTO pengguna(email,nama,status,verified_at,verified_by,password_hash,password_diubah_at) VALUES(?,?,'AKTIF',?,?,?,?)",
+      "INSERT INTO pengguna(email,nama,status,verified_at,verified_by,password_hash,password_diubah_at,unit_kerja_id) VALUES(?,?,'AKTIF',?,?,?,?,?)",
       values,
     );
   }
@@ -300,10 +300,6 @@ export class IdentityRepository {
         email=CONCAT('dihapus-',id,'@dihapus.invalid') WHERE id=? AND deleted_at IS NULL`,
       values,
     );
-  }
-
-  insertUnit(db: Connection, values: (string | number | Buffer | null)[]) {
-    return this.write(db, 'INSERT INTO unit_kerja(kode,nama) VALUES(?,?)', values);
   }
 
   insertAudit(db: Connection, values: (string | number | Buffer | null)[]) {

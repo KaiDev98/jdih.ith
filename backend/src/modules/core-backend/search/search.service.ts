@@ -8,6 +8,7 @@ import {
   skemaTanggapanCariAnonim,
   skemaTanggapanCariAuthorized,
   skemaTahunTersedia,
+  skemaFasetCari,
 } from '@jdih/shared';
 import { CoreBackendRepository } from '../core-backend.repository.js';
 
@@ -58,18 +59,37 @@ export class SearchService {
     return { where, values };
   }
 
-  async search(rawQuery: unknown, actor?: PenggunaAktif) {
-    const query = skemaCariDokumen.parse(rawQuery);
-    const filter = this.filters(query);
+  /** Yang tidak berhak hanya melihat dokumen publik — Internal tidak muncul dan tidak dihitung. */
+  private visibilitas(actor?: PenggunaAktif) {
     const authorized = Boolean(actor?.status === 'AKTIF' && (
       actor.peran.includes('DOSEN_STAF') || actor.izin.includes('documents.read_admin')
     ));
-    const anonymous = !authorized;
-    // Yang tidak berhak hanya melihat dokumen publik — dokumen Internal tidak
-    // muncul, tidak dihitung, dan tidak disiratkan dalam bentuk apa pun.
-    const visibility = anonymous
-      ? "v.tingkat_akses='publik'"
-      : "v.tingkat_akses IN ('publik','internal')";
+    return {
+      anonymous: !authorized,
+      visibility: authorized
+        ? "v.tingkat_akses IN ('publik','internal')"
+        : "v.tingkat_akses='publik'",
+    };
+  }
+
+  /** Jumlah hasil per jenis untuk penyaring yang sama, tanpa penyaring jenis. */
+  async facets(rawQuery: unknown, actor?: PenggunaAktif) {
+    const query = { ...skemaCariDokumen.parse(rawQuery), jenisDokumenId: undefined };
+    const filter = this.filters(query);
+    const { visibility } = this.visibilitas(actor);
+    const rows = await this.repo.rows<RowDataPacket & { id: string; jumlah: string }>(
+      this.repo.pool,
+      `SELECT CAST(d.jenis_dokumen_id AS CHAR) id,COUNT(*) jumlah FROM dokumen d JOIN dokumen_versi v ON v.id=d.current_published_version_id WHERE ${[...filter.where, visibility].join(' AND ')} GROUP BY d.jenis_dokumen_id`,
+      filter.values,
+    );
+    const perJenis = rows.map((r) => ({ jenisDokumenId: String(r.id), jumlah: Number(r.jumlah) }));
+    return skemaFasetCari.parse({ total: perJenis.reduce((a, b) => a + b.jumlah, 0), perJenis });
+  }
+
+  async search(rawQuery: unknown, actor?: PenggunaAktif) {
+    const query = skemaCariDokumen.parse(rawQuery);
+    const filter = this.filters(query);
+    const { anonymous, visibility } = this.visibilitas(actor);
     const accessValues: (string | number)[] = [];
     const where = [...filter.where, visibility].join(' AND ');
     const [countRows] = await this.repo.rows<RowDataPacket & { total: string }>(

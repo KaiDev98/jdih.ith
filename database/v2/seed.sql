@@ -72,7 +72,9 @@ INSERT INTO jenis_dokumen (kode, nama, urutan) VALUES
   ('SKREK', 'SK Rektor', 2),
   ('INSREK', 'Instruksi Rektor', 3),
   ('SEREK', 'Surat Edaran Rektor', 4),
-  ('SOP', 'SOP', 5) AS incoming
+  ('PERSEN', 'Peraturan Senat', 5),
+  ('SKSEN', 'SK Senat', 6),
+  ('SOP', 'SOP', 7) AS incoming
 ON DUPLICATE KEY UPDATE nama = incoming.nama, urutan = incoming.urutan;
 
 INSERT INTO kategori (kode, nama) VALUES
@@ -84,7 +86,16 @@ INSERT INTO kategori (kode, nama) VALUES
   ('SOP-BMN', 'BMN'),
   ('SOP-KEPEGAWAIAN', 'Kepegawaian'),
   ('SOP-KEUANGAN', 'Keuangan'),
-  ('SOP-LPPM', 'LPPM') AS incoming
+  ('SOP-LPPM', 'LPPM'),
+  ('SOP-HUKUM', 'Bagian Hukum'),
+  ('SOP-SPI', 'SPI'),
+  ('SOP-KOMISI-ETIK', 'Komisi Etik') AS incoming
 ON DUPLICATE KEY UPDATE nama = incoming.nama;
+
+-- Unit kerja mengikuti kategori SOP (kode, nama, dan status aktif yang sama);
+-- selanjutnya diselaraskan otomatis setiap kali kategori diubah lewat panel.
+INSERT INTO unit_kerja (kode, nama, aktif)
+SELECT * FROM (SELECT kode, nama, aktif FROM kategori) AS k
+ON DUPLICATE KEY UPDATE nama = k.nama, aktif = k.aktif, deleted_at = NULL;
 
 COMMIT;

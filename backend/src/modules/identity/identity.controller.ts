@@ -338,9 +338,4 @@ export class IdentityUnitsController {
   units() {
     return this.identity.units();
   }
-  @Post('admin/units')
-  @Izin('units.manage')
-  create(@Body() body: unknown, @Req() req: PermintaanBerpengguna) {
-    return this.identity.createUnit(cookie(req, SESSION_COOKIE), body);
-  }
 }

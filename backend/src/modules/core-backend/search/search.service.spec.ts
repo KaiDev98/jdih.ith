@@ -65,3 +65,44 @@ describe('SearchService visibility projection', () => {
     expect(calls[0]!.values).toContain('%aturan!_100!%%');
   });
 });
+
+describe('SearchService.facets', () => {
+  function siapkan() {
+    const calls: { sql: string; values: unknown[] }[] = [];
+    const repo = {
+      rows: vi.fn((_db: unknown, sql: string, values: unknown[] = []) => {
+        calls.push({ sql, values });
+        return Promise.resolve([
+          { id: '1', jumlah: '3' },
+          { id: '2', jumlah: '1' },
+        ]);
+      }),
+      pool: {},
+    };
+    return { service: new SearchService(repo as never), calls };
+  }
+
+  it('menghitung per jenis tanpa penyaring jenis, hanya publik untuk anonim', async () => {
+    const { service, calls } = siapkan();
+    const hasil = await service.facets({ jenisDokumenId: '2', tahun: '2026' });
+    expect(hasil).toEqual({
+      total: 4,
+      perJenis: [
+        { jenisDokumenId: '1', jumlah: 3 },
+        { jenisDokumenId: '2', jumlah: 1 },
+      ],
+    });
+    expect(calls[0]!.sql).toContain("v.tingkat_akses='publik'");
+    expect(calls[0]!.sql).not.toContain('d.jenis_dokumen_id=?');
+    expect(calls[0]!.values).toEqual([2026]);
+  });
+
+  it('staf aktif ikut menghitung dokumen Internal', async () => {
+    const { service, calls } = siapkan();
+    await service.facets({}, {
+      id: '7', nama: 'Staf', surel: 's@ith.ac.id', status: 'AKTIF', unitKerjaId: null,
+      unitManual: null, avatarUrl: null, peran: ['DOSEN_STAF'], izin: [],
+    });
+    expect(calls[0]!.sql).toContain("v.tingkat_akses IN ('publik','internal')");
+  });
+});

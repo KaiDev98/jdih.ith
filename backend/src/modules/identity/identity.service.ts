@@ -15,7 +15,6 @@ import {
   skemaSetujuiAkun,
   skemaTolakAkun,
   skemaUbahStatusAkun,
-  skemaBuatUnit,
   skemaLoginPassword,
   skemaUbahPassword,
   skemaBuatAdmin,
@@ -219,7 +218,7 @@ export class IdentityService {
   }
 
   /**
-   * Superadmin membuat akun Admin baru dengan password awal. Akun langsung
+   * Superadmin membuat akun Admin baru dengan unit kerja dan password awal. Akun langsung
    * AKTIF dan dapat masuk dengan email + password; bila kelak masuk lewat
    * Google dengan email yang sama, akun Google-nya otomatis tertaut.
    */
@@ -229,6 +228,8 @@ export class IdentityService {
       const actor = await this.superadmin(token, db);
       if (await this.repo.emailTerpakai(db, body.email))
         throw new ConflictException('Email sudah terdaftar');
+      if (!(await this.repo.unitValid(db, body.unitKerjaId)))
+        throw new UnprocessableEntityException('Unit kerja tidak tersedia');
       const waktu = utc();
       const hasil = await this.repo.insertAdmin(db, [
         body.email,
@@ -237,6 +238,7 @@ export class IdentityService {
         actor.id,
         await hashPassword(body.password),
         waktu,
+        body.unitKerjaId,
       ]);
       const id = String(hasil.insertId);
       if ((await this.repo.assignAdminRole(db, [id])).affectedRows !== 1)
@@ -245,7 +247,7 @@ export class IdentityService {
         { action: 'CREATE_ADMIN', actorId: actor.id, targetId: id, afterStatus: 'AKTIF' },
         db,
       );
-      return { id, nama: body.nama, email: body.email };
+      return { id, nama: body.nama, email: body.email, unitKerjaId: body.unitKerjaId };
     });
   }
 
@@ -460,18 +462,5 @@ export class IdentityService {
   }
   async units() {
     return this.repo.unitList(this.repo.pool);
-  }
-  async createUnit(token: string, input: unknown) {
-    const body = skemaBuatUnit.parse(input);
-    return this.repo.transaction(async (db) => {
-      const { user } = await this.authenticate(token, db, true);
-      cekIzin(user, ['units.manage']);
-      if (!user.peran.some((r) => r === 'ADMIN' || r === 'SUPERADMIN'))
-        throw new ForbiddenException();
-      await this.repo.insertUnit(db, [body.kode, body.nama]);
-      const id = String((await this.repo.lastInsertedId(db))[0]!.id);
-      await this.audit.record({ action: 'CREATE_UNIT', actorId: user.id, targetId: id }, db);
-      return { id, ...body };
-    });
   }
 }

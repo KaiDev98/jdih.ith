@@ -19,6 +19,12 @@ export class SearchController {
     return this.search.search(query, await this.actor(req));
   }
 
+  @Get('search/documents/facets')
+  @Publik()
+  async facets(@Query() query: unknown, @Req() req: PermintaanBerpengguna) {
+    return this.search.facets(query, await this.actor(req));
+  }
+
   @Get('documents')
   @Publik()
   async list(@Query() query: unknown) {

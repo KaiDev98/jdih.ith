@@ -1,20 +1,15 @@
 import { z } from 'zod';
 import { skemaId, teksWajib } from './common.schema.js';
 
-export const skemaUnitKerja = z.strictObject({
-  kode: teksWajib(40, 'Kode'),
-  nama: teksWajib(200, 'Nama'),
-  parentId: skemaId.nullable().optional(),
-  aktif: z.boolean().optional(),
-});
 export const skemaJenisDokumen = z.strictObject({
   kode: teksWajib(40, 'Kode'),
   nama: teksWajib(150, 'Nama'),
   urutan: z.number().int().min(0).max(65535).optional(),
   aktif: z.boolean().optional(),
 });
+/** Kategori SOP. Unit kerja mengikuti kategori ini, jadi kodenya dibatasi selebar kode unit. */
 export const skemaKategori = z.strictObject({
-  kode: teksWajib(60, 'Kode'),
+  kode: teksWajib(40, 'Kode'),
   nama: teksWajib(150, 'Nama'),
   aktif: z.boolean().optional(),
 });
