@@ -96,7 +96,6 @@ export default async function DetailProdukHukum({ params }: { params: Promise<{ 
   return (
     <article className="bg-slate-50">
       <header className="hero-dokumen relative overflow-hidden text-white">
-        <div aria-hidden className="absolute -top-40 -right-24 size-[28rem] rounded-full border-[48px] border-white/5" />
         <div className="relative mx-auto max-w-7xl px-4 pt-8 pb-7 sm:px-6 lg:px-8 lg:pt-10">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
             <Link href="/produk-hukum" className="inline-flex items-center gap-1.5 font-medium text-white/80 transition hover:text-white"><ArrowLeft aria-hidden className="size-4" />Produk Hukum</Link>

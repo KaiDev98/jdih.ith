@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { CalendarDays, ChevronDown, Files, Search, X } from 'lucide-react';
+import { CalendarDays, Files, Search, X } from 'lucide-react';
+import { PilihanDropdown } from './pilihan-dropdown';
 
 type Jenis = { kode: string; nama: string };
 
@@ -9,7 +10,7 @@ type Jenis = { kode: string; nama: string };
  * Bilah pencarian beranda: kotak kata kunci berbentuk pil dengan tombol Cari
  * menempel, lalu pilihan Tipe dan Tahun sebagai pil di bawahnya. Tekan "/" di
  * mana saja untuk langsung mengetik. Formulir tetap biasa (GET ke
- * /produk-hukum), jadi berfungsi juga tanpa JavaScript.
+ * /produk-hukum); Tipe dan Tahun ikut terkirim lewat masukan tersembunyi.
  */
 export function BilahCari({ tipe, tahun }: { tipe: readonly Jenis[]; tahun: readonly number[] }) {
   const [kataKunci, setKataKunci] = useState('');
@@ -78,69 +79,31 @@ export function BilahCari({ tipe, tahun }: { tipe: readonly Jenis[]; tahun: read
         </button>
       </div>
       <div className="mt-4 grid gap-3 min-[400px]:grid-cols-2 sm:flex sm:flex-wrap sm:items-center">
-        <PilihanPil id="tipe-beranda" name="jenis" label="Tipe" kosong="Semua tipe" ikon={Files}>
-          {tipe.map((item) => (
-            <option key={item.kode} value={item.kode}>
-              {item.nama}
-            </option>
-          ))}
-        </PilihanPil>
-        <PilihanPil
+        <PilihanDropdown
+          id="tipe-beranda"
+          name="jenis"
+          label="Tipe"
+          sembunyikanLabel
+          varian="pil"
+          ikon={Files}
+          opsi={[
+            { value: '', label: 'Semua tipe' },
+            ...tipe.map((item) => ({ value: item.kode, label: item.nama })),
+          ]}
+        />
+        <PilihanDropdown
           id="tahun-beranda"
           name="tahun"
           label="Tahun"
-          kosong="Semua tahun"
+          sembunyikanLabel
+          varian="pil"
           ikon={CalendarDays}
-        >
-          {tahun.map((nilai) => (
-            <option key={nilai} value={nilai}>
-              {nilai}
-            </option>
-          ))}
-        </PilihanPil>
+          opsi={[
+            { value: '', label: 'Semua tahun' },
+            ...tahun.map((nilai) => ({ value: String(nilai), label: String(nilai) })),
+          ]}
+        />
       </div>
     </form>
-  );
-}
-
-/** Pilihan berbentuk pil terang transparan di bawah kotak cari. */
-function PilihanPil({
-  id,
-  name,
-  label,
-  kosong,
-  ikon: Ikon,
-  children,
-}: {
-  id: string;
-  name: string;
-  label: string;
-  kosong: string;
-  ikon: typeof Files;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="relative min-w-0">
-      <label htmlFor={id} className="sr-only">
-        {label}
-      </label>
-      <Ikon
-        aria-hidden
-        className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-gigi-100"
-      />
-      <select
-        id={id}
-        name={name}
-        defaultValue=""
-        className="min-h-11 w-full cursor-pointer appearance-none truncate rounded-full border border-white/30 bg-white/15 pr-9 pl-10 text-sm font-semibold text-white transition-colors duration-150 hover:border-white/45 hover:bg-white/25 sm:min-w-52 [&>option]:text-tinta"
-      >
-        <option value="">{kosong}</option>
-        {children}
-      </select>
-      <ChevronDown
-        aria-hidden
-        className="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2 text-white/80"
-      />
-    </div>
   );
 }

@@ -85,7 +85,8 @@
 
   /* ── Huruf ───────────────────────────────────────────────────────────── */
   --font-sans:
-    var(--font-archivo), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    var(--font-archivo), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
   --font-serif: ui-serif, Georgia, Cambria, 'Times New Roman', serif;
   --font-mono: ui-monospace, 'Cascadia Code', Consolas, 'Courier New', monospace;
 }
@@ -177,6 +178,36 @@
       transform 110ms ease-out,
       visibility 0s linear 110ms;
   }
+  /* Panel pilihan yang membuka ke atas (ruang di bawah tombol tidak cukup). */
+  .menu-mengambang[data-sisi='atas'] {
+    transform-origin: bottom left;
+  }
+  .menu-mengambang[data-sisi='atas'][data-state='closed'] {
+    transform: translateY(6px) scale(0.97);
+  }
+
+  /* Butir dropdown navigasi: panah kecil meluncur masuk saat disorot. */
+  .butir-menu .panah-menu {
+    opacity: 0;
+    transform: translateX(-4px);
+    transition:
+      opacity 160ms ease,
+      transform 220ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .butir-menu:hover .panah-menu,
+  .butir-menu:focus-visible .panah-menu {
+    opacity: 1;
+    transform: none;
+  }
+  .butir-menu .ikon-menu {
+    transition:
+      background-color 150ms ease,
+      color 150ms ease,
+      transform 220ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .butir-menu:hover .ikon-menu {
+    transform: scale(1.06);
+  }
 
   /* Menu seluler: turun sedikit dari bawah header. Tinggi memakai dvh agar
      tidak tertutup bilah alamat peramban ponsel; vh sebagai cadangan. */
@@ -234,6 +265,7 @@
      - judul    : naik dari balik garis potong (.topeng-baris);
      - sorotan  : garis bawah tergores (.garis-sorot);
      - logo     : cincin tergores melingkar (.cincin-gores);
+     - latar    : foto pintu masuk kampus (komponen LatarFotoHero);
      - angka    : menghitung naik (komponen AngkaNaik);
      - kartu    : naik, titik jenis memantul, isi muncul bertahap;
      - latar    : cahaya hero bergeser sangat pelan.
@@ -267,17 +299,17 @@
       transform: translateY(110%);
     }
   }
-  @keyframes gores-garis {
-    from {
-      transform: scaleX(0);
-    }
-  }
   @keyframes gores-cincin {
     from {
       stroke-dashoffset: 1;
     }
     to {
       stroke-dashoffset: 0;
+    }
+  }
+  @keyframes gores-garis {
+    from {
+      transform: scaleX(0);
     }
   }
   .masuk {
@@ -292,15 +324,33 @@
   .masuk-pudar {
     animation: pudar-masuk 1200ms ease both;
   }
-  .tunda-1 { animation-delay: 80ms; }
-  .tunda-2 { animation-delay: 160ms; }
-  .tunda-3 { animation-delay: 240ms; }
-  .tunda-4 { animation-delay: 320ms; }
-  .tunda-5 { animation-delay: 420ms; }
-  .tunda-6 { animation-delay: 520ms; }
-  .tunda-7 { animation-delay: 620ms; }
-  .tunda-8 { animation-delay: 720ms; }
-  .tunda-9 { animation-delay: 820ms; }
+  .tunda-1 {
+    animation-delay: 80ms;
+  }
+  .tunda-2 {
+    animation-delay: 160ms;
+  }
+  .tunda-3 {
+    animation-delay: 240ms;
+  }
+  .tunda-4 {
+    animation-delay: 320ms;
+  }
+  .tunda-5 {
+    animation-delay: 420ms;
+  }
+  .tunda-6 {
+    animation-delay: 520ms;
+  }
+  .tunda-7 {
+    animation-delay: 620ms;
+  }
+  .tunda-8 {
+    animation-delay: 720ms;
+  }
+  .tunda-9 {
+    animation-delay: 820ms;
+  }
 
   /* Judul: tiap baris naik dari balik garis potong. Padding bawah memberi
      ruang bagi huruf berekor agar tidak terpotong. */
@@ -357,12 +407,24 @@
       transform 700ms cubic-bezier(0.23, 1, 0.32, 1);
     transition-delay: var(--tunda-total);
   }
-  [data-muncul][data-urut='1'] { --tunda: 90ms; }
-  [data-muncul][data-urut='2'] { --tunda: 180ms; }
-  [data-muncul][data-urut='3'] { --tunda: 270ms; }
-  [data-muncul][data-urut='4'] { --tunda: 360ms; }
-  [data-muncul][data-urut='5'] { --tunda: 450ms; }
-  [data-muncul][data-urut='6'] { --tunda: 540ms; }
+  [data-muncul][data-urut='1'] {
+    --tunda: 90ms;
+  }
+  [data-muncul][data-urut='2'] {
+    --tunda: 180ms;
+  }
+  [data-muncul][data-urut='3'] {
+    --tunda: 270ms;
+  }
+  [data-muncul][data-urut='4'] {
+    --tunda: 360ms;
+  }
+  [data-muncul][data-urut='5'] {
+    --tunda: 450ms;
+  }
+  [data-muncul][data-urut='6'] {
+    --tunda: 540ms;
+  }
   [data-muncul][data-awal] {
     --tunda-total: calc(var(--tunda, 0ms) + 500ms);
   }
@@ -378,10 +440,18 @@
       transform 700ms cubic-bezier(0.23, 1, 0.32, 1);
     transition-delay: calc(var(--tunda-total) + 220ms);
   }
-  [data-muncul] .isi-bertahap > :nth-child(1) { transition-delay: calc(var(--tunda-total) + 120ms); }
-  [data-muncul] .isi-bertahap > :nth-child(2) { transition-delay: calc(var(--tunda-total) + 200ms); }
-  [data-muncul] .isi-bertahap > :nth-child(3) { transition-delay: calc(var(--tunda-total) + 280ms); }
-  [data-muncul] .isi-bertahap > :nth-child(4) { transition-delay: calc(var(--tunda-total) + 360ms); }
+  [data-muncul] .isi-bertahap > :nth-child(1) {
+    transition-delay: calc(var(--tunda-total) + 120ms);
+  }
+  [data-muncul] .isi-bertahap > :nth-child(2) {
+    transition-delay: calc(var(--tunda-total) + 200ms);
+  }
+  [data-muncul] .isi-bertahap > :nth-child(3) {
+    transition-delay: calc(var(--tunda-total) + 280ms);
+  }
+  [data-muncul] .isi-bertahap > :nth-child(4) {
+    transition-delay: calc(var(--tunda-total) + 360ms);
+  }
   /* Titik warna jenis: muncul dengan sedikit pantulan. */
   [data-muncul] .titik-muncul {
     display: inline-grid;
@@ -428,22 +498,433 @@
 
   /* ── Animasi komponen admin (dropdown, sheet, dialog) ──────────────────
      Keadaan buka/tutup dari atribut data-state Radix. */
-  @keyframes ui-pudar-masuk { from { opacity: 0; } }
-  @keyframes ui-pudar-keluar { to { opacity: 0; } }
-  @keyframes ui-muncul { from { opacity: 0; transform: translateY(-4px) scale(0.97); } }
-  @keyframes ui-hilang { to { opacity: 0; transform: translateY(-4px) scale(0.97); } }
-  @keyframes ui-geser-kiri-masuk { from { transform: translateX(-100%); } }
-  @keyframes ui-geser-kiri-keluar { to { transform: translateX(-100%); } }
-  @keyframes ui-dialog-masuk { from { opacity: 0; transform: translate(-50%, -48%) scale(0.97); } }
-  @keyframes ui-dialog-keluar { to { opacity: 0; transform: translate(-50%, -48%) scale(0.97); } }
-  .ui-overlay[data-state='open'] { animation: ui-pudar-masuk 180ms ease-out; }
-  .ui-overlay[data-state='closed'] { animation: ui-pudar-keluar 140ms ease-in; }
-  .ui-menu[data-state='open'] { animation: ui-muncul 160ms cubic-bezier(0.23, 1, 0.32, 1); }
-  .ui-menu[data-state='closed'] { animation: ui-hilang 110ms ease-in; }
-  .ui-sheet-kiri[data-state='open'] { animation: ui-geser-kiri-masuk 280ms cubic-bezier(0.23, 1, 0.32, 1); }
-  .ui-sheet-kiri[data-state='closed'] { animation: ui-geser-kiri-keluar 200ms ease-in; }
-  .ui-dialog[data-state='open'] { animation: ui-dialog-masuk 200ms cubic-bezier(0.23, 1, 0.32, 1); }
-  .ui-dialog[data-state='closed'] { animation: ui-dialog-keluar 140ms ease-in; }
+  @keyframes ui-pudar-masuk {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes ui-pudar-keluar {
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes ui-muncul {
+    from {
+      opacity: 0;
+      transform: translateY(-4px) scale(0.97);
+    }
+  }
+  @keyframes ui-hilang {
+    to {
+      opacity: 0;
+      transform: translateY(-4px) scale(0.97);
+    }
+  }
+  @keyframes ui-geser-kiri-masuk {
+    from {
+      transform: translateX(-100%);
+    }
+  }
+  @keyframes ui-geser-kiri-keluar {
+    to {
+      transform: translateX(-100%);
+    }
+  }
+  @keyframes ui-dialog-masuk {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -48%) scale(0.97);
+    }
+  }
+  @keyframes ui-dialog-keluar {
+    to {
+      opacity: 0;
+      transform: translate(-50%, -48%) scale(0.97);
+    }
+  }
+  .ui-overlay[data-state='open'] {
+    animation: ui-pudar-masuk 180ms ease-out;
+  }
+  .ui-overlay[data-state='closed'] {
+    animation: ui-pudar-keluar 140ms ease-in;
+  }
+  .ui-menu[data-state='open'] {
+    animation: ui-muncul 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .ui-menu[data-state='closed'] {
+    animation: ui-hilang 110ms ease-in;
+  }
+  .ui-sheet-kiri[data-state='open'] {
+    animation: ui-geser-kiri-masuk 280ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .ui-sheet-kiri[data-state='closed'] {
+    animation: ui-geser-kiri-keluar 200ms ease-in;
+  }
+  .ui-dialog[data-state='open'] {
+    animation: ui-dialog-masuk 200ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .ui-dialog[data-state='closed'] {
+    animation: ui-dialog-keluar 140ms ease-in;
+  }
+
+  /* ── Tile jenis produk hukum di tepi bawah hero beranda ────────────────
+     Masuk: ikon meletup kecil setelah butirnya naik. Sorot: latar lembut
+     membesar dari tengah, ikon terangkat dan berpendar warna jenisnya, nama
+     berwarna institusi, panah meluncur masuk. Tekan: sedikit mengecil. */
+  @keyframes ikon-meletup {
+    from {
+      opacity: 0;
+      transform: scale(0.6) rotate(-8deg);
+    }
+  }
+  @keyframes jenis-timbang {
+    0% {
+      transform: none;
+    }
+    25% {
+      transform: translateY(-2px) rotate(-10deg);
+    }
+    55% {
+      transform: translateY(-2px) rotate(7deg);
+    }
+    80% {
+      transform: translateY(-2px) rotate(-2deg);
+    }
+    100% {
+      transform: translateY(-2px);
+    }
+  }
+  @keyframes jenis-cap {
+    0% {
+      transform: none;
+    }
+    35% {
+      transform: translateY(-6px) scale(1.04);
+    }
+    60% {
+      transform: translateY(1px) scale(1.08, 0.9);
+    }
+    80% {
+      transform: translateY(-3px) scale(0.98, 1.03);
+    }
+    100% {
+      transform: translateY(-2px);
+    }
+  }
+  @keyframes jenis-palu {
+    0% {
+      transform: none;
+    }
+    30% {
+      transform: translateY(-2px) rotate(-16deg);
+    }
+    52% {
+      transform: translateY(-2px) rotate(7deg);
+    }
+    70% {
+      transform: translateY(-2px) rotate(-3deg);
+    }
+    100% {
+      transform: translateY(-2px);
+    }
+  }
+  @keyframes bangun-tiang {
+    from {
+      stroke-dashoffset: 7;
+    }
+  }
+  @keyframes tulis-titik {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes tulis-garis {
+    from {
+      stroke-dashoffset: 4;
+    }
+  }
+  @keyframes gores-centang {
+    from {
+      stroke-dashoffset: 9;
+    }
+  }
+  /* Bagian ikon yang dianimasikan (komponen ikon-jenis.tsx). */
+  .tulis-garis {
+    stroke-dasharray: 4;
+  }
+  .centang {
+    stroke-dasharray: 9;
+  }
+  .tiang {
+    stroke-dasharray: 7;
+  }
+  /* Amplop berubah bentuk menjadi terbuka, lalu kertas surat menyembul.
+     Hanya bila peramban dapat menganimasikan bentuk path; bila tidak,
+     amplop tetap tertutup dan kertas tidak pernah tampil. */
+  .kertas-surat {
+    opacity: 0;
+  }
+  @supports (d: path('M0 0')) {
+    .amplop-badan,
+    .amplop-lipatan {
+      transition: d 380ms cubic-bezier(0.45, 0, 0.25, 1);
+    }
+    .kertas-surat {
+      transform: translateY(5px);
+      transition:
+        opacity 160ms ease,
+        transform 360ms cubic-bezier(0.34, 1.4, 0.64, 1);
+    }
+    @media (hover: hover) {
+      .tile-jenis:hover .amplop-badan {
+        d: path('M2 10Q2 9 2.8 8.4L12 2L21.2 8.4Q22 9 22 10L22 18Q22 20 20 20L4 20Q2 20 2 18Z');
+      }
+      .tile-jenis:hover .amplop-lipatan {
+        d: path('M22 10.5L13 16Q12 16.6 11 16L2 10.5');
+      }
+      .tile-jenis:hover .kertas-surat {
+        opacity: 1;
+        transform: none;
+        transition-delay: 200ms;
+      }
+    }
+  }
+  /* Pembatas tipis di celah antartile: garis rambut di tengah, hanya di
+     antara tile dalam satu baris (2, 3, lalu 6 kolom). Garis di sisi tile
+     yang disorot memudar supaya latar sorotnya tampil utuh. Garis digambar
+     sebagai border tanpa geseran setengah piksel: border selalu dibulatkan ke
+     piksel layar utuh, sehingga semua garis sama tebal pada skala layar apa
+     pun (mis. 125%), tidak sebagian tampak tipis dan sebagian tebal. */
+  .butir-jenis {
+    position: relative;
+  }
+  .butir-jenis::before,
+  .butir-jenis::after {
+    content: '';
+    position: absolute;
+    display: none;
+    border: 0 solid rgb(23 35 64 / 0.16);
+    pointer-events: none;
+    transition: opacity 220ms ease;
+  }
+  .butir-jenis::before {
+    top: 16%;
+    bottom: 16%;
+    left: -3px;
+    border-left-width: 1px;
+  }
+  .butir-jenis::after {
+    top: -3px;
+    left: 8%;
+    right: 8%;
+    border-top-width: 1px;
+  }
+  .butir-jenis:nth-child(even)::before,
+  .butir-jenis:nth-child(n + 3)::after {
+    display: block;
+  }
+  @media (width >= 48rem) {
+    .butir-jenis:nth-child(even)::before,
+    .butir-jenis:nth-child(n + 3)::after {
+      display: none;
+    }
+    .butir-jenis:not(:nth-child(3n + 1))::before,
+    .butir-jenis:nth-child(n + 4)::after {
+      display: block;
+    }
+  }
+  @media (width >= 80rem) {
+    .butir-jenis:nth-child(n)::before {
+      display: block;
+    }
+    .butir-jenis:first-child::before,
+    .butir-jenis:nth-child(n)::after {
+      display: none;
+    }
+  }
+  .butir-jenis:has(.tile-jenis:focus-visible)::before,
+  .butir-jenis:has(.tile-jenis:focus-visible) + .butir-jenis::before {
+    opacity: 0;
+  }
+  @media (hover: hover) {
+    .butir-jenis:hover::before,
+    .butir-jenis:hover + .butir-jenis::before {
+      opacity: 0;
+    }
+  }
+  .tile-jenis {
+    position: relative;
+    isolation: isolate;
+    transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .tile-jenis::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--color-slate-50);
+    box-shadow: inset 0 0 0 1px rgb(23 35 64 / 0.05);
+    opacity: 0;
+    transform: scale(0.94);
+    transition:
+      opacity 220ms ease,
+      transform 360ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .tile-jenis .ikon-jenis {
+    animation: ikon-meletup 700ms cubic-bezier(0.34, 1.56, 0.64, 1) var(--tunda-ikon, 0ms) backwards;
+    transition:
+      transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      box-shadow 300ms ease;
+  }
+  .tile-jenis .nama-jenis {
+    transition: color 180ms ease;
+  }
+  .tile-jenis .panah-jenis {
+    opacity: 0;
+    transform: translateX(-6px);
+    transition:
+      opacity 200ms ease,
+      transform 320ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .tile-jenis:active {
+    transform: scale(0.97);
+  }
+  .tile-jenis:focus-visible::before {
+    opacity: 1;
+    transform: none;
+    box-shadow: inset 0 0 0 2px var(--color-institusi-500);
+  }
+  @media (hover: hover) {
+    .tile-jenis:hover::before {
+      opacity: 1;
+      transform: none;
+    }
+    .tile-jenis:hover .ikon-jenis {
+      transform: translateY(-3px) rotate(-5deg) scale(1.06);
+      box-shadow: 0 10px 18px -10px currentColor;
+    }
+    /* Gerak khas tiap jenis, sesuai makna ikonnya. Semua berakhir di posisi
+       terangkat yang sama, jadi tidak ada lompatan saat gerak selesai. */
+    .tile-jenis[data-gerak] .ikon-jenis {
+      --naik: translateY(-2px);
+    }
+    .tile-jenis:hover[data-gerak='peraturan'] .ikon-jenis,
+    .tile-jenis:hover[data-gerak='keputusan'] .ikon-jenis,
+    .tile-jenis:hover[data-gerak='instruksi'] .ikon-jenis,
+    .tile-jenis:hover[data-gerak='edaran'] .ikon-jenis,
+    .tile-jenis:hover[data-gerak='peraturan-senat'] .ikon-jenis,
+    .tile-jenis:hover[data-gerak='keputusan-senat'] .ikon-jenis,
+    .tile-jenis:hover[data-gerak='sop'] .ikon-jenis {
+      transform: var(--naik);
+      /* Tunda 0: jangan mewarisi tunda animasi masuk (--tunda-ikon). */
+      animation-delay: 0ms;
+      animation-duration: 520ms;
+      animation-timing-function: cubic-bezier(0.33, 0, 0.2, 1);
+      animation-fill-mode: both;
+    }
+    /* Timbangan: bergoyang menimbang, lalu seimbang. */
+    .tile-jenis:hover[data-gerak='peraturan'] .ikon-jenis {
+      transform-origin: 50% 25%;
+      animation-name: jenis-timbang;
+    }
+    /* Stempel: terangkat, lalu menekan seperti mengecap. */
+    .tile-jenis:hover[data-gerak='keputusan'] .ikon-jenis {
+      transform-origin: 50% 100%;
+      animation-name: jenis-cap;
+    }
+    /* Palu sidang: terangkat, lalu mengetuk dan memantul kecil. */
+    .tile-jenis:hover[data-gerak='keputusan-senat'] .ikon-jenis {
+      transform-origin: 18% 82%;
+      animation-name: jenis-palu;
+    }
+    /* Gedung senat: tiang-tiangnya berdiri dari kiri ke kanan. */
+    .tile-jenis:hover .tiang {
+      animation: bangun-tiang 300ms cubic-bezier(0.45, 0, 0.25, 1) backwards;
+    }
+    .tile-jenis:hover .tiang.ke-2 {
+      animation-delay: 80ms;
+    }
+    .tile-jenis:hover .tiang.ke-3 {
+      animation-delay: 160ms;
+    }
+    .tile-jenis:hover .tiang.ke-4 {
+      animation-delay: 240ms;
+    }
+    /* Papan instruksi: titik dan baris tertulis satu per satu. */
+    .tile-jenis:hover .tulis-titik {
+      animation: tulis-titik 160ms ease-out backwards;
+    }
+    .tile-jenis:hover .tulis-garis {
+      animation: tulis-garis 340ms cubic-bezier(0.45, 0, 0.25, 1) 120ms backwards;
+    }
+    .tile-jenis:hover .tulis-titik.ke-2 {
+      animation-delay: 460ms;
+    }
+    .tile-jenis:hover .tulis-garis.ke-2 {
+      animation-delay: 580ms;
+    }
+    /* Daftar periksa: tanda centang tergores satu per satu. */
+    .tile-jenis:hover .centang {
+      animation: gores-centang 380ms cubic-bezier(0.45, 0, 0.25, 1) 60ms backwards;
+    }
+    .tile-jenis:hover .centang.ke-2 {
+      animation-delay: 300ms;
+    }
+    .tile-jenis:hover .nama-jenis {
+      color: var(--color-institusi-700);
+    }
+    .tile-jenis:hover .panah-jenis {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Panel jumlah per jenis duduk tepat di garis batas hero, separuh di atas
+     foto dan separuh di atas latar halaman, berapa pun tingginya (satu baris
+     di desktop, beberapa baris di layar sempit). Caranya: panel berada di
+     dalam hero, lalu separuh bawahnya ditutup pita selebar layar berwarna
+     latar halaman. Hero memotong pita itu (overflow: hidden). */
+  .tumpuan-panel {
+    position: relative;
+  }
+  .tumpuan-panel::before {
+    content: '';
+    position: absolute;
+    inset-inline: -100vmax;
+    bottom: 0;
+    height: 50%;
+    z-index: -1;
+    background: var(--color-rak);
+  }
+
+  /* Panel SOP beranda: begitu disorot, centang pada ikonnya tergores ulang. */
+  @media (hover: hover) {
+    .panel-sop:hover .ikon-sop .centang {
+      animation: gores-centang 380ms cubic-bezier(0.45, 0, 0.25, 1) 60ms backwards;
+    }
+    .panel-sop:hover .ikon-sop .centang.ke-2 {
+      animation-delay: 300ms;
+    }
+  }
+
+  /* Kotak centang unit SOP (menu SOP dan panel SOP beranda): centangnya
+     tergores masuk saat butir disorot atau difokus papan ketik. */
+  .kotak-centang .centang-unit {
+    stroke: var(--warna-centang, var(--color-institusi-600));
+    stroke-width: 2;
+    stroke-dasharray: 9;
+    stroke-dashoffset: 9;
+    transition: stroke-dashoffset 280ms cubic-bezier(0.45, 0, 0.25, 1);
+  }
+  .unit-sop:focus-visible .centang-unit {
+    stroke-dashoffset: 0;
+  }
+  @media (hover: hover) {
+    .unit-sop:hover .centang-unit {
+      stroke-dashoffset: 0;
+    }
+  }
 
   /* ── Panel Format persuratan ────────────────────────────────────────────
      Ikon tumpukan lembar format surat. Saat panel disorot (atau tombolnya
@@ -512,8 +993,12 @@
     background: rgb(23 35 64 / 0.16);
     transform-origin: left;
   }
-  .lembar-depan .baris:nth-child(3) { width: 82%; }
-  .lembar-depan .baris:nth-child(5) { width: 56%; }
+  .lembar-depan .baris:nth-child(3) {
+    width: 82%;
+  }
+  .lembar-depan .baris:nth-child(5) {
+    width: 56%;
+  }
   .lencana-unduh {
     position: absolute;
     right: -0.5rem;
@@ -576,10 +1061,18 @@
   .panel-format:focus-within .lencana-unduh {
     transform: scale(1);
   }
-  .lembar-depan .baris:nth-child(2) { animation-delay: 80ms; }
-  .lembar-depan .baris:nth-child(3) { animation-delay: 160ms; }
-  .lembar-depan .baris:nth-child(4) { animation-delay: 240ms; }
-  .lembar-depan .baris:nth-child(5) { animation-delay: 320ms; }
+  .lembar-depan .baris:nth-child(2) {
+    animation-delay: 80ms;
+  }
+  .lembar-depan .baris:nth-child(3) {
+    animation-delay: 160ms;
+  }
+  .lembar-depan .baris:nth-child(4) {
+    animation-delay: 240ms;
+  }
+  .lembar-depan .baris:nth-child(5) {
+    animation-delay: 320ms;
+  }
 
   /* Transisi halus untuk ikon, panah, dan titik yang bergerak saat disorot. */
   .gerak {
@@ -639,10 +1132,16 @@
      --gambar-hero-dokumen: url('/gambar/hero-dokumen.jpg');
      lapisan biru di atasnya menjaga teks putih tetap terbaca. */
   .hero-dokumen {
+    --gambar-hero-dokumen: url('/gambar/gedung-ith.webp');
     background:
-      radial-gradient(40% 70% at 90% 10%, rgb(92 181 49 / 0.2), transparent 70%),
-      linear-gradient(120deg, rgb(19 49 92 / 0.95) 0%, rgb(25 74 133 / 0.92) 55%, rgb(31 95 166 / 0.9) 100%),
-      var(--gambar-hero-dokumen, none) center / cover no-repeat,
+      radial-gradient(40% 70% at 90% 10%, rgb(92 181 49 / 0.16), transparent 70%),
+      linear-gradient(
+        100deg,
+        rgb(11 27 54 / 0.95) 0%,
+        rgb(15 40 78 / 0.88) 50%,
+        rgb(19 56 104 / 0.74) 100%
+      ),
+      var(--gambar-hero-dokumen, none) 62% 40% / cover no-repeat,
       #13315c;
   }
 
@@ -651,16 +1150,28 @@
      mengurangi gerakan. */
   .garis-logo {
     background:
-      linear-gradient(90deg, transparent, rgb(255 255 255 / 0.85), transparent) -40% 0 / 40% 100% no-repeat,
+      linear-gradient(90deg, transparent, rgb(255 255 255 / 0.85), transparent) -40% 0 / 40% 100%
+        no-repeat,
       linear-gradient(90deg, #c2510e 0%, #e0701a 30%, #f39222 50%, #e0701a 70%, #c2510e 100%);
     animation: kilau-garis 7s ease-in-out infinite;
   }
   @keyframes kilau-garis {
-    0% { background-position: -40% 0, 0 0; }
-    55%, 100% { background-position: 140% 0, 0 0; }
+    0% {
+      background-position:
+        -40% 0,
+        0 0;
+    }
+    55%,
+    100% {
+      background-position:
+        140% 0,
+        0 0;
+    }
   }
   @media (prefers-reduced-motion: reduce) {
-    .garis-logo { animation: none; }
+    .garis-logo {
+      animation: none;
+    }
   }
 
   /* Kartu halaman detail: tepi tipis dan bayangan lembut berlapis. */
@@ -676,8 +1187,35 @@
   /* Footer: biru tua roda gigi, rata agar teks kecil tetap terbaca. */
   .footer-institusi {
     background:
-      radial-gradient(50% 140% at 100% 0%, rgb(43 112 192 / 0.18), transparent 60%),
-      #0f213b;
+      radial-gradient(50% 140% at 100% 0%, rgb(43 112 192 / 0.18), transparent 60%), #0f213b;
+  }
+
+  /* Kartu satu dokumen di daftar Produk Hukum. Sorot cukup menebalkan garis
+     dan memberi bayangan lembut, tanpa mengangkat kartu, supaya tidak
+     terpotong oleh tepi panel gulir. */
+  .kartu-dokumen {
+    box-shadow: 0 1px 2px rgb(23 35 64 / 0.04);
+    transition:
+      border-color 200ms ease,
+      box-shadow 260ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .kartu-dokumen:has(a:focus-visible) {
+    border-color: var(--color-institusi-500);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-institusi-500) 20%, transparent);
+  }
+  @media (hover: hover) {
+    .kartu-dokumen:hover {
+      border-color: rgb(23 35 64 / 0.18);
+      box-shadow:
+        0 1px 2px rgb(23 35 64 / 0.05),
+        0 10px 22px -14px rgb(23 35 64 / 0.32);
+    }
+  }
+
+  /* Panel daftar hasil yang bergulir sendiri: bilah gulir tipis dan tenang. */
+  .gulir-hasil {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(23 35 64 / 0.18) transparent;
   }
 
   /* Panel: putih, sudut lembut, garis tipis, bayangan berlapis rendah. */
@@ -706,11 +1244,11 @@
   }
 }
 
-/* Beranda berlatar abu sampai footer, tanpa celah putih. */
-main:has(.beranda) {
+/* Beranda dan halaman berlatar abu sampai footer, tanpa celah putih. */
+main:has(.beranda, .latar-rak) {
   background: var(--color-rak);
 }
-main:has(.beranda) + footer {
+main:has(.beranda, .latar-rak) + footer {
   margin-top: 0;
 }
 

@@ -1,12 +1,34 @@
 import type { Metadata } from 'next';
-import { HeroHalaman } from '@/components/hero-halaman';
+import { ambilPublik } from '@/lib/api-peladen';
 import { PencarianProduk } from '@/components/pencarian-produk';
 
-export const metadata: Metadata = { title: 'Produk Hukum', description: 'Cari produk hukum Institut Teknologi Bacharuddin Jusuf Habibie.' };
+type Jenis = { id: string; kode: string; nama: string };
+type Params = Promise<Record<string, string | string[] | undefined>>;
 
 const teks = (nilai: string | string[] | undefined) => (typeof nilai === 'string' ? nilai : '');
 
-export default async function HalamanProdukHukum({ searchParams }: { searchParams: Promise<Record<string,string|string[]|undefined>> }) {
+/** Nama jenis dari kode di alamat (mis. ?jenis=PERREK); kosong bila tidak dikenal. */
+async function namaJenis(kode: string) {
+  if (!kode) return undefined;
+  const daftar = await ambilPublik<Jenis[]>('/public/master/jenis_dokumen').catch(
+    () => [] as Jenis[],
+  );
+  return daftar.find((j) => j.kode === kode)?.nama;
+}
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Params;
+}): Promise<Metadata> {
+  const nama = await namaJenis(teks((await searchParams).jenis));
+  return {
+    title: nama ?? 'Produk Hukum',
+    description: `Cari ${nama ?? 'produk hukum'} Institut Teknologi Bacharuddin Jusuf Habibie.`,
+  };
+}
+
+export default async function HalamanProdukHukum({ searchParams }: { searchParams: Params }) {
   const params = await searchParams;
   const awal = {
     initialQuery: teks(params.q),
@@ -14,9 +36,20 @@ export default async function HalamanProdukHukum({ searchParams }: { searchParam
     // `jenis` dan `kategori` berisi kode (mis. SKREK, SOP-SAINS) dari menu Produk Hukum.
     initialJenisKode: teks(params.jenis),
     initialKategoriKode: teks(params.kategori),
+    initialStatus: ['BERLAKU', 'DIUBAH', 'DICABUT'].includes(teks(params.statusHukum))
+      ? teks(params.statusHukum)
+      : '',
   };
   // Kunci memaksa komponen dipasang ulang saat pengguna memilih butir menu lain
   // ketika sudah berada di halaman ini, sehingga penyaring awalnya ikut berganti.
-  const kunci = [awal.initialQuery, awal.initialYear, awal.initialJenisKode, awal.initialKategoriKode].join('|');
-  return <><HeroHalaman label="Jaringan Dokumentasi dan Informasi Hukum" judul="Produk Hukum" deskripsi="Cari peraturan, keputusan, instruksi, surat edaran, dan SOP ITH berdasarkan metadata yang tersedia." /><div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8"><PencarianProduk key={kunci} {...awal} /></div></>;
+  const kunci = Object.values(awal).join('|');
+  return (
+    <div className="latar-rak bg-rak">
+      <PencarianProduk
+        key={kunci}
+        {...awal}
+        initialJenisNama={await namaJenis(awal.initialJenisKode)}
+      />
+    </div>
+  );
 }

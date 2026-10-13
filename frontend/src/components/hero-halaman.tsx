@@ -1,7 +1,9 @@
+import { LatarFotoHero } from './latar-foto-hero';
+
 /**
- * Section hero untuk halaman publik selain beranda. Gaya sama dengan hero
- * beranda (gradien institusi dan lingkaran dekoratif) tetapi lebih ringkas,
- * supaya isi halaman tetap terlihat tanpa menggulir jauh.
+ * Section hero untuk halaman publik selain beranda: foto kampus ITH di balik
+ * lapisan biru institusi, lebih ringkas daripada beranda supaya isi halaman
+ * tetap terlihat tanpa menggulir jauh.
  */
 export function HeroHalaman({
   label,
@@ -18,10 +20,7 @@ export function HeroHalaman({
 }) {
   return (
     <section className="hero-beranda relative overflow-hidden text-white">
-      <div
-        aria-hidden
-        className="absolute -top-40 -right-24 size-[28rem] rounded-full border-[48px] border-white/5"
-      />
+      <LatarFotoHero />
       <div className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
         {label && (
           <p className="text-sm font-semibold tracking-[0.16em] text-white/90 uppercase">{label}</p>

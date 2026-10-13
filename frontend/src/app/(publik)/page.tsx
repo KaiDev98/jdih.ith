@@ -1,23 +1,16 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import {
-  ArrowRight,
-  ClipboardList,
-  Download,
-  Eye,
-  FileText,
-  ListChecks,
-  Mail,
-  Scale,
-  Stamp,
-} from 'lucide-react';
+import { ArrowRight, ChevronRight, Download, Eye } from 'lucide-react';
 import type { HasilCariAnonim, TahunTersedia } from '@jdih/shared';
 import { ambilApiBerdaftar } from '@/lib/api-client';
 import { ambilPublik } from '@/lib/api-peladen';
 import { BilahCari } from '@/components/bilah-cari';
+import { LatarFotoHero } from '@/components/latar-foto-hero';
 import { TandaStatus } from '@/components/tanda-status';
 import { PemicuMuncul } from '@/components/pemicu-muncul';
+import { tampilanJenis } from '@/lib/tampilan-jenis';
 import { AngkaNaik } from '@/components/angka-naik';
+import { IkonSop, KotakCentang } from '@/components/ikon-jenis';
 
 export const metadata = {
   title: 'Beranda',
@@ -26,24 +19,18 @@ export const metadata = {
 
 type Jenis = { id: string; kode: string; nama: string };
 type Terbaru = { jenis: Jenis; dokumen: HasilCariAnonim | null; jumlah: number | null };
+type UnitSop = { id: string; kode: string; nama: string };
+type UnitBerjumlah = UnitSop & { jumlah: number | null };
 
 const tautanJenis = (kode: string) => `/produk-hukum?jenis=${encodeURIComponent(kode)}`;
-
-/** Penanda warna per jenis, diambil dari warna logo ITH. */
-const WARNA_JENIS: Record<string, string> = {
-  PERREK: 'bg-[#1d4f99]',
-  SKREK: 'bg-[#2e7d3a]',
-  INSREK: 'bg-[#e8792a]',
-  SEREK: 'bg-[#f2c230]',
-  SOP: 'bg-[#5b6472]',
-};
 
 export default async function Beranda() {
   // Pilihan pencarian. Bila salah satu gagal dimuat, pilihannya cukup kosong;
   // pencarian kata kunci tetap berfungsi.
-  const [tipe, tahun] = await Promise.all([
+  const [tipe, tahun, unitSop] = await Promise.all([
     ambilPublik<Jenis[]>('/public/master/jenis_dokumen').catch(() => []),
     ambilPublik<TahunTersedia>('/public/documents/years').catch(() => []),
+    ambilPublik<UnitSop[]>('/public/master/kategori').catch(() => []),
   ]);
   // Untuk setiap jenis: dokumen terbarunya dan jumlah dokumennya. Endpoint
   // /public/documents hanya memuat dokumen publik yang sudah terbit, dan sengaja
@@ -62,12 +49,35 @@ export default async function Beranda() {
       }
     }),
   );
+  // SOP berdiri sendiri, terpisah dari produk hukum: tidak masuk panel jumlah
+  // di hero dan tampil sebagai panel tersendiri di bawah regulasi terbaru.
+  const adalahSop = ({ jenis }: Terbaru) => tampilanJenis(jenis.kode, jenis.nama).macam === 'sop';
+  const produk = terbaruPerJenis.filter((t) => !adalahSop(t));
+  const sop = terbaruPerJenis.find(adalahSop);
+  // Jumlah SOP publik terbit per unit kerja (kategori SOP), dihitung seperti
+  // jumlah per jenis di atas: tanpa kuki, jadi tidak pernah menghitung Internal.
+  const unitSopBerjumlah: UnitBerjumlah[] = sop
+    ? await Promise.all(
+        unitSop.map(async (u) => {
+          try {
+            const hasil = await ambilApiBerdaftar<HasilCariAnonim>('/public/documents', {
+              kueri: { jenisDokumenId: sop.jenis.id, kategoriId: u.id, halaman: 1, perHalaman: 1 },
+              next: { revalidate: 60 },
+            });
+            return { ...u, jumlah: hasil.meta.totalButir };
+          } catch {
+            return { ...u, jumlah: null };
+          }
+        }),
+      )
+    : [];
 
   return (
     <div className="beranda bg-rak text-tinta">
       <PemicuMuncul />
       <section aria-labelledby="judul-beranda" className="hero-beranda text-white">
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 pt-12 pb-24 sm:px-6 md:pt-16 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:px-8 lg:pb-28">
+        <LatarFotoHero beranda />
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 pt-12 pb-9 sm:px-6 md:pt-16 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:px-8 lg:pb-12">
           <div className="min-w-0 max-w-2xl">
             <h1
               id="judul-beranda"
@@ -94,7 +104,7 @@ export default async function Beranda() {
             aria-hidden
             className="relative mr-6 hidden size-64 place-items-center lg:grid xl:size-72"
           >
-            <span className="masuk-pudar absolute inset-0 rounded-full bg-white/10" />
+            <span className="masuk-pudar absolute inset-0 rounded-full bg-white/10 backdrop-blur-[2px]" />
             <svg
               viewBox="0 0 100 100"
               className="cincin-gores absolute inset-0 size-full -rotate-90"
@@ -113,11 +123,12 @@ export default async function Beranda() {
             </div>
           </div>
         </div>
+        <div className="tumpuan-panel">
+          <div className="masuk tunda-5 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <JumlahPerJenis terbaru={produk} />
+          </div>
+        </div>
       </section>
-
-      <div className="masuk tunda-5 relative z-10 mx-auto -mt-14 max-w-7xl px-4 sm:px-6 lg:px-8">
-        <JumlahPerJenis terbaru={terbaruPerJenis} />
-      </div>
 
       <section
         aria-labelledby="judul-regulasi-terbaru"
@@ -153,12 +164,13 @@ export default async function Beranda() {
             Daftar produk hukum belum dapat dimuat. Silakan coba lagi nanti.
           </p>
         ) : (
-          <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            {terbaruPerJenis.map((item) => (
+          <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {produk.map((item) => (
               <PanelTerbaru key={item.jenis.kode} {...item} />
             ))}
           </ul>
         )}
+        {sop && <PanelSop {...sop} unit={unitSopBerjumlah} />}
       </section>
 
       <section
@@ -214,55 +226,52 @@ function TumpukanSurat() {
   );
 }
 
-/** Ikon dan warnanya untuk setiap jenis produk hukum (warna logo ITH). */
-const IKON_JENIS: Record<string, { ikon: typeof Scale; kelas: string }> = {
-  PERREK: { ikon: Scale, kelas: 'bg-[#e8f0fb] text-[#1d4f99]' },
-  SKREK: { ikon: Stamp, kelas: 'bg-[#e7f4ea] text-[#2e7d3a]' },
-  INSREK: { ikon: ClipboardList, kelas: 'bg-institusi-50 text-institusi-700' },
-  SEREK: { ikon: Mail, kelas: 'bg-[#fdf6dc] text-[#a07a05]' },
-  SOP: { ikon: ListChecks, kelas: 'bg-slate-100 text-slate-700' },
-};
-
 const ANGKA = new Intl.NumberFormat('id-ID');
 
 /** Jeda muncul butir panel jumlah, menyusul panelnya. */
-const TUNDA_BUTIR = ['tunda-5', 'tunda-6', 'tunda-7', 'tunda-8', 'tunda-9'];
+const TUNDA_BUTIR = ['tunda-5', 'tunda-5', 'tunda-6', 'tunda-6', 'tunda-7', 'tunda-7'];
 
 /**
- * Panel putih yang menumpang di tepi bawah hero: jumlah dokumen publik terbit
- * untuk setiap jenis produk hukum, masing-masing dengan ikonnya. Tiap butir
- * menaut ke daftar jenis tersebut.
+ * Panel putih di garis batas hero: jumlah dokumen publik terbit untuk setiap
+ * jenis produk hukum (tanpa SOP), masing-masing dengan ikonnya. Satu baris di
+ * desktop; .tumpuan-panel menjaganya tepat separuh di atas foto hero.
  */
 function JumlahPerJenis({ terbaru }: { terbaru: Terbaru[] }) {
   if (terbaru.length === 0) return null;
   return (
     <nav aria-label="Jumlah dokumen per jenis" className="panel p-2">
-      <ul className="grid grid-cols-2 gap-1 sm:grid-cols-3 lg:grid-cols-5">
+      <ul className="grid grid-cols-2 gap-1 md:grid-cols-3 xl:grid-cols-6">
         {terbaru.map(({ jenis, jumlah }, i) => {
-          const { ikon: Ikon, kelas } = IKON_JENIS[jenis.kode] ?? {
-            ikon: FileText,
-            kelas: 'bg-slate-100 text-slate-700',
-          };
+          const { ikon: Ikon, kotak, macam } = tampilanJenis(jenis.kode, jenis.nama);
           return (
-            <li key={jenis.kode} className={`masuk-ringan min-w-0 ${TUNDA_BUTIR[i] ?? 'tunda-9'}`}>
+            <li
+              key={jenis.kode}
+              style={{ '--tunda-ikon': `${String(560 + i * 70)}ms` } as React.CSSProperties}
+              className={`butir-jenis masuk-ringan min-w-0 ${TUNDA_BUTIR[i] ?? 'tunda-7'}`}
+            >
               <Link
                 href={tautanJenis(jenis.kode)}
-                className="group flex items-center gap-2.5 rounded-xl p-2.5 transition-colors duration-200 hover:bg-slate-50 sm:gap-3 sm:p-3"
+                data-gerak={macam}
+                className="tile-jenis group flex items-center gap-2.5 rounded-xl p-2.5 outline-none sm:gap-3 sm:p-3"
               >
                 <span
                   aria-hidden
-                  className={`gerak grid size-9 shrink-0 place-items-center rounded-lg group-hover:-translate-y-0.5 group-hover:scale-110 sm:size-11 sm:rounded-xl ${kelas}`}
+                  className={`ikon-jenis grid size-9 shrink-0 place-items-center rounded-lg sm:size-11 sm:rounded-xl ${kotak}`}
                 >
                   <Ikon className="size-5" />
                 </span>
-                <span className="min-w-0">
+                <span className="min-w-0 flex-1">
                   <span className="block text-xl leading-tight font-extrabold text-tinta tabular-nums">
-                    {jumlah === null ? '—' : <AngkaNaik nilai={jumlah} tunda={650 + i * 90} />}
+                    {jumlah === null ? '—' : <AngkaNaik nilai={jumlah} tunda={650 + i * 60} />}
                   </span>
-                  <span className="gerak block text-[0.8125rem] leading-snug font-medium text-slate-600 group-hover:text-institusi-700 sm:text-sm">
+                  <span className="nama-jenis block text-[0.8125rem] leading-snug font-medium text-slate-600 sm:text-sm">
                     {jenis.nama}
                   </span>
                 </span>
+                <ArrowRight
+                  aria-hidden
+                  className="panah-jenis hidden size-4 shrink-0 text-institusi-600 md:block xl:hidden"
+                />
               </Link>
             </li>
           );
@@ -272,15 +281,123 @@ function JumlahPerJenis({ terbaru }: { terbaru: Terbaru[] }) {
   );
 }
 
+/**
+ * SOP di bawah kartu regulasi terbaru, dibedakan dari kartu produk hukum:
+ * satu panel indeks unit kerja. Kepala panel memuat ringkasan (jumlah SOP dan
+ * unit, serta SOP terakhir terbit). Tiap unit menampilkan jumlah SOP-nya dan
+ * garis tipis di tepi bawah yang panjangnya sebanding dengan unit terbanyak,
+ * sehingga sebaran SOP terbaca sekilas. Kotak centang di depan nama unit
+ * tercentang saat disorot, karena SOP pada dasarnya daftar periksa kerja.
+ */
+function PanelSop({ jenis, dokumen, jumlah, unit }: Terbaru & { unit: UnitBerjumlah[] }) {
+  const href = tautanJenis(jenis.kode);
+  const terbanyak = Math.max(1, ...unit.map((u) => u.jumlah ?? 0));
+  return (
+    <section aria-labelledby="judul-sop" data-muncul className="mt-14">
+      <div className="panel-sop overflow-hidden rounded-xl border border-tinta/10 bg-white">
+        <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-b border-slate-100 px-5 py-5 sm:px-6">
+          <div className="flex min-w-0 items-center gap-4">
+            <span
+              aria-hidden
+              className="ikon-sop grid size-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-700"
+            >
+              <IkonSop className="size-5" />
+            </span>
+            <div className="min-w-0">
+              <h3
+                id="judul-sop"
+                className="text-lg leading-tight font-extrabold tracking-[-0.01em]"
+              >
+                Standar Operasional Prosedur
+              </h3>
+              <p className="mt-1 text-sm text-slate-600">
+                Prosedur kerja baku setiap unit kerja di lingkungan ITH.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-6 sm:gap-8">
+            <dl className="flex gap-6 tabular-nums">
+              <div>
+                <dt className="text-xs text-slate-500">SOP terbit</dt>
+                <dd className="text-xl leading-tight font-extrabold">
+                  {jumlah === null ? '—' : ANGKA.format(jumlah)}
+                </dd>
+              </div>
+              <div className="border-l border-slate-200 pl-6">
+                <dt className="text-xs text-slate-500">Unit kerja</dt>
+                <dd className="text-xl leading-tight font-extrabold">
+                  {ANGKA.format(unit.length)}
+                </dd>
+              </div>
+            </dl>
+            <Link
+              href={href}
+              className="group inline-flex items-center gap-2 text-sm font-semibold text-institusi-700 hover:text-institusi-800"
+            >
+              Semua SOP{' '}
+              <ArrowRight aria-hidden className="gerak size-4 group-hover:translate-x-1" />
+            </Link>
+          </div>
+        </div>
+        {dokumen && (
+          <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 border-b border-slate-100 bg-slate-50/70 px-5 py-3 text-sm sm:px-6">
+            <span className="huruf-label text-[0.6875rem] text-institusi-700">Terbit terakhir</span>
+            <Link
+              href={`/produk-hukum/${dokumen.slug}`}
+              className="font-semibold text-tinta [overflow-wrap:anywhere] hover:text-institusi-700"
+            >
+              {dokumen.judul}
+            </Link>
+            <span className="text-slate-500 tabular-nums">
+              No. {dokumen.nomor}
+              {dokumen.tahun ? ` · ${dokumen.tahun}` : ''}
+            </span>
+          </p>
+        )}
+        {unit.length > 0 && (
+          <ul className="grid grid-cols-2 gap-px bg-slate-100 lg:grid-cols-4">
+            {unit.map((u) => (
+              <li key={u.kode} className="bg-white">
+                <Link
+                  href={`${href}&kategori=${encodeURIComponent(u.kode)}`}
+                  className="unit-sop group relative flex h-full items-center gap-2.5 px-3 py-3.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-tinta focus-visible:bg-slate-50 focus-visible:outline-none sm:gap-3 sm:px-4"
+                >
+                  <KotakCentang className="size-4 shrink-0 text-slate-300 transition-colors duration-200 group-hover:text-institusi-400" />
+                  <span className="min-w-0 flex-1">{u.nama}</span>
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums transition-colors duration-150 ${u.jumlah ? 'bg-institusi-50 text-institusi-700 group-hover:bg-institusi-100' : 'bg-slate-100 text-slate-500'}`}
+                  >
+                    {u.jumlah === null ? '—' : ANGKA.format(u.jumlah)}
+                    <span className="sr-only"> SOP</span>
+                  </span>
+                  {u.jumlah ? (
+                    <span
+                      aria-hidden
+                      style={{ transform: `scaleX(${String(u.jumlah / terbanyak)})` }}
+                      className="absolute inset-x-0 bottom-0 h-0.5 origin-left bg-institusi-400/70"
+                    />
+                  ) : null}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
+  );
+}
+
 /** Satu panel regulasi terbaru untuk satu jenis produk hukum. */
 function PanelTerbaru({ jenis, dokumen }: Terbaru) {
   return (
     <li data-muncul className="flex min-w-0">
-      <div className="kartu-angkat isi-bertahap group flex w-full min-w-0 flex-col rounded-xl border border-tinta/10 bg-white p-5">
+      <div
+        className={`isi-bertahap group flex w-full min-w-0 flex-col rounded-xl p-5 ${dokumen ? 'kartu-angkat border border-tinta/10 bg-white' : 'border border-dashed border-slate-300 bg-white/50'}`}
+      >
         <p className="flex items-center gap-2 text-sm font-semibold text-slate-600">
           <span aria-hidden className="titik-muncul shrink-0">
             <span
-              className={`gerak size-2.5 rounded-full group-hover:scale-125 ${WARNA_JENIS[jenis.kode] ?? 'bg-slate-400'}`}
+              className={`gerak size-2.5 rounded-full group-hover:scale-125 ${tampilanJenis(jenis.kode, jenis.nama).titik}`}
             />
           </span>
           {jenis.nama}
@@ -311,7 +428,7 @@ function PanelTerbaru({ jenis, dokumen }: Terbaru) {
             </p>
           </>
         ) : (
-          <p className="mt-3 text-slate-600">Belum ada dokumen terbit.</p>
+          <p className="mt-3 text-sm text-slate-500">Belum ada dokumen terbit.</p>
         )}
         <div className="mt-auto pt-5">
           <div className="flex items-center justify-between gap-3 border-t border-slate-200 pt-4 text-sm">

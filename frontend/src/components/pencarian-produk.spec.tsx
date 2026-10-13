@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { skemaHasilCariAnonim } from '@jdih/shared';
 import { PencarianProduk } from './pencarian-produk';
@@ -22,7 +22,17 @@ vi.mock('@/lib/api-client', () => ({
             { id: '9', kode: 'SOP-AKADEMIK', nama: 'Akademik' },
             { id: '1', kode: 'SOP-SAINS', nama: 'Jurusan Sains' },
           ]
-        : [{ id: '3', nama: 'Rektorat' }],
+        : path.endsWith('/facets')
+          ? {
+              total: 3,
+              perJenis: [
+                { jenisDokumenId: '7', jumlah: 2 },
+                { jenisDokumenId: '5', jumlah: 1 },
+              ],
+            }
+          : path.endsWith('/years')
+            ? [2026, 2025]
+            : [],
   ),
   ambilApiBerdaftar: vi.fn(async () => ({
     data: api.hasil,
@@ -89,12 +99,14 @@ describe('tampilan hasil pencarian', () => {
     expect(await screen.findByText('Internal')).toBeInTheDocument();
   });
 
-  it('menampilkan label master yang manusiawi sementara nilai request tetap memakai ID', async () => {
+  it('menampilkan jenis dengan jumlahnya, dan label master sementara nilai request memakai ID', async () => {
     render(<PencarianProduk />);
-    const type = await screen.findByRole('combobox', { name: 'Jenis Produk Hukum' });
-    const category = screen.getByRole('combobox', { name: 'Kategori' });
-    expect(type.querySelector('option[value="7"]')?.textContent).toBe('Peraturan Rektor');
-    expect(category.querySelector('option[value="9"]')?.textContent).toBe('Akademik');
+    const jenis = await screen.findByRole('button', { name: /Peraturan Rektor\s*2/ });
+    expect(jenis).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(screen.getByRole('combobox', { name: 'Kategori' }));
+    expect(screen.getByRole('option', { name: 'Akademik' })).toHaveAttribute('data-value', '9');
+    fireEvent.click(screen.getByRole('combobox', { name: 'Tahun' }));
+    expect(screen.getByRole('option', { name: '2026' })).toHaveAttribute('data-value', '2026');
   });
 
   it('menerjemahkan kode dari menu menjadi id sebelum pencarian pertama', async () => {
@@ -105,6 +117,9 @@ describe('tampilan hasil pencarian', () => {
       kueri: Record<string, unknown>;
     };
     expect(opsi.kueri).toMatchObject({ jenisDokumenId: '5', kategoriId: '1' });
-    expect(await screen.findByRole('heading', { name: 'SOP · Jurusan Sains' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'SOP' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Hapus penyaring Jurusan Sains' }),
+    ).toBeInTheDocument();
   });
 });

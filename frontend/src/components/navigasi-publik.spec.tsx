@@ -12,36 +12,62 @@ describe('menu Produk Hukum', () => {
     expect(within(desktop()).queryByRole('link', { name: 'Produk Hukum' })).toBeNull();
   });
 
-  it('menampilkan Peraturan Rektor, SK Rektor, Instruksi Rektor, Surat Edaran, dan SOP saat ditekan', () => {
+  it('menampilkan produk hukum Rektor dan Senat saat ditekan, tanpa SOP', () => {
     render(<NavigasiPublik />);
     fireEvent.click(within(desktop()).getByRole('button', { name: 'Produk Hukum' }));
-    expect(within(desktop()).getByRole('link', { name: 'Peraturan Rektor' })).toHaveAttribute(
-      'href',
-      '/produk-hukum?jenis=PERREK',
-    );
-    expect(within(desktop()).getByRole('link', { name: 'SK Rektor' })).toHaveAttribute(
-      'href',
-      '/produk-hukum?jenis=SKREK',
-    );
-    expect(within(desktop()).getByRole('link', { name: 'Instruksi Rektor' })).toHaveAttribute(
-      'href',
-      '/produk-hukum?jenis=INSREK',
-    );
-    expect(within(desktop()).getByRole('link', { name: 'Surat Edaran' })).toHaveAttribute(
-      'href',
-      '/produk-hukum?jenis=SEREK',
-    );
-    // SOP sendiri juga dropdown, bukan tautan.
-    expect(within(desktop()).getByRole('button', { name: 'SOP' })).toHaveAttribute(
-      'aria-expanded',
-      'false',
-    );
+    const harapan: [string, string][] = [
+      ['Peraturan Rektor', 'PERREK'],
+      ['SK Rektor', 'SKREK'],
+      ['Instruksi Rektor', 'INSREK'],
+      ['Surat Edaran', 'SEREK'],
+      ['Peraturan Senat', 'PERSEN'],
+      ['SK Senat', 'SKSEN'],
+    ];
+    for (const [label, kode] of harapan)
+      expect(within(desktop()).getByRole('link', { name: label })).toHaveAttribute(
+        'href',
+        `/produk-hukum?jenis=${kode}`,
+      );
     expect(within(desktop()).queryByRole('link', { name: 'SOP' })).toBeNull();
   });
 
-  it('SOP membuka sembilan sub-menu unit', () => {
-    render(<NavigasiPublik />);
+  it('memakai kode jenis dari basis data bila kode diubah Superadmin', () => {
+    render(
+      <NavigasiPublik
+        jenis={[
+          { kode: 'PR', nama: 'Peraturan Rektor' },
+          { kode: 'EDREK', nama: 'Surat Edaran Rektor' },
+          { kode: 'SOP', nama: 'SOP' },
+        ]}
+      />,
+    );
     fireEvent.click(within(desktop()).getByRole('button', { name: 'Produk Hukum' }));
+    expect(within(desktop()).getByRole('link', { name: 'Peraturan Rektor' })).toHaveAttribute(
+      'href',
+      '/produk-hukum?jenis=PR',
+    );
+    expect(within(desktop()).getByRole('link', { name: 'Surat Edaran Rektor' })).toHaveAttribute(
+      'href',
+      '/produk-hukum?jenis=EDREK',
+    );
+  });
+});
+
+describe('menu SOP', () => {
+  it('SOP adalah dropdown tersendiri, terpisah dari Produk Hukum', () => {
+    render(<NavigasiPublik />);
+    const tombol = within(desktop()).getByRole('button', { name: 'SOP' });
+    expect(tombol).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(tombol);
+    expect(tombol).toHaveAttribute('aria-expanded', 'true');
+    expect(within(desktop()).getByRole('link', { name: 'Semua SOP' })).toHaveAttribute(
+      'href',
+      '/produk-hukum?jenis=SOP',
+    );
+  });
+
+  it('berisi semua unit, termasuk Bagian Hukum, SPI, dan Komisi Etik', () => {
+    render(<NavigasiPublik />);
     fireEvent.click(within(desktop()).getByRole('button', { name: 'SOP' }));
     const harapan: [string, string][] = [
       ['Jurusan Sains', 'SOP-SAINS'],
@@ -53,6 +79,9 @@ describe('menu Produk Hukum', () => {
       ['Kepegawaian', 'SOP-KEPEGAWAIAN'],
       ['Keuangan', 'SOP-KEUANGAN'],
       ['LPPM', 'SOP-LPPM'],
+      ['Bagian Hukum', 'SOP-HUKUM'],
+      ['SPI', 'SOP-SPI'],
+      ['Komisi Etik', 'SOP-KOMISI-ETIK'],
     ];
     for (const [label, kode] of harapan)
       expect(within(desktop()).getByRole('link', { name: label })).toHaveAttribute(
@@ -61,6 +90,33 @@ describe('menu Produk Hukum', () => {
       );
   });
 
+  it('mengikuti kode jenis SOP dan kategori SOP di basis data', () => {
+    render(
+      <NavigasiPublik
+        jenis={[
+          { kode: 'PR', nama: 'Peraturan Rektor' },
+          { kode: 'SOP-ITH', nama: 'SOP' },
+        ]}
+        unitSop={[
+          { kode: 'SOP-HUKUM', nama: 'Bagian Hukum' },
+          { kode: 'SOP-SPI', nama: 'Satuan Pengawas Internal' },
+        ]}
+      />,
+    );
+    fireEvent.click(within(desktop()).getByRole('button', { name: 'SOP' }));
+    expect(
+      within(desktop()).getByRole('link', { name: 'Satuan Pengawas Internal' }),
+    ).toHaveAttribute('href', '/produk-hukum?jenis=SOP-ITH&kategori=SOP-SPI');
+    expect(within(desktop()).queryByRole('link', { name: 'TIK' })).toBeNull();
+  });
+
+  it('tidak tampil bila jenis SOP tidak aktif', () => {
+    render(<NavigasiPublik jenis={[{ kode: 'PR', nama: 'Peraturan Rektor' }]} />);
+    expect(within(desktop()).queryByRole('button', { name: 'SOP' })).toBeNull();
+  });
+});
+
+describe('menu Produk Hukum (tutup)', () => {
   it('Escape menutup dropdown', () => {
     render(<NavigasiPublik />);
     const tombol = within(desktop()).getByRole('button', { name: 'Produk Hukum' });
@@ -115,5 +171,16 @@ describe('menu Tentang', () => {
       'href',
       '/kontak',
     );
+  });
+});
+
+describe('tombol utama navigasi', () => {
+  it('menampilkan SOP Permohonan SK, bukan tombol Masuk', () => {
+    render(<NavigasiPublik />);
+    expect(within(desktop()).getByRole('link', { name: 'SOP Permohonan SK' })).toHaveAttribute(
+      'href',
+      '/permohonan-sk',
+    );
+    expect(screen.queryByRole('link', { name: 'Masuk' })).toBeNull();
   });
 });
