@@ -1,5 +1,4 @@
 import {
-  Building2,
   ClipboardCheck,
   FilePlus2,
   Files,
@@ -56,8 +55,7 @@ export const MENU_ADMIN: readonly KelompokNav[] = [
         ikon: Shapes,
         izin: ['master.manage'],
       },
-      { label: 'Kategori', href: '/admin/kategori', ikon: FolderTree, izin: ['master.manage'] },
-      { label: 'Unit Kerja', href: '/admin/unit-kerja', ikon: Building2, izin: ['units.manage'] },
+      { label: 'Kategori SOP', href: '/admin/kategori', ikon: FolderTree, izin: ['master.manage'] },
     ],
   },
   {
@@ -106,9 +104,8 @@ const LABEL_SEGMEN: Record<string, string> = {
   verifikasi: 'Antrean verifikasi',
   ubah: 'Ubah draf',
   pengguna: 'Pengguna',
-  'unit-kerja': 'Unit Kerja',
   'jenis-dokumen': 'Jenis Dokumen',
-  kategori: 'Kategori',
+  kategori: 'Kategori SOP',
   'format-persuratan': 'Format Persuratan',
   kontak: 'Kontak Kantor',
   audit: 'Audit',

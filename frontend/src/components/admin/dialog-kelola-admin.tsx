@@ -1,9 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, Check, CheckCircle2, Copy, LoaderCircle, Wand2 } from 'lucide-react';
+import {
+  AlertCircle,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  Copy,
+  LoaderCircle,
+  Wand2,
+} from 'lucide-react';
 import {
   skemaAturUlangPassword,
   skemaBuatAdmin,
@@ -82,6 +90,68 @@ function KotakGalat({ pesan }: { pesan: string }) {
   );
 }
 
+type Unit = { id: string; nama: string };
+
+/**
+ * Pilihan unit kerja. Isinya sama dengan sub-menu SOP di portal publik, karena
+ * unit kerja mengikuti Kategori SOP. Select bawaan peramban dipakai agar tetap
+ * nyaman di papan ketik maupun layar sentuh.
+ */
+function PilihUnit({
+  unit,
+  status,
+  galat,
+  ...props
+}: React.ComponentProps<'select'> & {
+  unit: readonly Unit[];
+  status: 'memuat' | 'siap' | 'gagal';
+  galat?: string;
+}) {
+  const kosong = !props.value;
+  return (
+    <div className="grid gap-1.5">
+      <Label htmlFor={props.id}>Unit kerja</Label>
+      <div className="relative">
+        <select
+          {...props}
+          disabled={status !== 'siap' || props.disabled}
+          aria-invalid={galat ? true : undefined}
+          className={`flex h-10 w-full min-w-0 appearance-none rounded-md border border-input bg-background pr-9 pl-3 text-sm transition-[border-color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/15 ${kosong ? 'text-muted-foreground' : 'text-foreground'}`}
+        >
+          <option value="" disabled>
+            {status === 'memuat' ? 'Memuat unit kerja…' : 'Pilih unit kerja'}
+          </option>
+          {unit.map((u) => (
+            <option key={u.id} value={u.id} className="text-foreground">
+              {u.nama}
+            </option>
+          ))}
+        </select>
+        {status === 'memuat' ? (
+          <LoaderCircle
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-muted-foreground"
+          />
+        ) : (
+          <ChevronDown
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
+          />
+        )}
+      </div>
+      {status === 'gagal' ? (
+        <p className="text-xs text-destructive">
+          Daftar unit kerja belum dapat dimuat. Tutup lalu buka lagi.
+        </p>
+      ) : galat ? (
+        <p className="text-xs text-destructive">{galat}</p>
+      ) : (
+        <p className="text-xs text-muted-foreground">Sama dengan daftar unit pada menu SOP.</p>
+      )}
+    </div>
+  );
+}
+
 /** Tampilan setelah berhasil: data login untuk diserahkan langsung ke Admin. */
 function DataLogin({
   judul,
@@ -122,7 +192,7 @@ function DataLogin({
   );
 }
 
-/** Superadmin membuat akun Admin baru: nama, email, dan password awal. */
+/** Superadmin membuat akun Admin baru: nama, email, unit kerja, dan password awal. */
 export function DialogTambahAdmin({
   buka,
   onBukaChange,
@@ -135,6 +205,8 @@ export function DialogTambahAdmin({
   const { csrfToken } = useSession();
   const [galat, setGalat] = useState('');
   const [dibuat, setDibuat] = useState<{ email: string; password: string }>();
+  const [unit, setUnit] = useState<Unit[]>([]);
+  const [statusUnit, setStatusUnit] = useState<'memuat' | 'siap' | 'gagal'>('memuat');
   const {
     register,
     handleSubmit,
@@ -145,15 +217,34 @@ export function DialogTambahAdmin({
     formState: { errors, isSubmitting },
   } = useForm<MuatanBuatAdmin>({
     resolver: zodResolver(skemaBuatAdmin),
-    defaultValues: { nama: '', email: '', password: '' },
+    defaultValues: { nama: '', email: '', unitKerjaId: '', password: '' },
   });
   const password = useWatch({ control, name: 'password' }) ?? '';
+  const unitDipilih = useWatch({ control, name: 'unitKerjaId' }) ?? '';
+
+  // Unit dimuat setiap kali dialog dibuka, supaya kategori SOP yang baru
+  // ditambahkan langsung tersedia tanpa memuat ulang halaman.
+  useEffect(() => {
+    if (!buka) return;
+    let aktif = true;
+    ambilApi<Unit[]>('/public/units')
+      .then((baris) => {
+        if (!aktif) return;
+        setUnit(baris);
+        setStatusUnit('siap');
+      })
+      .catch(() => aktif && setStatusUnit('gagal'));
+    return () => {
+      aktif = false;
+    };
+  }, [buka]);
 
   function ubahBuka(b: boolean) {
     if (!b) {
       reset();
       setGalat('');
       setDibuat(undefined);
+      setStatusUnit('memuat');
     }
     onBukaChange(b);
   }
@@ -171,6 +262,8 @@ export function DialogTambahAdmin({
     } catch (e) {
       if (e instanceof GalatApi && e.status === 409)
         setError('email', { message: 'Email ini sudah terdaftar' }, { shouldFocus: true });
+      else if (e instanceof GalatApi && e.status === 422 && /unit/i.test(e.message))
+        setError('unitKerjaId', { type: 'server', message: e.message }, { shouldFocus: true });
       else setGalat(e instanceof Error ? e.message : 'Akun belum dapat dibuat. Coba lagi.');
     }
   }
@@ -223,6 +316,19 @@ export function DialogTambahAdmin({
                   </p>
                 )}
               </div>
+              <PilihUnit
+                id="admin-unit"
+                unit={unit}
+                status={statusUnit}
+                value={unitDipilih}
+                galat={
+                  errors.unitKerjaId &&
+                  (errors.unitKerjaId.type === 'server'
+                    ? errors.unitKerjaId.message
+                    : 'Pilih unit kerja')
+                }
+                {...register('unitKerjaId')}
+              />
               <div className="grid gap-2">
                 <KolomPassword
                   label="Password awal"
