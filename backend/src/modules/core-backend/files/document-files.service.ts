@@ -10,11 +10,11 @@ import { ConfigService } from '@nestjs/config';
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import type { PenggunaAktif } from '@jdih/shared';
 import { skemaMetaBerkas, skemaHasilUnggahBerkas } from '@jdih/shared';
-import { cekIzin } from '../../identity/security.js';
+import { cekBacaPanel, cekIzin, cekPemilikAtauSuperadmin, cekPeruntukanPanel } from '../../identity/security.js';
 import { AuditService } from '../../identity/audit.service.js';
 import { DocumentPolicyService } from '../../identity/document-policy.service.js';
 import { CoreBackendRepository } from '../core-backend.repository.js';
-import { StorageService, type BerkasDisimpanSementara } from '../storage/storage.service.js';
+import { StorageService, type BerkasDisimpanSementara, type RentangByte } from '../storage/storage.service.js';
 import { safeOriginalName, validateIncomingFile } from '../storage/file-validation.js';
 import type { KonfigurasiApp } from '../../../config/configuration.js';
 
@@ -25,6 +25,7 @@ interface IncomingFile {
 interface FileRow extends RowDataPacket {
   id: string;
   dokumen_versi_id: string;
+  uploaded_by: string;
   jenis_berkas: 'UTAMA' | 'LAMPIRAN';
   judul: string | null;
   storage_key: string;
@@ -57,6 +58,8 @@ export class DocumentFilesService {
     let staged: BerkasDisimpanSementara | undefined;
     try {
       const metadata = skemaMetaBerkas.parse(rawMetadata);
+      if (metadata.jenisBerkas !== 'UTAMA')
+        throw new UnprocessableEntityException('Setiap pengajuan hanya boleh memiliki satu file dokumen utama; gabungkan lampiran ke dalam file tersebut');
       const maxBytes = this.config.get('penyimpanan', { infer: true }).ukuranMaksimumBita;
       const valid = await validateIncomingFile(incoming.path, incoming.originalname, 'dokumen', maxBytes);
       staged = await this.storage.stage(createReadStream(incoming.path));
@@ -66,29 +69,40 @@ export class DocumentFilesService {
         const version = (
           await this.repo.rows(
             db,
-            'SELECT id,status_workflow FROM dokumen_versi WHERE id=? FOR UPDATE',
+            'SELECT v.id,v.status_workflow,v.created_by version_created_by,d.created_by document_created_by,d.peruntukan FROM dokumen_versi v JOIN dokumen d ON d.id=v.dokumen_id AND d.deleted_at IS NULL WHERE v.id=? FOR UPDATE',
             [versionId],
           )
-        )[0] as (RowDataPacket & { id: string; status_workflow: string }) | undefined;
+        )[0] as (RowDataPacket & { id: string; status_workflow: string; version_created_by: string; document_created_by: string; peruntukan: string | null }) | undefined;
         if (!version) throw new NotFoundException();
+        cekPeruntukanPanel(actor, version.peruntukan);
+        cekPemilikAtauSuperadmin(actor, version.document_created_by);
+        if (
+          !actor.peran.includes('SUPERADMIN') &&
+          String(version.version_created_by) !== actor.id
+        )
+          throw new NotFoundException();
         if (!['DRAF', 'REVISI'].includes(version.status_workflow))
           throw new UnprocessableEntityException('File hanya dapat ditambahkan pada draf/revisi');
         if (metadata.jenisBerkas === 'UTAMA') {
           const ada = await this.repo.rows(
             db,
-            "SELECT id FROM dokumen_berkas WHERE dokumen_versi_id=? AND jenis_berkas='UTAMA' LIMIT 1 FOR UPDATE",
+            // The existing parent version is already locked above. A locking
+            // read of an empty file range takes shared index-gap locks across
+            // unrelated versions and deadlocks concurrent first uploads.
+            'SELECT id FROM dokumen_berkas WHERE dokumen_versi_id=? LIMIT 1',
             [versionId],
           );
           if (ada.length)
             throw new ConflictException(
-              'Dokumen utama sudah ada; hapus dulu yang lama untuk menggantinya',
+              'Setiap pengajuan hanya boleh memiliki satu file; hapus berkas draf lama sebelum menggantinya',
             );
         }
         await this.repo.write(
           db,
-          'INSERT INTO dokumen_berkas(dokumen_versi_id,jenis_berkas,judul,storage_key,nama_asli,mime_type,size_bytes,checksum,urutan) VALUES(?,?,?,?,?,?,?,?,?)',
+          'INSERT INTO dokumen_berkas(dokumen_versi_id,uploaded_by,jenis_berkas,judul,storage_key,nama_asli,mime_type,size_bytes,checksum,urutan) VALUES(?,?,?,?,?,?,?,?,?,?)',
           [
             versionId,
+            actor.id,
             metadata.jenisBerkas,
             metadata.judul ?? null,
             object.storageKey,
@@ -134,7 +148,8 @@ export class DocumentFilesService {
 
   /** Berkas sebuah versi untuk halaman ubah draf di panel admin. */
   async listForVersion(actor: PenggunaAktif, versionId: string) {
-    cekIzin(actor, ['documents.read_admin']);
+    cekBacaPanel(actor, 'documents.read_admin');
+    const ownOnly = !actor.peran.includes('SUPERADMIN');
     return this.repo.rows<
       RowDataPacket & {
         id: string;
@@ -142,12 +157,16 @@ export class DocumentFilesService {
         judul: string | null;
         namaAsli: string;
         sizeBytes: string;
+        bolehHapus: boolean | number;
       }
     >(
       this.repo.pool,
-      `SELECT CAST(id AS CHAR) id,jenis_berkas jenisBerkas,judul,nama_asli namaAsli,CAST(size_bytes AS CHAR) sizeBytes
-       FROM dokumen_berkas WHERE dokumen_versi_id=? ORDER BY jenis_berkas='LAMPIRAN',urutan,id`,
-      [versionId],
+      `SELECT CAST(f.id AS CHAR) id,f.jenis_berkas jenisBerkas,f.judul,f.nama_asli namaAsli,f.mime_type mimeType,CAST(f.size_bytes AS CHAR) sizeBytes,
+         IF(?=1 OR f.uploaded_by=?,TRUE,FALSE) bolehHapus
+       FROM dokumen_berkas f JOIN dokumen_versi v ON v.id=f.dokumen_versi_id JOIN dokumen d ON d.id=v.dokumen_id AND d.deleted_at IS NULL
+       WHERE f.dokumen_versi_id=?${ownOnly ? ' AND d.peruntukan IS NULL' : ''}
+       ORDER BY f.jenis_berkas='LAMPIRAN',f.urutan,f.id`,
+      [ownOnly ? 0 : 1, actor.id, versionId],
     );
   }
 
@@ -156,21 +175,27 @@ export class DocumentFilesService {
     cekIzin(actor, ['documents.upload']);
     const kunci = await this.repo.transaction(async (db) => {
       const version = (
-        await this.repo.rows(db, 'SELECT status_workflow FROM dokumen_versi WHERE id=? FOR UPDATE', [
-          versionId,
-        ])
-      )[0] as (RowDataPacket & { status_workflow: string }) | undefined;
+        await this.repo.rows(db, 'SELECT v.status_workflow,v.created_by version_created_by,d.created_by document_created_by,d.peruntukan FROM dokumen_versi v JOIN dokumen d ON d.id=v.dokumen_id AND d.deleted_at IS NULL WHERE v.id=? FOR UPDATE', [versionId])
+      )[0] as (RowDataPacket & { status_workflow: string; version_created_by: string; document_created_by: string; peruntukan: string | null }) | undefined;
       if (!version) throw new NotFoundException();
+      cekPeruntukanPanel(actor, version.peruntukan);
+      cekPemilikAtauSuperadmin(actor, version.document_created_by);
+      if (
+        !actor.peran.includes('SUPERADMIN') &&
+        String(version.version_created_by) !== actor.id
+      )
+        throw new NotFoundException();
       if (!['DRAF', 'REVISI'].includes(version.status_workflow))
         throw new UnprocessableEntityException('Berkas hanya dapat dihapus pada draf/revisi');
       const file = (
         await this.repo.rows(
           db,
-          'SELECT storage_key,jenis_berkas FROM dokumen_berkas WHERE id=? AND dokumen_versi_id=? FOR UPDATE',
+          'SELECT storage_key,jenis_berkas,uploaded_by FROM dokumen_berkas WHERE id=? AND dokumen_versi_id=? FOR UPDATE',
           [fileId, versionId],
         )
-      )[0] as (RowDataPacket & { storage_key: string; jenis_berkas: string }) | undefined;
+      )[0] as (RowDataPacket & { storage_key: string; jenis_berkas: string; uploaded_by: string }) | undefined;
       if (!file) throw new NotFoundException();
+      cekPemilikAtauSuperadmin(actor, file.uploaded_by);
       await this.repo.write(db, 'DELETE FROM dokumen_berkas WHERE id=?', [fileId]);
       await this.audit.recordDomain(
         {
@@ -202,6 +227,32 @@ export class DocumentFilesService {
       throw new UnprocessableEntityException('File UTAMA tidak tersedia atau checksum berubah');
   }
 
+  async assertSubmissionReady(db: PoolConnection, versionId: string) {
+    const files = await this.repo.rows<FileRow>(db,
+      'SELECT id,jenis_berkas FROM dokumen_berkas WHERE dokumen_versi_id=? FOR UPDATE', [versionId]);
+    if (files.length !== 1 || files[0]?.jenis_berkas !== 'UTAMA')
+      throw new UnprocessableEntityException('Pengajuan wajib memiliki tepat satu file dokumen utama. Gabungkan lampiran dalam file utama');
+    await this.assertPublishReady(db, versionId);
+  }
+
+  /** Akses panel untuk file versi yang belum terbit; hak akses dicek pada setiap permintaan. */
+  async authorizeVersion(actor: PenggunaAktif, versionId: string, fileId: string) {
+    cekBacaPanel(actor, 'documents.read_admin');
+    const file = (await this.repo.rows<BerkasDownloadTerotorisasi>(this.repo.pool,
+      `SELECT f.*,CAST(d.id AS CHAR) dokumen_id,v.tingkat_akses,d.created_by document_created_by,d.peruntukan
+       FROM dokumen_berkas f JOIN dokumen_versi v ON v.id=f.dokumen_versi_id
+       JOIN dokumen d ON d.id=v.dokumen_id
+       WHERE f.id=? AND v.id=? AND d.deleted_at IS NULL`, [fileId, versionId]))[0];
+    if (!file) throw new NotFoundException();
+    cekPeruntukanPanel(actor, file.peruntukan);
+    if (String(file.tingkat_akses) === 'rahasia') {
+      cekPemilikAtauSuperadmin(actor, file.document_created_by);
+      await this.audit.recordDomain({ module: 'documents', action: 'REVIEW_SECRET_FILE',
+        entityType: 'dokumen_berkas', entityId: fileId, actorId: actor.id });
+    }
+    return file;
+  }
+
   async authorizeCurrent(slug: string, fileId: string, actor?: PenggunaAktif) {
     const file = (
       await this.repo.rows<BerkasDownloadTerotorisasi>(
@@ -224,9 +275,12 @@ export class DocumentFilesService {
     return file;
   }
 
-  async openAuthorized(file: BerkasDownloadTerotorisasi) {
-    const object = await this.storage.open(file.storage_key);
-    if (object.size !== Number(file.size_bytes)) throw new NotFoundException();
+  async openAuthorized(file: BerkasDownloadTerotorisasi, range?: RentangByte) {
+    const object = range ? await this.storage.open(file.storage_key, range) : await this.storage.open(file.storage_key);
+    if (object.size !== Number(file.size_bytes)) {
+      object.stream.destroy();
+      throw new NotFoundException();
+    }
     return {
       stream: object.stream,
       size: object.size,

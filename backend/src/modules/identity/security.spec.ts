@@ -76,9 +76,9 @@ describe('Google identity validation', () => {
     it('fails closed ' + JSON.stringify(bad), () =>
       expect(() => verifiedClaims({ ...claims, ...bad }, 'client', 'nonce')).toThrow(),
     );
-  it('mode * menerima akun Google apa pun yang emailnya terverifikasi', () => {
+  it('wildcard tidak dapat membuka jalur Google untuk Gmail pribadi', () => {
     const gmail = { ...claims, email: 'Seseorang@Gmail.com', hd: undefined };
-    expect(verifiedClaims(gmail, 'client', 'nonce', '*').email).toBe('seseorang@gmail.com');
+    expect(() => verifiedClaims(gmail, 'client', 'nonce', '*')).toThrow();
     expect(() => verifiedClaims({ ...gmail, email_verified: false }, 'client', 'nonce', '*')).toThrow();
     expect(() => verifiedClaims({ ...gmail, nonce: 'salah' }, 'client', 'nonce', '*')).toThrow();
     expect(() => verifiedClaims(gmail, 'client', 'nonce')).toThrow();

@@ -14,7 +14,7 @@ export function PemicuMuncul() {
   useEffect(() => {
     const akar = document.documentElement;
     akar.classList.add('gerak-aktif');
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || typeof IntersectionObserver === 'undefined') {
       return () => akar.classList.remove('gerak-aktif');
     }
     const dipasang = performance.now();

@@ -223,4 +223,33 @@ export class SearchService {
     const page = await this.publicList({ halaman: 1, perHalaman: 1 });
     return page.data[0] ?? null;
   }
+
+  /**
+   * Dokumen untuk halaman "SOP Permohonan SK": dokumen berperuntukan
+   * PERMOHONAN_SK yang terbit. Pengunjung hanya menerima Publik; staf aktif
+   * menerima Internal sesuai sesi. Filter akses diterapkan sebelum count/pagination.
+   */
+  async permohonanSk(rawQuery: unknown = {}, actor?: PenggunaAktif) {
+    const query = skemaCariDokumen.parse(rawQuery);
+    const { anonymous, visibility } = this.visibilitas(actor);
+    const filter = this.filters(query);
+    const where = [...filter.where, "d.peruntukan='PERMOHONAN_SK'", visibility].join(' AND ');
+    const [count] = await this.repo.rows(this.repo.pool,
+      `SELECT COUNT(*) total FROM dokumen d JOIN dokumen_versi v ON v.id=d.current_published_version_id WHERE ${where}`, filter.values);
+    const rows = await this.repo.rows(
+      this.repo.pool,
+      `SELECT CAST(d.id AS CHAR) id,d.slug,j.nama tipe,v.judul,v.nomor,v.tahun,v.tanggal_penetapan tanggalPenetapan,d.status_hukum statusHukum,v.tingkat_akses tingkatAkses,COALESCE(st.jumlah_lihat,0) dilihat
+       FROM dokumen d JOIN dokumen_versi v ON v.id=d.current_published_version_id JOIN jenis_dokumen j ON j.id=d.jenis_dokumen_id LEFT JOIN dokumen_statistik st ON st.dokumen_id=d.id
+       WHERE ${where}
+       ORDER BY d.status_hukum='BERLAKU' DESC,v.published_at DESC,v.id DESC LIMIT ? OFFSET ?`,
+      [...filter.values, query.perHalaman, (query.halaman - 1) * query.perHalaman],
+    );
+    const data = rows.map(({ tingkatAkses, ...row }) => anonymous
+      ? skemaHasilCariAnonim.parse({ ...row, dilihat: Number(row.dilihat) })
+      : skemaHasilCariAuthorized.parse({ ...row, tingkatAkses: String(tingkatAkses), dilihat: Number(row.dilihat) }));
+    const total = Number(count?.total ?? 0);
+    return { sukses: true as const, data, meta: { halaman: query.halaman, perHalaman: query.perHalaman,
+      totalButir: total, totalHalaman: Math.ceil(total / query.perHalaman),
+      adaSebelumnya: query.halaman > 1, adaBerikutnya: query.halaman * query.perHalaman < total } };
+  }
 }

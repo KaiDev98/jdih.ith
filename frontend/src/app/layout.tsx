@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
-import { Archivo } from 'next/font/google';
+import localFont from 'next/font/local';
+import { connection } from 'next/server';
 
-import { PenyediaKueri } from '@/lib/penyedia-kueri';
 import { SessionProvider } from '@/lib/sesi';
 
 import './globals.css';
@@ -11,16 +11,23 @@ import './globals.css';
  * ordner dan label indeks, lebar normal untuk teks. Di-host sendiri oleh
  * next/font sehingga lolos CSP `font-src 'self'`.
  */
-const archivo = Archivo({ subsets: ['latin'], axes: ['wdth'], variable: '--font-archivo', display: 'swap' });
+const archivo = localFont({
+  src: './fonts/archivo-latin-variable.woff2',
+  weight: '100 900',
+  style: 'normal',
+  declarations: [{ prop: 'font-stretch', value: '62% 125%' }],
+  variable: '--font-archivo',
+  display: 'swap',
+  fallback: ['Arial'],
+});
 
 const namaSitus = process.env.NEXT_PUBLIC_NAMA_SITUS ?? 'JDIH ITH Parepare';
 const namaInstitusi =
   process.env.NEXT_PUBLIC_NAMA_INSTITUSI ?? 'Institut Teknologi Bacharuddin Jusuf Habibie';
 const urlSitus = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 
-// Nonce CSP is generated per request by src/proxy.ts; the root subtree must
-// render on demand so Next can apply that request nonce to hydration scripts.
-export const dynamic = 'force-dynamic';
+// Render per request for nonce CSP. Unlike force-dynamic, connection() keeps
+// explicit caching available for identity-independent public metadata.
 
 /**
  * Metadata akar.
@@ -73,14 +80,15 @@ export const viewport: Viewport = {
   maximumScale: 5,
 };
 
-export default function TataLetakAkar({ children }: { children: React.ReactNode }) {
+export default async function TataLetakAkar({ children }: { children: React.ReactNode }) {
+  await connection();
   return (
-    <html lang="id" className={archivo.variable} suppressHydrationWarning>
+    <html lang="id" className={archivo.variable} data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className="flex min-h-screen flex-col">
         <a href="#isi-utama" className="lewati-ke-isi">
           Lewati ke isi utama
         </a>
-        <PenyediaKueri><SessionProvider>{children}</SessionProvider></PenyediaKueri>
+        <SessionProvider>{children}</SessionProvider>
       </body>
     </html>
   );

@@ -33,6 +33,9 @@ export const skemaEnv = z.object({
   DB_PASSWORD: z.string().default(''),
   DB_NAME: z.string().regex(/^jdih_ith_v2_(dev|prod|test[a-z0-9_]*)$/),
   DB_POOL_LIMIT: z.coerce.number().int().min(1).max(100).default(10),
+  DB_POOL_QUEUE_LIMIT: z.coerce.number().int().min(1).max(10000).default(100),
+  DB_CONNECT_TIMEOUT_MS: z.coerce.number().int().min(1000).max(30000).default(5000),
+  DB_MAX_PREPARED_STATEMENTS: z.coerce.number().int().min(1).max(16384).default(256),
   /** Zona waktu koneksi. Seluruh DATETIME disimpan dalam UTC (docs/04 § D.0). */
   DB_TIMEZONE: z.string().default('Z'),
   /** Mencatat setiap kueri ke log. Berguna saat pengembangan, berisik di produksi. */
@@ -42,16 +45,12 @@ export const skemaEnv = z.object({
   GOOGLE_CLIENT_ID: z.string().min(1),
   GOOGLE_CLIENT_SECRET: z.string().min(1),
   GOOGLE_REDIRECT_URI: z.url(),
-  /**
-   * Domain email Google yang boleh masuk/mendaftar. Bawaan `ith.ac.id`. Isi `*`
-   * untuk menerima akun Google apa pun (mis. Gmail) saat uji coba; Google tetap
-   * memastikan email itu ada dan sudah terverifikasi.
-   */
+  /** Google khusus institusi. Email domain lain mendaftar lewat email/password. */
   GOOGLE_DOMAIN_DIIZINKAN: z
     .string()
     .trim()
     .toLowerCase()
-    .regex(/^(\*|[a-z0-9.-]+\.[a-z]{2,})$/, 'Isi domain (mis. ith.ac.id) atau *')
+    .pipe(z.literal('ith.ac.id'))
     .default('ith.ac.id'),
   SESSION_KEY: z.string().min(32),
   SESSION_TTL_SECONDS: z.coerce.number().int().min(300).max(604800).default(604800),

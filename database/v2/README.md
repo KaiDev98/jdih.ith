@@ -1,5 +1,20 @@
 # Physical Database JDIH ITH V2 — Phase 1
 
+Revisi 2026-10-25: terapkan `patch-020-superadmin-persetujuan-langsung.sql` pada
+database V2 yang dipilih operator. Patch memperluas CHECK APPROVE agar menerima
+DRAF/REVISI -> DISETUJUI; pengecualian hanya Superadmin pemilik dokumen/versi
+dan tetap diperiksa service. Tidak ada penghapusan data/riwayat. Patch menyimpan
+audit penerapan dan aman diulang. Persetujuan tetap terpisah dari penerbitan.
+
+Revisi label 2026-10-23: jalankan `patch-018-label-kategori-sop.sql` pada database V2
+yang sudah memakai patch-017. Patch ini idempoten, mencatat audit, dan hanya
+mengganti nama menjadi Komisi Etik Kemahasiswaan dan Laboratorium; ID/kode serta
+referensi akun/dokumen tidak berubah. Notifikasi revisi pengajuan memakai riwayat
+workflow yang sudah ada. Untuk penghapusan notifikasi, lanjutkan dengan
+`patch-019-notifikasi-dihapus.sql` sebelum menjalankan backend terbaru. Tabel
+preferensi per akun ini tidak menghapus workflow/audit, dan tidak mengubah inbox
+akun lain. Hapus semua memakai batas ID snapshot; notifikasi baru tetap masuk.
+
 **Desain disetujui; import dan 61 runtime tests lulus pada MySQL 8.4.11 (2026-10-04). Belum dihubungkan ke aplikasi atau Drizzle.**
 Baseline: [konteks V2](../../docs/CODEX_CONTEXT_JDIH_ITH_V2.md),
 [keputusan](../../docs/CODEX_DECISIONS_JDIH_ITH_V2.yaml),
@@ -24,6 +39,17 @@ shared enums/schema, script import lama, dan binding aplikasi tidak diubah.
 Tidak ada API/auth/RBAC runtime/workflow/frontend dalam Phase 1.
 
 ## Runtime lokal tanpa Docker (terverifikasi 2026-10-04)
+
+Penyelarasan runtime 2026-10-20: database lokal `jdih_ith_v2_dev` telah menjalankan
+`patch-012-sop-permohonan-sk.sql`, `patch-013-admin-input-superadmin-verifikasi.sql`,
+dan `patch-014-uploader-berkas.sql`, dengan catatan audit penerapan. Pada database
+V2 lama, jalankan patch berurutan tersebut sebelum memakai source terbaru;
+jangan mengimpor ulang schema atau sample ke database berisi data.
+Admin dapat membaca halaman informasi global tanpa izin perubahan. Pilihan
+kategori formulir memakai `/api/v1/admin/document-options/kategori` yang dibatasi
+unit akun; daftar informasi master memakai `/api/v1/admin/master/kategori`.
+Panel `/admin` dan `/superadmin` memakai API administratif yang sama, dengan
+otorisasi per peran dan kepemilikan di backend.
 
 MySQL 8.4.11 pada 127.0.0.1:3308, database jdih_ith_v2_dev, akun jdih_v2_dev.
 Port runtime dibaca dari DB_PORT; port Compose default tetap 3307.
@@ -339,12 +365,25 @@ transaksi aplikasi harus menjadi batas operasional sebelum production.
 
 ## Seed dan provisioning Admin
 
-Seed memasang tiga role canonical; PENGUNJUNG virtual. Admin biasa memperoleh izin
-pengelolaan, tetapi bukan approve/publish/withdraw dokumen atau koreksi status hukum
-secara default. Verifikator = ADMIN + izin eksplisit `workflow.return`,
-`workflow.approve`, `workflow.publish`, `workflow.withdraw`, sesuai penugasan operations.
-SUPERADMIN memperoleh permission V2 yang disediakan. Daftar ini baseline minimal
-untuk review, tidak membangun runtime policy. DOSEN_STAF tidak diberi bypass Rahasia.
+Pembaruan kategori/unit SOP 2026-10-21 memakai
+`patch-016-kategori-sop-dan-unit-kerja.sql`: LPPM menjadi LPPM-PM (ID dan kode
+`SOP-LPPM` dipertahankan), lalu menambahkan Lab dan Senat ke kategori SOP serta
+unit kerja. Revisi berikutnya memakai `patch-017-hapus-komisi-kemahasiswaan.sql`
+untuk menghapus entri Komisi Kemahasiswaan yang belum digunakan. FK RESTRICT
+mencegah penghapusan jika entri sudah direferensikan; rollback bila gagal.
+Komisi Etik tetap tersendiri. Kedua patch idempoten dan mencatat perubahan dalam audit.
+
+Seed memasang tiga role canonical; PENGUNJUNG virtual. Admin biasa hanya dapat
+menginput, mengubah dokumennya sendiri, dan mengajukannya. Sebagai pengecualian,
+semua Admin juga mendapat `templates.manage` untuk mengelola seluruh Format
+Persuratan, termasuk template milik akun lain. Database V2 yang sudah terpasang
+memakai patch `patch-015-admin-format-persuratan.sql` setelah patch sebelumnya;
+patch hanya menambahkan izin template dan mencatat perubahan role dalam audit.
+Pilihan kategori dokumen hukum Admin
+dibatasi ke kategori yang dipetakan ke unit akunnya. SUPERADMIN memiliki seluruh
+permission, termasuk verifikasi, publish, pengaturan master, dan SOP Permohonan SK.
+Service tetap menegakkan role dan kepemilikan agar `pengguna_izin` tidak dapat
+memberi Admin kewenangan global. DOSEN_STAF tidak diberi bypass Rahasia.
 
 Tidak ada akun Admin nyata pada seed. Prosedur provisioning nanti:
 
@@ -358,7 +397,7 @@ Tidak ada akun Admin nyata pada seed. Prosedur provisioning nanti:
    memvalidasi Google OIDC dan exact email `@ith.ac.id`; jangan percaya email/sub dari
    request biasa, jangan auto-promote pendaftar. Sub non-NULL harus unik.
 4. Akun staf yang mendaftar biasa tetap MENUNGGU_VERIFIKASI dan wajib approval/unit
-   resolution sebelum AKTIF. Pre-provisioning bukan jalan bypass bagi pendaftaran staf.
+   resolution oleh Superadmin sebelum AKTIF. Pre-provisioning bukan jalan bypass bagi pendaftaran staf.
 
 Email fixture `@example.invalid` dan sub `fixture:*` pada sample bukan pengecualian
 domain login. Future auth wajib menolaknya. Tidak ada data pribadi nyata pada sample.
@@ -382,7 +421,7 @@ domain login. Future auth wajib menolaknya. Tidak ada data pribadi nyata pada sa
 
 Proposal ini tidak menetapkan keputusan bisnis baru di luar baseline. Review terutama
 pilihan representasi: nullable Google sub untuk bootstrap, semua FK RESTRICT, grant
-expired ditutup sebelum regrant, dan baseline permission Admin/verifikator. Kebijakan
+expired ditutup sebelum regrant, dan baseline permission Admin input/Superadmin verifikator. Kebijakan
 akses versi historis (terutama bila akses berubah) tetap perlu dijabarkan sebelum API.
 Withdrawal sudah diputuskan: pointer NULL tanpa fallback ke versi superseded.
 DDL tidak menjamin publikasi/otorisasi lengkap dengan sendirinya.

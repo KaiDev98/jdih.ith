@@ -1,0 +1,27 @@
+{
+  "pages": [
+    "/",
+    "/profil",
+    "/kontak",
+    "/produk-hukum",
+    "/produk-hukum/load-1",
+    "/format-persuratan",
+    "/permohonan-sk",
+    "/masuk",
+    "/daftar",
+    "/masuk/admin",
+    "/masuk/superadmin",
+    "/admin",
+    "/admin/dokumen",
+    "/admin/format-persuratan",
+    "/admin/dokumen",
+    "/superadmin",
+    "/superadmin/dokumen",
+    "/superadmin/format-persuratan",
+    "/superadmin/dokumen",
+    "/akun",
+    "/produk-hukum/load-4"
+  ],
+  "issues": [],
+  "errors": []
+}

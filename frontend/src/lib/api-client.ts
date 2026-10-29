@@ -4,7 +4,7 @@ import {
   type KodeGalat,
   type MetaHalaman,
   type TanggapanGalat,
-} from '@jdih/shared';
+} from '@jdih/shared/api';
 
 /**
  * Klien API Portal JDIH ITH.
@@ -137,6 +137,8 @@ async function permintaan<T>(jalur: string, opsi: OpsiPermintaan = {}): Promise<
     ...sisa,
     headers: tajuk,
     body: badan,
+    // Batasi waktu SSR agar API yang tidak merespons tidak menahan render tanpa batas.
+    signal: sisa.signal ?? (DI_PELADEN ? AbortSignal.timeout(10000) : undefined),
     // Kuki autentikasi harus ikut terkirim pada permintaan dari peramban.
     credentials: DI_PELADEN ? undefined : 'include',
   });

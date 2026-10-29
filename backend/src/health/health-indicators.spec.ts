@@ -1,3 +1,4 @@
+import type * as fsPromises from 'node:fs/promises';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -6,6 +7,14 @@ import type { HealthIndicatorService } from '@nestjs/terminus';
 
 import { BasisDataIndicator } from './basis-data.indicator.js';
 import { PenyimpananIndicator } from './penyimpanan.indicator.js';
+
+const { statfs } = vi.hoisted(() => ({ statfs: vi.fn() }));
+vi.mock('node:fs/promises', async (asli) => {
+  const modul = await asli<typeof fsPromises>();
+  // Bawaan: statfs sungguhan, agar uji "jalur tidak ada" tetap memakai galat OS asli.
+  statfs.mockImplementation(modul.statfs);
+  return { ...modul, statfs };
+});
 
 const indicator = {
   check: (key: string) => ({
@@ -45,6 +54,8 @@ describe('public health indicator projections', () => {
   it('returns only readiness status when private storage is available', async () => {
     const path = await mkdtemp(join(tmpdir(), 'jdih-storage-health-'));
     temporary.push(path);
+    // Diska mesin uji bisa saja hampir penuh; pemakaian dibuat tetap 50%.
+    statfs.mockResolvedValueOnce({ blocks: 100, bsize: 4096, bavail: 50 });
     const config = { get: vi.fn().mockReturnValue({ pengandar: 'lokal', jalurLokal: path }) };
     const health = new PenyimpananIndicator(indicator, config as never);
 
@@ -52,5 +63,15 @@ describe('public health indicator projections', () => {
 
     expect(result).toEqual({ penyimpanan: { status: 'up' } });
     expect(JSON.stringify(result)).not.toContain(path);
+  });
+
+  it('reports down without details when disk usage is above the threshold', async () => {
+    const path = await mkdtemp(join(tmpdir(), 'jdih-storage-full-'));
+    temporary.push(path);
+    statfs.mockResolvedValueOnce({ blocks: 100, bsize: 4096, bavail: 3 });
+    const config = { get: vi.fn().mockReturnValue({ pengandar: 'lokal', jalurLokal: path }) };
+    const health = new PenyimpananIndicator(indicator, config as never);
+
+    expect(await health.periksa()).toEqual({ penyimpanan: { status: 'down' } });
   });
 });

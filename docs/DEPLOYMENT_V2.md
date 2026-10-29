@@ -61,7 +61,7 @@ and `NEXT_PUBLIC_NAMA_INSTITUSI` control displayed names only.
 The validator permits `jdih_ith_v2_prod` only when `NODE_ENV=production`; it
 rejects that database name in development/test and rejects `dev`/`test*` names in
 production. `DB_PORT` is read from configuration and must match the real private
-MySQL endpoint; it is not assumed to be 3307. The deprecated JWT/password login
+MySQL endpoint; it is not assumed to be 3307. The deprecated JWT configuration
 variables are not used by the V2 identity module. S3, Meilisearch, and Redis
 settings are optional future drivers and are not part of this deployment plan.
 
@@ -136,6 +136,36 @@ not a production migration runner.
 
 ## Release and process management
 
+Use **Node.js LTS 24.22.2 or a newer supported 24.x patch** (`.nvmrc`), with npm
+11.19.1 or compatible. Node 20 is end-of-life. The release has been tested on
+24.22.2; rebuild native dependencies and Next standalone on the deployment OS,
+not by copying Windows `node_modules` or `.next` to Linux.
+
+From a clean checkout of the reviewed `nesta` commit, run `npm ci --ignore-scripts`,
+`npm run build:shared`, `npm run typecheck`, `npm run lint`, `npm test`,
+`npm audit --audit-level=low`, and `npm run build`. Set `API_INTERNAL_URL`,
+`NEXT_PUBLIC_SITE_URL` to the real public HTTPS origin and
+`NEXT_PUBLIC_LOGIN_UJI=false` **before** the frontend build. Also set
+`LOGIN_UJI=false` on the API. Do not copy local environment files or upload
+directories into the release. `setup` and `doctor` now use V2 configuration;
+the legacy `db:import`, `db:reset` and `db:pull` scripts remain historical and
+must not be used to deploy V2.
+
+The GitHub `Release checks` workflow runs all four MySQL suites against its
+own disposable service. A normal `npm test` without the opt-in database paths
+skips those suites; that alone is not a complete release test. The workflow
+does not deploy or access institutional secrets.
+
+For a new empty database, the current `database/v2/schema.sql` and `seed.sql`
+already incorporate patches 001–020; do not blindly replay patches after that
+baseline import. For an existing V2 database, inspect its current columns,
+constraints and applied changes, back it up together with its private object
+storage, and apply only missing patches in order through a separate operations
+account. In particular, check `peruntukan`, `uploaded_by`, `notifikasi_dihapus`,
+the current category/unit mapping and the APPROVE transition CHECK from patch
+020. This repository has no automatic production migration ledger. Never
+rename/reset a development database as the production provisioning procedure.
+
 Use systemd as the single process manager. Build an immutable release with the
 repository's supported Node/npm versions, run the final checks, and keep source
 and production runtime dependencies in the release directory. `npm run build`
@@ -202,10 +232,10 @@ other security headers remain active. Same-origin API rewrites are excluded
 from the Next page Proxy, preserving API routing, cookie behavior, CSRF, and
 Origin checks.
 
-## Initial Admin provisioning
+## Initial Superadmin provisioning
 
-There is no public create/promote endpoint or Admin UI. Operations provisions the
-first `ADMIN` or `SUPERADMIN` through a restricted DBA session after verifying
+Public registration cannot assign or promote roles. Operations provisions the
+first `SUPERADMIN` through a restricted DBA session after verifying
 the authorized person and canonical unit. Do not put a real email in source,
 seed, sample, or a command-line argument. Use a prepared/manual SQL session with
 operator-supplied variables and a reviewed transaction. The essential records
@@ -221,13 +251,19 @@ are:
    and only status/role metadata. Do not copy credentials or identity tokens.
 4. Commit only after checking exactly one user, one role assignment, and one
    audit event; roll back if the seeded role/unit is missing or any insert fails.
-5. On first Google sign-in, the server verifies OIDC and binds the verified
-   Google `sub` to the pre-provisioned email. Never accept email/sub from a
-   registration body, and never promote an ordinary user through the app.
+5. Set the initial password with the interactive server utility
+   `superadmin:password` in the API workspace, supplying the authorized account
+   email through the controlled operations session. The password is prompted
+   without echo, hashed, and never supplied as a CLI argument. This utility
+   revokes prior sessions and records its own audit event. Sign in through
+   `/masuk/superadmin`; Google is for Dosen/Staf only and never binds a local
+   account by email equality.
 
-For later operations personnel, repeat a separately reviewed DBA transaction
-with an appropriate operations identity. Avoid adding generic role-management
-SQL or a reusable endpoint. There are no real Admin identities in seed data.
+The active Superadmin can create new Admin accounts with their required unit
+and initial password through the existing authorized panel. Creating or
+promoting another Superadmin remains an operations-only procedure; no such UI
+exists. Staff registration stays pending until reviewed. There are no real
+Admin or Superadmin identities in seed data.
 
 ## Backup and restore
 
@@ -273,8 +309,9 @@ against `jdih_ith_v2_dev` or a legacy database.
 - OAuth temporary state and rate limiting are in-process; run one API instance.
 - Live Google OIDC has not been accepted with real ITH credentials. Production
   OAuth acceptance is mandatory before go-live.
-- No antivirus scanner, OCR/full-PDF text search, Meilisearch, or PDF range
-  requests are implemented.
+- No antivirus scanner, OCR/full-PDF text search or Meilisearch is implemented.
+  PDF byte ranges are implemented and reauthorize every request, including
+  full/suffix ranges, invalid ranges and If-Range fallback.
 - A sudden process/host failure in the file finalize/DB commit window can leave
   an orphan object. There is no automatic orphan sweeper; reconciliation must
   compare storage keys against database references before deletion.
@@ -287,7 +324,8 @@ against `jdih_ith_v2_dev` or a legacy database.
 Before release: review the exact commit; take verified DB/storage backups; set
 protected production environment files; provision TLS and the Google callback;
 create the production DB and least-privilege user; import only reviewed V2
-schema/seed into an empty target; provision the first Admin; verify storage
+schema/seed into an empty target; provision the first Superadmin through the
+controlled operations procedure; verify storage
 permissions; build and run checks; install/validate Nginx and systemd units;
 verify HTTPS, cookies, the enforced CSP on rendered pages, `/kesehatan/hidup`,
 and `/kesehatan/siap`.

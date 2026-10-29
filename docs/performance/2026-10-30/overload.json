@@ -1,0 +1,13 @@
+{
+  "date": "2026-10-29T18:08:01.483Z",
+  "requests": 160,
+  "statuses": {
+    "200": 110,
+    "503": 50
+  },
+  "connectionsDuringBlock": 11,
+  "poolLimit": 10,
+  "maxLatencyMs": 2301.1448,
+  "recoveryMs": 22.090999999999894,
+  "recovered": true
+}

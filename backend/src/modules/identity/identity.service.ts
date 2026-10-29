@@ -7,6 +7,7 @@ import {
   NotFoundException,
   UnauthorizedException,
   UnprocessableEntityException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHmac } from 'node:crypto';
@@ -19,6 +20,10 @@ import {
   skemaUbahPassword,
   skemaBuatAdmin,
   skemaAturUlangPassword,
+  skemaPenggunaSesiTampil,
+  skemaDaftarEmail,
+  skemaHasilRegistrasi,
+  surelUntukPanel,
   type KodeIzin,
   type PenggunaAktif,
 } from '@jdih/shared';
@@ -31,7 +36,7 @@ import {
   type UserRow,
 } from './identity.repository.js';
 import { AuditService } from './audit.service.js';
-import { acak, cekIzin, hashToken, tokenValid } from './security.js';
+import { acak, cekBacaPanel, cekIzin, cekSuperadmin, hashToken, tokenValid } from './security.js';
 import type { GoogleIdentity } from './google.service.js';
 import { cocokPassword, hashPassword, samarkanWaktu } from './password.js';
 import type { KonfigurasiApp } from '../../config/configuration.js';
@@ -43,15 +48,17 @@ const punyaPeranAdmin = (peran: readonly string[]) =>
   peran.some((r) => r === 'ADMIN' || r === 'SUPERADMIN');
 
 /**
- * Setiap peran punya jalur masuk sendiri: Dosen/Staf lewat Google, Admin lewat
+ * Setiap peran punya jalur masuk sendiri: Dosen/Staf lewat email/password atau Google, Admin lewat
  * halaman masuk Admin, Superadmin lewat halaman masuk Superadmin. Jalur yang
  * bukan miliknya selalu ditolak.
  */
-export type JalurPassword = 'admin' | 'superadmin';
+export type JalurPassword = 'admin' | 'superadmin' | 'staff';
 const cocokJalur = (peran: readonly string[], jalur: JalurPassword) =>
   jalur === 'superadmin'
     ? peran.includes('SUPERADMIN')
-    : peran.includes('ADMIN') && !peran.includes('SUPERADMIN');
+    : jalur === 'staff'
+      ? peran.includes('DOSEN_STAF') && !punyaPeranAdmin(peran)
+      : peran.includes('ADMIN') && !peran.includes('SUPERADMIN');
 
 export interface AuthSession {
   user: PenggunaAktif;
@@ -65,6 +72,7 @@ export class IdentityService {
     private readonly config: ConfigService<KonfigurasiApp, true>,
   ) {}
   private readonly gagalLogin = new Map<string, { jumlah: number; mulai: number; sampai: number }>();
+  private pendaftaranBerjalan = 0;
 
   private usable(user: UserRow | undefined): asserts user is UserRow {
     if (!user || user.deleted_at || !['AKTIF', 'MENUNGGU_VERIFIKASI'].includes(user.status))
@@ -84,6 +92,23 @@ export class IdentityService {
     const user = await this.repo.principal(db, row);
     await this.repo.touchSession(db, [utc(), session.id]);
     return { user, session };
+  }
+
+  /** Rute publik tetap dapat dibaca setelah sesi berakhir; galat infrastruktur tetap diteruskan. */
+  async optionalUser(token: string): Promise<PenggunaAktif | undefined> {
+    if (!token) return undefined;
+    try {
+      return (await this.authenticate(token)).user;
+    } catch (error) {
+      if (error instanceof UnauthorizedException) return undefined;
+      throw error;
+    }
+  }
+
+  /** Proyeksi respons ke browser; jangan mengubah principal yang digunakan untuk otorisasi/login. */
+  async penggunaSesiTampil(token: string) {
+    const { user } = await this.authenticate(token);
+    return skemaPenggunaSesiTampil.parse(user);
   }
   private async issue(db: Connection, user: UserRow, ip: string, agent: string) {
     const token = acak(),
@@ -131,8 +156,8 @@ export class IdentityService {
     });
   }
   /**
-   * Login email + password, hanya untuk Admin/Superadmin AKTIF yang sudah
-   * membuat password. Pesan galat selalu sama dan waktu jawab disamarkan agar
+   * Login email/password sesuai jalur peran. Dosen/Staf pending dapat melihat
+   * profil tanpa akses internal. Pesan galat sama dan waktu jawab disamarkan agar
    * keberadaan akun tidak dapat ditebak; email dikunci sementara setelah
    * beberapa kali gagal.
    */
@@ -150,7 +175,8 @@ export class IdentityService {
       const cocok = row?.password_hash
         ? await cocokPassword(password, row.password_hash)
         : await samarkanWaktu(password);
-      if (!row || !cocok || row.status !== 'AKTIF') return { gagal: row?.id ?? null, session: null };
+      const statusBoleh = row?.status === 'AKTIF' || (jalur === 'staff' && row?.status === 'MENUNGGU_VERIFIKASI');
+      if (!row || !cocok || !statusBoleh) return { gagal: row?.id ?? null, session: null };
       const principal = await this.repo.principal(db, row);
       if (!cocokJalur(principal.peran, jalur)) return { gagal: row.id, session: null };
       const session = await this.issue(db, row, ip, agent);
@@ -219,8 +245,7 @@ export class IdentityService {
 
   /**
    * Superadmin membuat akun Admin baru dengan unit kerja dan password awal. Akun langsung
-   * AKTIF dan dapat masuk dengan email + password; bila kelak masuk lewat
-   * Google dengan email yang sama, akun Google-nya otomatis tertaut.
+   * AKTIF dan dapat masuk dengan email + password melalui jalur Admin.
    */
   async buatAdmin(token: string, input: unknown) {
     const body = skemaBuatAdmin.parse(input);
@@ -301,6 +326,38 @@ export class IdentityService {
       };
     });
   }
+
+  /** Email bebas domain; akun/peran/status dibuat server dan tetap menunggu Superadmin. */
+  async registerWithPassword(input: unknown, ip: string, agent: string) {
+    const body = skemaDaftarEmail.parse(input);
+    // Batasi pekerjaan scrypt dan transaksi pendaftaran per proses, tanpa antrean tak terbatas.
+    if (this.pendaftaranBerjalan >= 4) throw new ServiceUnavailableException('Pendaftaran sedang sibuk. Coba lagi sebentar.');
+    this.pendaftaranBerjalan++;
+    try {
+      const passwordHash = await hashPassword(body.password);
+      return await this.repo.transaction(async db => {
+        // Unique index menyelesaikan race. Hindari gap lock pada email yang belum ada.
+        if (await this.repo.emailTerpakai(db, body.email, false))
+          throw new ConflictException('Email tidak dapat didaftarkan. Gunakan email lain atau masuk dengan akun yang sudah terdaftar.');
+        if (body.unitKerjaId && !await this.repo.unitValid(db, body.unitKerjaId))
+          throw new NotFoundException('Unit tidak tersedia');
+        await this.repo.insertStaffPassword(db, [body.email, body.nama, passwordHash, body.unitKerjaId ?? null, body.unitManual ?? null]);
+        const row = await this.repo.byEmail(db, body.email);
+        if (!row) throw new Error('Registered account not found');
+        const role = await this.repo.assignStaffRole(db, [row.id]);
+        if (role.affectedRows !== 1) throw new Error('Missing staff role');
+        const session = await this.issue(db, row, ip, agent);
+        await this.audit.record({ action: 'REGISTER', actorId: row.id, afterStatus: row.status, reason: 'email-password' }, db);
+        return { ...session, result: skemaHasilRegistrasi.parse({ id: String(row.id), status: row.status, peran: ['DOSEN_STAF'] }) };
+      });
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === 'ER_DUP_ENTRY')
+        throw new ConflictException('Email tidak dapat didaftarkan. Gunakan email lain atau masuk dengan akun yang sudah terdaftar.');
+      throw error;
+    } finally {
+      this.pendaftaranBerjalan--;
+    }
+  }
   async refresh(token: string) {
     return this.repo.transaction(async (db) => {
       const { user, session } = await this.authenticate(token, db, true);
@@ -317,21 +374,25 @@ export class IdentityService {
       await this.audit.record({ action: 'LOGOUT', actorId: user.id }, db);
     });
   }
-  async pending(halaman: number, perHalaman: number) {
-    return this.repo.pendingList(this.repo.pool, [
+  async pending(halaman: number, perHalaman: number, actor: PenggunaAktif) {
+    cekBacaPanel(actor, 'users.read');
+    const rows = await this.repo.pendingList(this.repo.pool, [
       String(perHalaman),
       String((halaman - 1) * perHalaman),
     ]);
+    return rows.map((row) => ({ ...row, email: surelUntukPanel(row.email, actor.peran, { pemilikId: String(row.id), pelihatId: actor.id }) }));
   }
-  async accounts(halaman: number, perHalaman: number) {
+  async accounts(halaman: number, perHalaman: number, actor: PenggunaAktif) {
+    cekBacaPanel(actor, 'users.read');
     const rows = await this.repo.accountList(this.repo.pool, [
+      actor.id,
       String(perHalaman),
       String((halaman - 1) * perHalaman),
     ]);
     return rows.map((r) => ({
       id: r.id,
       nama: r.nama,
-      email: r.email,
+      email: surelUntukPanel(r.email, actor.peran, { pemilikId: String(r.id), pelihatId: actor.id }),
       status: r.status,
       unitKerja: r.unitKerja,
       peran: r.peran ? r.peran.split(',') : [],
@@ -340,13 +401,13 @@ export class IdentityService {
   }
 
   /**
-   * Admin atau Superadmin (izin users.delete) menghapus akun terdaftar: Dosen/Staf
-   * maupun Admin. Akun sendiri dan akun Superadmin tidak dapat dihapus siapa pun.
+   * Superadmin menghapus akun terdaftar. Akun sendiri dan akun Superadmin tidak dapat dihapus.
    * Sesi akun itu langsung dicabut.
    */
   async deleteAccount(token: string, target: string) {
     return this.repo.transaction(async (db) => {
       const { user: actor } = await this.authenticate(token, db, true);
+      cekSuperadmin(actor);
       cekIzin(actor, ['users.delete']);
       if (actor.id === target) throw new ConflictException('Akun sendiri tidak dapat dihapus');
       const row = await this.repo.user(db, target, true);
@@ -371,14 +432,15 @@ export class IdentityService {
     });
   }
 
-  async pendingDetail(id: string) {
+  async pendingDetail(id: string, actor: PenggunaAktif) {
+    cekBacaPanel(actor, 'users.read');
     const row = await this.repo.user(this.repo.pool, id);
     if (!row || row.deleted_at || row.status !== 'MENUNGGU_VERIFIKASI')
       throw new NotFoundException();
     return {
       id: String(row.id),
       nama: row.nama,
-      email: row.email,
+      email: surelUntukPanel(row.email, actor.peran, { pemilikId: String(row.id), pelihatId: actor.id }),
       unitManual: row.unit_manual,
       unitKerjaId: row.unit_kerja_id,
       status: row.status,
@@ -404,9 +466,8 @@ export class IdentityService {
           : 'users.set_status';
     return this.repo.transaction(async (db) => {
       const { user: actor } = await this.authenticate(token, db, true);
+      cekSuperadmin(actor);
       cekIzin(actor, [permission]);
-      if (!actor.peran.some((r) => r === 'ADMIN' || r === 'SUPERADMIN'))
-        throw new ForbiddenException();
       const row = await this.repo.user(db, target, true);
       if (!row || row.deleted_at) throw new NotFoundException();
       const subject = await this.repo.principal(db, row);

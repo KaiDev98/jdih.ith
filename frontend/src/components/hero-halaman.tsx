@@ -19,7 +19,7 @@ export function HeroHalaman({
   children?: React.ReactNode;
 }) {
   return (
-    <section className="hero-beranda relative overflow-hidden text-white">
+    <section className="portal-subhero hero-beranda relative overflow-hidden text-white">
       <LatarFotoHero />
       <div className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
         {label && (

@@ -49,8 +49,10 @@ Jangan membangun berdasarkan asumsi legacy berikut:
   - `internal`
   - `rahasia`
 - Tidak ada `terbatas`.
-- Dosen/Staf tidak memakai password lokal; login Google `@ith.ac.id`.
-- Mahasiswa `@mahasiswa.ith.ac.id` tidak mendapat akses internal.
+- Dosen/Staf dapat mendaftar dan masuk dengan email/password dari domain apa pun;
+  Google hanya `@ith.ac.id`. Semua akun baru menunggu verifikasi Superadmin.
+- Google `@mahasiswa.ith.ac.id` ditolak; kelayakan pendaftar email/password
+  untuk akses internal diperiksa Superadmin, bukan diberikan otomatis dari domain.
 - Tidak ada pembuatan/promosi Admin/Superadmin lewat UI.
 - Dokumen INTERNAL tidak dibatasi unit; semua Dosen/Staf aktif dapat mengakses.
 - Dokumen RAHASIA memakai explicit user grant.
@@ -59,6 +61,84 @@ Jangan membangun berdasarkan asumsi legacy berikut:
 - V1 tidak memerlukan berita, banner, FAQ, layanan hukum, full-text PDF, OCR, Meilisearch, JDIHN, atau public external API.
 - Workflow dokumen tidak memiliki state `ditolak`.
 - Status hukum hanya `berlaku`, `diubah`, `dicabut`.
+
+## REVISI AUTENTIKASI — 2026-10-26
+
+- `/masuk` menyediakan email/password untuk Dosen/Staf; `/daftar` menerima
+  email ITH maupun email pribadi. Unit dipilih/diusulkan untuk verifikasi.
+- Akun baru hanya `DOSEN_STAF` + `MENUNGGU_VERIFIKASI`; tidak menerima pilihan
+  peran/status dari klien. Pending boleh masuk dan membaca profil/dokumen publik;
+  akses internal hanya setelah Superadmin menyetujui. Penonaktifan mencabut sesi.
+- Google wajib memvalidasi email dan klaim `hd` tepat `ith.ac.id`; wildcard
+  dilarang. Jangan menautkan akun lokal dengan Google hanya dari kesamaan email.
+- Login Admin dan Superadmin tetap pada endpoint/jalur peran masing-masing.
+- Revisi tampilan terbaru: daftar Dosen/Staf menampilkan Nama, Email, Peran, Unit dan Status;
+  data unit untuk proses verifikasi tidak dihapus. Filter Tahun dan Kategori
+  berada sebelum Jenis Produk Hukum pada desktop maupun ponsel.
+
+## REVISI PENGAJUAN — 2026-10-23 (MENGGANTIKAN ATURAN TERKAIT DI BAWAH)
+
+- Semua Dokumen hanya berisi versi DISETUJUI/TERBIT/DITARIK. Draf dan Pengajuan
+  menampung DRAF/REVISI/DIAJUKAN; Antrean Verifikasi hanya DIAJUKAN.
+- Pengajuan wajib lengkap: judul, deskripsi, nomor, tahun, PIC, tanggal penetapan,
+  akses, kategori dan tepat satu file UTAMA yang tersedia serta checksum valid.
+  Tidak ada unggahan lampiran terpisah; gabungkan dalam file utama. Riwayat lama dipertahankan.
+- Superadmin dapat meninjau file versi belum terbit melalui API panel terotorisasi.
+- Alasan persetujuan opsional; alasan pengembalian wajib. Admin melihat alasan yang diisi di detail dan
+  notifikasi panel; Superadmin menerima notifikasi pengajuan. Pengembalian memakai
+  REVISI agar dapat diajukan ulang, bukan menambah state DITOLAK.
+- Klarifikasi terbaru 2026-10-23: SOP Permohonan SK hanya untuk Superadmin.
+  Sembunyikan menu, pintasan, pencarian, daftar, antrean, dan notifikasinya dari Admin;
+  blokir halaman/API langsung. Admin tetap boleh mengajukan SOP biasa sesuai unit.
+- Antrean verifikasi dapat dibaca lintas pembuat oleh Admin (kecuali SOP Permohonan SK);
+  semua tindakan verifikasi tetap khusus Superadmin. Daftar/draf Admin tetap milik sendiri.
+- Login uji lokal dijalankan dengan `npm run dev` (frontend produksi memang menyembunyikannya);
+  backend tetap memerlukan LOGIN_UJI=true dan menolak mode uji pada produksi.
+- Nama kategori/unit menjadi Komisi Etik Kemahasiswaan dan Laboratorium; kode dan ID tetap.
+- Dashboard Admin maupun Superadmin tidak menampilkan atau mengambil aktivitas
+  audit. Halaman/menu Audit terpisah tetap hanya untuk Superadmin yang berizin.
+- Notifikasi Superadmin hanya SUBMIT terbaru per versi yang masih DIAJUKAN.
+  Keputusan APPROVE/RETURN dengan alasan ditujukan ke Admin pemilik. Pengembalian
+  tetap REVISI; setelah diperbaiki dan diajukan ulang, muncul pengajuan baru dengan
+  ID workflow baru. Pengajuan yang sudah diproses hilang dari inbox Superadmin.
+- Popup panel memakai Dialog Radix melalui portal, permukaan putih, latar terang
+  transparan dan animasi singkat. Hindari overlay hitam; konfirmasi, fokus keyboard,
+  loading, success/error serta pencegahan klik ganda tetap wajib.
+
+## REVISI HAK AKSES ADMIN — 2026-10-20
+
+Instruksi user terbaru menggantikan aturan V2 lama yang memberi Admin kewenangan
+verifikasi dan pengelolaan global:
+
+- Admin hanya boleh membuat, mengubah, mengunggah, dan mengajukan dokumen/versi
+  yang dibuatnya sendiri.
+- Admin hanya boleh memilih kategori yang dipetakan ke unit kerja akunnya; backend
+  wajib memeriksa unit dan kepemilikan ulang saat menyimpan.
+- Hanya Superadmin yang memverifikasi, mengembalikan, menyetujui, menerbitkan, atau
+  menarik dokumen, termasuk mengelola SOP Permohonan SK, akun, master data,
+  dan pengaturan global lainnya.
+- Menu dan halaman global dapat diklik dan dibuka Admin untuk membaca informasi.
+  Tombol dan formulir perubahan dinonaktifkan; navigasi, pencarian, filter, dan
+  tinjauan informasi tetap aktif. Backend memberi akses baca tanpa izin perubahan.
+- Pengecualian: SOP Permohonan SK hanya tersedia di panel Superadmin. Menu,
+  pintasan, pencarian cepat, halaman, dan API pengelolaannya tidak tersedia bagi
+  Admin. Halaman SOP yang sudah terbit pada portal publik tetap tersedia.
+- Audit hanya tersedia untuk Superadmin aktif dengan izin `audit.read`: sembunyikan
+  menu, hasil pencarian cepat, serta aktivitas dashboard dari Admin; tolak akses
+  halaman dan API langsung, termasuk bila Admin diberi izin langsung `audit.read`.
+- Pengecualian Format Persuratan (instruksi terbaru): semua Admin dan Superadmin
+  dapat membuat, mengunggah versi baru, mengaktifkan, dan mengarsipkan seluruh
+  template, termasuk milik akun lain. Izin `templates.manage`, akun aktif,
+  konfirmasi tindakan, dan audit tetap wajib. Batas kepemilikan dokumen hukum
+  dan kewenangan verifikasi tidak berubah.
+- Panel Admin memakai `/admin`; panel Superadmin memakai `/superadmin`. Login,
+  tautan, breadcrumb, dan navigasi mengikuti peran. API tetap `/api/v1/admin`.
+- Pembatasan UI tidak menggantikan otorisasi server-side.
+- Email akun lain pada panel Admin biasa disensor pada respons API daftar,
+  antrean dan detail pengguna. Revisi user 2026-10-21: email akun sendiri tampil
+  lengkap pada sesi, menu, profil dan daftar akun (cocokkan ID pemilik dengan ID
+  sesi). Superadmin melihat semua email lengkap. Principal internal dan login
+  tetap memakai email asli; penyensoran tidak mengubah identitas yang tersimpan.
 
 ## ATURAN IMPLEMENTASI
 

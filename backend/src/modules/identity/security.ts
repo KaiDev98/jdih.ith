@@ -43,6 +43,37 @@ export function cekIzin(user: PenggunaAktif | undefined, codes: readonly KodeIzi
   )
     throw new ForbiddenException();
 }
+
+/**
+ * A few administrative duties are deliberately role-bound, not permission-bound.
+ * A direct per-user permission override must never let an ADMIN verify files or
+ * manage global portal settings when the business rule reserves those actions
+ * for SUPERADMIN.
+ */
+export function cekSuperadmin(user: PenggunaAktif | undefined) {
+  if (!user) throw new UnauthorizedException();
+  if (user.status !== 'AKTIF' || !user.peran.includes('SUPERADMIN'))
+    throw new ForbiddenException();
+}
+
+/** Akses informasi panel tidak memberikan izin perubahan global. */
+export function cekBacaPanel(user: PenggunaAktif, permission: KodeIzin) {
+  if (!user.peran.some((p) => p === 'ADMIN' || p === 'SUPERADMIN'))
+    throw new ForbiddenException();
+  cekIzin(user, [user.peran.includes('SUPERADMIN') ? permission : 'documents.read_admin']);
+}
+
+/** Admin-owned resources are hidden as not-found when another account probes them. */
+export function cekPemilikAtauSuperadmin(user: PenggunaAktif, createdBy: unknown) {
+  if (user.peran.includes('SUPERADMIN')) return;
+  if (String(createdBy) !== user.id) throw new NotFoundException();
+}
+
+/** SOP Permohonan SK hanya tersedia pada panel Superadmin, termasuk akses lewat ID. */
+export function cekPeruntukanPanel(user: PenggunaAktif, peruntukan: unknown) {
+  if (peruntukan === 'PERMOHONAN_SK' && !user.peran.includes('SUPERADMIN'))
+    throw new NotFoundException();
+}
 export interface ResourceDokumen {
   id: string;
   tingkatAkses: TingkatAkses;

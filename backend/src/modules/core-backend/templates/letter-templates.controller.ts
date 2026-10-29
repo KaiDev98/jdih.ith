@@ -1,7 +1,7 @@
 import { Controller, Get, Param, Post, Query, Req, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
 import type { Response } from 'express';
 import { rm } from 'node:fs/promises';
-import { Aktor, Izin, Publik, type PermintaanBerpengguna } from '../../../common/decorators/otorisasi.decorator.js';
+import { Aktor, Izin, IzinSalahSatu, Publik, type PermintaanBerpengguna } from '../../../common/decorators/otorisasi.decorator.js';
 import type { PenggunaAktif } from '@jdih/shared';
 import { IdentityService } from '../../identity/identity.service.js';
 import { cookie, SESSION_COOKIE } from '../../identity/identity.guard.js';
@@ -14,7 +14,7 @@ import { DownloadRateLimitService } from '../download-rate-limit.service.js';
 export class AdminLetterTemplatesController {
   constructor(private readonly templates: LetterTemplatesService) {}
 
-  @Get() @Izin('templates.manage') list(@Aktor() actor: PenggunaAktif) {
+  @Get() @IzinSalahSatu('templates.manage', 'documents.read_admin') list(@Aktor() actor: PenggunaAktif) {
     return this.templates.adminList(actor);
   }
 
@@ -50,11 +50,13 @@ export class PublicLetterTemplatesController {
   ) {}
   private async actor(req: PermintaanBerpengguna) {
     const token = cookie(req, SESSION_COOKIE);
-    return token ? (await this.identity.authenticate(token)).user : undefined;
+    return this.identity.optionalUser(token);
   }
 
   @Get() @Publik()
-  async list(@Query() query: unknown, @Req() req: PermintaanBerpengguna) {
+  async list(@Query() query: unknown, @Req() req: PermintaanBerpengguna, @Res({ passthrough: true }) res: Response) {
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.vary('Cookie');
     return this.templates.list(query, await this.actor(req));
   }
 

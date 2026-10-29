@@ -88,10 +88,10 @@ describe('IdentityService.deleteAccount', () => {
 
 describe('IdentityService.deleteAccount oleh Admin', () => {
   const admin = { ...superadmin, id: '2', peran: ['ADMIN' as const] };
-  it('Admin dapat menghapus akun Admin lain', async () => {
+  it('Admin tidak dapat menghapus akun Admin lain meskipun punya izin langsung', async () => {
     await expect(
       siapkan(['ADMIN'], { aktor: admin }).service.deleteAccount('token', '5'),
-    ).resolves.toEqual({ id: '5', dihapus: true });
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
   it('Admin tidak dapat menghapus Superadmin', async () => {
     await expect(

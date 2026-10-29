@@ -14,7 +14,6 @@ type Jenis = { kode: string; nama: string };
  */
 export function BilahCari({ tipe, tahun }: { tipe: readonly Jenis[]; tahun: readonly number[] }) {
   const [kataKunci, setKataKunci] = useState('');
-  const [fokus, setFokus] = useState(false);
   const masukan = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -31,7 +30,7 @@ export function BilahCari({ tipe, tahun }: { tipe: readonly Jenis[]; tahun: read
 
   return (
     <form action="/produk-hukum" role="search" className="min-w-0">
-      <div className="flex items-center rounded-full bg-white p-1.5 text-tinta shadow-[0_24px_56px_-24px_rgb(61_23_6/0.55)] ring-white/35 transition-[box-shadow] duration-300 focus-within:ring-4 focus-within:shadow-[0_28px_64px_-24px_rgb(8_20_40/0.7)]">
+      <div className="portal-search-shell flex items-center rounded-full bg-white p-1.5 text-tinta">
         <Search aria-hidden className="ml-4 size-5 shrink-0 text-institusi-600 sm:ml-5" />
         <label htmlFor="q-beranda" className="sr-only">
           Kata kunci
@@ -42,10 +41,9 @@ export function BilahCari({ tipe, tahun }: { tipe: readonly Jenis[]; tahun: read
           name="q"
           type="search"
           autoComplete="off"
+          aria-keyshortcuts="/"
           value={kataKunci}
           onChange={(e) => setKataKunci(e.target.value)}
-          onFocus={() => setFokus(true)}
-          onBlur={() => setFokus(false)}
           placeholder="Cari produk hukum…"
           className="min-h-12 w-full min-w-0 appearance-none border-0 bg-transparent px-3 text-base text-tinta outline-none placeholder:text-slate-500 sm:min-h-14 sm:text-lg [&::-webkit-search-cancel-button]:appearance-none"
         />
@@ -57,19 +55,17 @@ export function BilahCari({ tipe, tahun }: { tipe: readonly Jenis[]; tahun: read
               setKataKunci('');
               masukan.current?.focus();
             }}
-            className="tekan mr-1 grid size-8 shrink-0 place-items-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-tinta"
+            className="tekan relative mr-1 grid size-8 shrink-0 place-items-center rounded-full text-slate-500 before:absolute before:-inset-1.5 before:rounded-full before:content-[''] hover:bg-slate-100 hover:text-tinta"
           >
             <X aria-hidden className="size-4" />
           </button>
         ) : (
-          !fokus && (
-            <kbd
-              aria-hidden
-              className="mr-3 hidden h-6 shrink-0 items-center rounded-md border border-slate-300 px-2 font-sans text-xs font-semibold text-slate-500 md:inline-flex"
-            >
-              /
-            </kbd>
-          )
+          <kbd
+            aria-hidden
+            className="portal-search-shortcut mr-3 hidden h-6 shrink-0 items-center rounded-md border border-slate-300 px-2 font-sans text-xs font-semibold text-slate-500 md:inline-flex"
+          >
+            /
+          </kbd>
         )}
         <button
           type="submit"
@@ -78,13 +74,13 @@ export function BilahCari({ tipe, tahun }: { tipe: readonly Jenis[]; tahun: read
           Cari
         </button>
       </div>
-      <div className="mt-4 grid gap-3 min-[400px]:grid-cols-2 sm:flex sm:flex-wrap sm:items-center">
+      <div className="portal-search-filters mt-4 grid gap-3 min-[400px]:grid-cols-2 sm:flex sm:flex-wrap sm:items-center">
         <PilihanDropdown
           id="tipe-beranda"
+          varian="pil"
           name="jenis"
           label="Tipe"
           sembunyikanLabel
-          varian="pil"
           ikon={Files}
           opsi={[
             { value: '', label: 'Semua tipe' },
@@ -93,10 +89,10 @@ export function BilahCari({ tipe, tahun }: { tipe: readonly Jenis[]; tahun: read
         />
         <PilihanDropdown
           id="tahun-beranda"
+          varian="pil"
           name="tahun"
           label="Tahun"
           sembunyikanLabel
-          varian="pil"
           ikon={CalendarDays}
           opsi={[
             { value: '', label: 'Semua tahun' },

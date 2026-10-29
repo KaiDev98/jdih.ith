@@ -1,0 +1,100 @@
+.pemicu {
+  box-shadow: 0 2px 5px rgb(194 81 14 / 7%);
+}
+
+.lonceng {
+  transform-origin: 50% 15%;
+  animation: dering 850ms ease-in-out 2;
+}
+
+.sinyal {
+  position: absolute;
+  inset: -4px;
+  border: 1px solid rgb(243 146 34 / 65%);
+  border-radius: 999px;
+  animation: sinyal 1.7s ease-out 3;
+}
+
+.kepala {
+  background:
+    radial-gradient(ellipse at 105% 0%, rgb(243 146 34 / 19%), transparent 60%),
+    linear-gradient(125deg, #172340, #24395d);
+}
+
+.kepala::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #f39222, #fab474 45%, transparent);
+  content: '';
+}
+
+.kartu {
+  box-shadow: 0 2px 4px rgb(23 35 64 / 3%);
+  transition:
+    border-color 180ms,
+    box-shadow 180ms,
+    transform 180ms;
+}
+
+.kartu:hover {
+  box-shadow: 0 8px 22px -10px rgb(23 35 64 / 22%);
+  transform: translateY(-1px);
+}
+
+.kartu:hover .panah {
+  transform: translate(2px, -2px);
+}
+
+.panah {
+  transition: transform 180ms;
+}
+
+@keyframes dering {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  15%,
+  45% {
+    transform: rotate(12deg);
+  }
+  30%,
+  60% {
+    transform: rotate(-10deg);
+  }
+  75% {
+    transform: rotate(5deg);
+  }
+}
+
+@keyframes sinyal {
+  from {
+    opacity: 0.8;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lonceng,
+  .sinyal {
+    animation: none;
+  }
+  .sinyal {
+    display: none;
+  }
+  .kartu,
+  .panah {
+    transition: none;
+  }
+  .kartu:hover,
+  .kartu:hover .panah {
+    transform: none;
+  }
+}

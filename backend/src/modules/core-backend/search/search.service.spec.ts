@@ -106,3 +106,18 @@ describe('SearchService.facets', () => {
     expect(calls[0]!.sql).toContain("v.tingkat_akses IN ('publik','internal')");
   });
 });
+
+describe('SOP Permohonan SK: akses dan pagination', () => {
+  it.each([undefined, 'MENUNGGU_VERIFIKASI', 'NONAKTIF', 'AKTIF'] as const)('memfilter akses untuk status %s sebelum menghitung hasil', async (status) => {
+    const repo = { pool: {}, rows: vi.fn((_db: unknown, sql: string) => Promise.resolve(sql.includes('COUNT(*)') ? [{ total: '25' }] : [])) };
+    const actor = status ? { id: '7', nama: 'Staf', surel: 's@ith.ac.id', status, unitKerjaId: null, unitManual: null, avatarUrl: null, peran: ['DOSEN_STAF'], izin: [] } : undefined;
+    const result = await new SearchService(repo as never).permohonanSk({ halaman: 2, perHalaman: 12, q: 'SK' }, actor as never);
+    expect(result.meta).toMatchObject({ totalButir: 25, totalHalaman: 3, halaman: 2, perHalaman: 12 });
+    for (const [, sql] of repo.rows.mock.calls) {
+      expect(sql).toContain("d.peruntukan='PERMOHONAN_SK'");
+      expect(sql).toContain(status === 'AKTIF' ? "v.tingkat_akses IN ('publik','internal')" : "v.tingkat_akses='publik'");
+      expect(sql).not.toContain("'rahasia'");
+    }
+    expect(repo.rows).toHaveBeenLastCalledWith(expect.anything(), expect.stringContaining('LIMIT ? OFFSET ?'), expect.arrayContaining([12]));
+  });
+});

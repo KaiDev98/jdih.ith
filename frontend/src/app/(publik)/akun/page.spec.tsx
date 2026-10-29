@@ -25,6 +25,8 @@ const penggunaAktif = {
   status: 'AKTIF',
   unitManual: null,
   unitKerjaId: null,
+  peran: ['DOSEN_STAF'],
+  izin: [],
 };
 
 describe('heading hierarchy on the account page', () => {
@@ -48,5 +50,13 @@ describe('heading hierarchy on the account page', () => {
     render(<AkunPage />);
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+  });
+  it('profil Dosen/Staf memakai nama unit dan tidak menampilkan panel pengelola', async () => {
+    ambilApi.mockResolvedValue([{ id: '7', nama: 'Perpustakaan' }]);
+    state.current = { state: 'authenticated', pengguna: { ...penggunaAktif, unitKerjaId: '7' } };
+    render(<AkunPage />);
+    expect(await screen.findByText('Perpustakaan')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /panel pengelola/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Produk hukum' })).toHaveAttribute('href', '/produk-hukum');
   });
 });

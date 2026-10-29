@@ -38,3 +38,23 @@ describe('statusLayanan', () => {
     );
   });
 });
+
+describe('FooterPublik', () => {
+  it('memuat identitas portal, informasi kantor, serta kanal resmi ITH', async () => {
+    const { render, screen } = await import('@testing-library/react');
+    const { FooterPublik } = await import('./footer-publik');
+    render(
+      <FooterPublik
+        kontak={{ butir: [{ id: '1', jenis: 'TELEPON', nilai: '+62 853-4088-9059', label: null }] }}
+        kunjungan={{ hariIni: 1, bulanIni: 2, tahunIni: 3, total: 4 }}
+      />,
+    );
+    expect(screen.getByRole('heading', { name: 'Kantor' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Statistik kunjungan' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Instagram ITH/ })).toHaveAttribute('target', '_blank');
+    expect(screen.getByRole('link', { name: /ith\.ac\.id/ })).toHaveAttribute('href', 'https://ith.ac.id');
+    expect(screen.getByRole('link', { name: '+62 853-4088-9059' })).toHaveAttribute('href', 'tel:+6285340889059');
+    // Tidak ada yang menyiratkan konten atau jalur masuk khusus Dosen/Staf.
+    expect(screen.queryByRole('link', { name: /masuk|dosen|staf|internal/i })).not.toBeInTheDocument();
+  });
+});

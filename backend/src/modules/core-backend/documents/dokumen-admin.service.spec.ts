@@ -5,7 +5,7 @@ import { DokumenAdminService } from './dokumen-admin.service.js';
 const admin = {
   id: '7',
   status: 'AKTIF',
-  peran: ['ADMIN'],
+  peran: ['SUPERADMIN'],
   izin: ['legal.correct_status', 'documents.delete'],
 };
 const staf = { id: '9', status: 'AKTIF', peran: ['DOSEN_STAF'], izin: [] };
@@ -41,72 +41,6 @@ function siapkan(
   const service = new DokumenAdminService(repo as never, audit as never, storage as never);
   return { service, sql, audit, storage };
 }
-
-describe('DokumenAdminService.ubahStatusHukum', () => {
-  it('changes the legal status, records history and audit', async () => {
-    const { service, sql, audit } = siapkan();
-    await expect(
-      service.ubahStatusHukum(admin as never, '5', {
-        statusHukum: 'DICABUT',
-        alasan: 'Dicabut SK baru',
-      }),
-    ).resolves.toEqual({ id: '5', statusHukum: 'DICABUT' });
-    expect(sql[0]).toEqual({
-      sql: 'UPDATE dokumen SET status_hukum=? WHERE id=?',
-      values: ['DICABUT', '5'],
-    });
-    expect(sql[1]!.sql).toContain('INSERT INTO dokumen_status_hukum_riwayat');
-    expect(sql[1]!.values.slice(0, 4)).toEqual(['5', 'BERLAKU', 'DICABUT', 'Dicabut SK baru']);
-    expect(audit.recordDomain).toHaveBeenCalledWith(
-      expect.objectContaining({ action: 'CORRECT_STATUS', before: { statusHukum: 'BERLAKU' } }),
-      {},
-    );
-  });
-
-  it('stores NULL when the reason is left empty', async () => {
-    const { service, sql } = siapkan();
-    await service.ubahStatusHukum(admin as never, '5', { statusHukum: 'DIUBAH', alasan: ' ' });
-    expect(sql[1]!.values.slice(0, 4)).toEqual(['5', 'BERLAKU', 'DIUBAH', null]);
-  });
-
-  it('adds a reason to an unchanged status as a reason-only history row', async () => {
-    const { service, sql, audit } = siapkan({
-      id: '5',
-      kode_dokumen: 'DOC-5',
-      slug: 'dok-5',
-      status_hukum: 'DICABUT',
-    });
-    await service.ubahStatusHukum(admin as never, '5', { statusHukum: 'DICABUT' });
-    expect(sql).toEqual([]);
-    await service.ubahStatusHukum(admin as never, '5', {
-      statusHukum: 'DICABUT',
-      alasan: 'Diganti peraturan baru',
-    });
-    expect(sql).toHaveLength(1);
-    expect(sql[0]!.sql).toContain('INSERT INTO dokumen_status_hukum_riwayat');
-    expect(sql[0]!.values.slice(0, 4)).toEqual([
-      '5',
-      'DICABUT',
-      'DICABUT',
-      'Diganti peraturan baru',
-    ]);
-    expect(audit.recordDomain).toHaveBeenCalledWith(
-      expect.objectContaining({ action: 'UPDATE_STATUS_REASON' }),
-      {},
-    );
-  });
-
-  it('requires a known status and the permission', async () => {
-    const { service, sql } = siapkan();
-    await expect(
-      service.ubahStatusHukum(admin as never, '5', { statusHukum: 'BATAL', alasan: 'x' }),
-    ).rejects.toThrow();
-    await expect(
-      service.ubahStatusHukum(staf as never, '5', { statusHukum: 'DIUBAH', alasan: 'x' }),
-    ).rejects.toBeInstanceOf(ForbiddenException);
-    expect(sql).toEqual([]);
-  });
-});
 
 describe('DokumenAdminService.hapusPermanen', () => {
   it('deletes every dependent row, then the files, and audits it', async () => {

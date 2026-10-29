@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import {
   Izin,
   IzinSalahSatu,
@@ -19,13 +20,13 @@ type PublicMasterTable = 'unit_kerja' | 'jenis_dokumen' | 'kategori';
 @Controller('admin/master')
 export class MasterController {
   constructor(private readonly core: CoreBackendService) {}
-  @Get(':table') @IzinSalahSatu('master.manage', 'units.manage') list(
+  @Get(':table') @IzinSalahSatu('master.manage', 'units.manage', 'documents.read_admin') list(
     @Param('table') table: MasterTable,
     @Aktor() actor: PenggunaAktif,
   ) {
     return this.core.masterList(actor, table);
   }
-  @Get(':table/:id') @IzinSalahSatu('master.manage', 'units.manage') detail(
+  @Get(':table/:id') @IzinSalahSatu('master.manage', 'units.manage', 'documents.read_admin') detail(
     @Param('table') table: MasterTable,
     @Param('id') id: string,
     @Aktor() actor: PenggunaAktif,
@@ -57,6 +58,17 @@ export class MasterController {
   }
 }
 
+@Controller('admin/document-options')
+export class DocumentOptionsController {
+  constructor(private readonly core: CoreBackendService) {}
+  @Get(':table') @Izin('documents.create') list(
+    @Param('table') table: 'jenis_dokumen' | 'kategori',
+    @Aktor() actor: PenggunaAktif,
+  ) {
+    return this.core.documentOptions(actor, table);
+  }
+}
+
 @Controller('public/master')
 export class PublicMasterController {
   constructor(private readonly core: CoreBackendService) {}
@@ -68,10 +80,28 @@ export class PublicMasterController {
 @Controller('admin/documents')
 export class DocumentsController {
   constructor(private readonly core: CoreBackendService) {}
+  @Get('notifications') @Izin('documents.read_admin') notifications(@Aktor() actor: PenggunaAktif) {
+    return this.core.notifications(actor);
+  }
+  @Delete('notifications/:id') @Izin('documents.read_admin') dismissNotification(
+    @Param('id') id: string, @Aktor() actor: PenggunaAktif,
+  ) {
+    return this.core.dismissNotification(actor, id);
+  }
+  @Delete('notifications') @Izin('documents.read_admin') clearNotifications(
+    @Body() body: unknown, @Aktor() actor: PenggunaAktif,
+  ) {
+    return this.core.clearNotifications(actor, body);
+  }
   @Get('verification-queue')
   @IzinSalahSatu('workflow.approve', 'workflow.return', 'documents.read_admin')
   queue(@Query() query: unknown, @Aktor() actor: PenggunaAktif) {
     return this.core.adminDocuments(actor, query, true);
+  }
+  @Get('relation-targets') @Izin('legal.manage_relations') relationTargets(
+    @Query() query: unknown, @Aktor() actor: PenggunaAktif,
+  ) {
+    return this.core.relationTargets(actor, query);
   }
   @Get() @Izin('documents.read_admin') list(
     @Query() query: unknown,
@@ -142,7 +172,8 @@ export class WorkflowController {
     @Body() body: unknown,
     @Aktor() actor: PenggunaAktif,
   ) {
-    return this.core.transition(actor, id, 'APPROVE', skemaSetujuiDokumen.parse(body).catatan);
+    const data = skemaSetujuiDokumen.parse(body);
+    return this.core.transition(actor, id, 'APPROVE', data.catatan, data.konfirmasi);
   }
   @Get('versions/:versionId/legal-impact') @Izin('workflow.publish') impact(
     @Param('versionId') id: string,
@@ -200,9 +231,12 @@ export class PublicDocumentController {
   @Get(':slug') @Publik() async detail(
     @Param('slug') slug: string,
     @Req() req: PermintaanBerpengguna,
+    @Res({ passthrough: true }) res: Response,
   ) {
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.vary('Cookie');
     const token = cookie(req, SESSION_COOKIE);
-    const actor = token ? (await this.identity.authenticate(token)).user : undefined;
+    const actor = await this.identity.optionalUser(token);
     return this.core.publicDetail(slug, actor);
   }
 }

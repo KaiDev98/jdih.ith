@@ -1,6 +1,6 @@
 import { createReadStream } from 'node:fs';
 import { rm } from 'node:fs/promises';
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import type { PenggunaAktif } from '@jdih/shared';
@@ -10,8 +10,9 @@ import {
   skemaDaftarTemplateAuthorized,
   skemaDaftarTemplatePublik,
   skemaUnggahTemplateAwal,
+  skemaCariTemplate,
 } from '@jdih/shared';
-import { cekIzin } from '../../identity/security.js';
+import { cekBacaPanel, cekIzin } from '../../identity/security.js';
 import { AuditService } from '../../identity/audit.service.js';
 import { CoreBackendRepository } from '../core-backend.repository.js';
 import { StorageService } from '../storage/storage.service.js';
@@ -49,8 +50,14 @@ export class LetterTemplatesService {
     );
   }
 
-  async create(actor: PenggunaAktif, incoming: IncomingFile, raw: unknown) {
+  private cekPengelola(actor: PenggunaAktif) {
+    if (!actor.peran.some((peran) => peran === 'ADMIN' || peran === 'SUPERADMIN'))
+      throw new ForbiddenException();
     cekIzin(actor, ['templates.manage']);
+  }
+
+  async create(actor: PenggunaAktif, incoming: IncomingFile, raw: unknown) {
+    this.cekPengelola(actor);
     const b = skemaUnggahTemplateAwal.parse(raw);
     const valid = await this.validate(incoming);
     const staged = await this.storage.stage(createReadStream(incoming.path));
@@ -84,7 +91,7 @@ export class LetterTemplatesService {
   }
 
   async newVersion(actor: PenggunaAktif, templateId: string, incoming: IncomingFile, raw: unknown) {
-    cekIzin(actor, ['templates.manage']);
+    this.cekPengelola(actor);
     const b = skemaBuatVersiTemplate.parse(raw);
     const valid = await this.validate(incoming);
     const staged = await this.storage.stage(createReadStream(incoming.path));
@@ -153,7 +160,7 @@ export class LetterTemplatesService {
   }
 
   async archive(actor: PenggunaAktif, templateId: string, raw: unknown) {
-    cekIzin(actor, ['templates.manage']);
+    this.cekPengelola(actor);
     skemaArsipTemplate.parse(raw);
     return this.repo.transaction(async (db) => {
       const template = (
@@ -180,20 +187,23 @@ export class LetterTemplatesService {
   }
 
   async list(rawQuery: unknown, actor?: PenggunaAktif) {
-    const page = parseTemplatePage(rawQuery);
+    const page = { ...parseTemplatePage(rawQuery), q: skemaCariTemplate.parse(rawQuery ?? {}).q };
     const includeInternal = actor?.status === 'AKTIF' && actor.peran.includes('DOSEN_STAF');
     const visible = includeInternal ? "v.tingkat_akses IN ('PUBLIK','INTERNAL')" : "v.tingkat_akses='PUBLIK'";
+    const search = page.q ? " AND t.nama LIKE ? ESCAPE '!'" : '';
+    const values = page.q ? [`%${page.q.replaceAll('!', '!!').replaceAll('%', '!%').replaceAll('_', '!_')}%`] : [];
     const [count] = await this.repo.rows<RowDataPacket & { total: string }>(
       this.repo.pool,
-      `SELECT COUNT(*) total FROM template_surat t JOIN template_surat_versi v ON v.id=t.current_version_id WHERE t.aktif=1 AND t.deleted_at IS NULL AND v.status='ACTIVE' AND ${visible}`,
+      `SELECT COUNT(*) total FROM template_surat t JOIN template_surat_versi v ON v.id=t.current_version_id WHERE t.aktif=1 AND t.deleted_at IS NULL AND v.status='ACTIVE' AND ${visible}${search}`,
+      values,
     );
     const offset = (page.halaman - 1) * page.perHalaman;
     const rows = await this.repo.rows<
       RowDataPacket & { id: string; slug: string; nama: string; tingkatAkses: 'PUBLIK' | 'INTERNAL' }
     >(
       this.repo.pool,
-      `SELECT CAST(t.id AS CHAR) id,t.slug,t.nama,v.tingkat_akses tingkatAkses FROM template_surat t JOIN template_surat_versi v ON v.id=t.current_version_id WHERE t.aktif=1 AND t.deleted_at IS NULL AND v.status='ACTIVE' AND ${visible} ORDER BY t.nama,t.id LIMIT ? OFFSET ?`,
-      [page.perHalaman, offset],
+      `SELECT CAST(t.id AS CHAR) id,t.slug,t.nama,v.tingkat_akses tingkatAkses FROM template_surat t JOIN template_surat_versi v ON v.id=t.current_version_id WHERE t.aktif=1 AND t.deleted_at IS NULL AND v.status='ACTIVE' AND ${visible}${search} ORDER BY t.nama,t.id LIMIT ? OFFSET ?`,
+      [...values, page.perHalaman, offset],
     );
     // Pengunjung anonim tidak menerima `tingkatAkses`: keberadaan format
     // Internal tidak boleh tersirat dari bentuk tanggapan publik.
@@ -211,7 +221,7 @@ export class LetterTemplatesService {
   }
 
   async adminList(actor: PenggunaAktif) {
-    cekIzin(actor, ['templates.manage']);
+    cekBacaPanel(actor, 'templates.manage');
     return this.repo.rows(
       this.repo.pool,
       'SELECT CAST(t.id AS CHAR) id,t.slug,t.nama,t.aktif,CAST(t.current_version_id AS CHAR) currentVersionId,CAST(v.nomor_versi AS UNSIGNED) nomorVersi,v.tingkat_akses tingkatAkses,v.status FROM template_surat t LEFT JOIN template_surat_versi v ON v.id=t.current_version_id WHERE t.deleted_at IS NULL ORDER BY t.updated_at DESC',

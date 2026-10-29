@@ -1,12 +1,19 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/admin/tautan-panel';
 import { useCallback, useEffect, useState } from 'react';
-import type { Relasi } from '@jdih/shared';
-import { FileText, Paperclip, Search } from 'lucide-react';
+import type { KemampuanDokumenAdmin, Relasi, PilihanKategoriDokumen } from '@jdih/shared';
+import { ArrowLeft, FileText, Paperclip, Search } from 'lucide-react';
 import { ambilApi, ambilApiBerdaftar, GalatApi } from '@/lib/api-client';
 import { csrfHeaders, useSession } from '@/lib/sesi';
-import { LABEL_RELASI, LABEL_TAHAP, TAHAP_BISA_DIUBAH, ukuranBerkas } from '@/lib/label-dokumen';
+import {
+  LABEL_JENIS_BERKAS,
+  LABEL_RELASI,
+  LABEL_TAHAP,
+  TAHAP_BISA_DIUBAH,
+  TERIMA_BERKAS,
+  ukuranBerkas,
+} from '@/lib/label-dokumen';
 import {
   Badge,
   Button,
@@ -19,7 +26,7 @@ import {
   TextAreaField,
 } from '@/components/ui';
 
-type Versi = {
+type Versi = Pick<KemampuanDokumenAdmin, 'bolehUbah'> & {
   id: string;
   versionId: string;
   nomorVersi: number;
@@ -31,6 +38,7 @@ type Versi = {
   tahun: number | null;
   pic: string | null;
   tanggalPenetapan: string | null;
+  kategoriId?: string[];
 };
 type Berkas = {
   id: string;
@@ -38,6 +46,7 @@ type Berkas = {
   judul: string | null;
   namaAsli: string;
   sizeBytes: string;
+  bolehHapus: boolean | number;
 };
 type HasilCari = { id: string; judul: string; nomor: string | null; tipe: string };
 
@@ -71,8 +80,8 @@ export function AdminUbahDraf({ id }: { id: string }) {
   const [muatUlang, setMuatUlang] = useState(0);
 
   useEffect(() => {
-    ambilApi<{ document: Versi }>(`/admin/documents/${id}`)
-      .then((d) => setVersi(d.document))
+    ambilApi<{ document: Versi; kategoriId: string[] }>(`/admin/documents/${id}`)
+      .then((d) => setVersi({ ...d.document, kategoriId: d.kategoriId }))
       .catch((e: unknown) =>
         setGalat(e instanceof GalatApi ? e.message : 'Dokumen tidak dapat dimuat.'),
       );
@@ -92,15 +101,19 @@ export function AdminUbahDraf({ id }: { id: string }) {
     warna: 'slate' as const,
   };
   const kembali = (
-    <Link className="font-semibold underline" href={`/admin/dokumen/${id}`}>
-      Kembali ke detail dokumen
+    <Link
+      className="mr-1 inline-flex items-center gap-1.5 font-medium text-slate-500 hover:text-tinta"
+      href={`/admin/dokumen/${id}?versionId=${versi.versionId}`}
+    >
+      <ArrowLeft aria-hidden className="size-4" />
+      Detail dokumen
     </Link>
   );
 
   if (!TAHAP_BISA_DIUBAH.includes(versi.statusWorkflow))
     return (
       <div className="mx-auto max-w-3xl">
-        <PageTitle title="Ubah draf" action={kembali} />
+        <PageTitle title="Ubah draf" meta={kembali} />
         <StateMessage title={`Dokumen ini sedang berstatus "${tahap.teks}"`}>
           Hanya draf yang bisa diubah. Untuk mengubah dokumen yang sudah terbit, pakai tombol{' '}
           <strong>Buat revisi</strong> di halaman detail.
@@ -109,36 +122,44 @@ export function AdminUbahDraf({ id }: { id: string }) {
     );
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="halaman-panel mx-auto w-full">
       <PageTitle
         title="Ubah draf"
         description={`${versi.judul} · versi ${versi.nomorVersi}`}
-        action={kembali}
+        meta={
+          <>
+            {kembali}
+            <Badge color={tahap.warna}>{tahap.teks}</Badge>
+          </>
+        }
       />
-      <div className="mb-5 flex items-center gap-2 text-sm">
-        Tahap saat ini: <Badge color={tahap.warna}>{tahap.teks}</Badge>
-      </div>
-      <div className="grid gap-5">
-        {izin.includes('documents.edit') && (
-          <BagianData versi={versi} onTersimpan={() => setMuatUlang((x) => x + 1)} />
-        )}
-        <BagianBerkas versionId={versi.versionId} bolehUnggah={izin.includes('documents.upload')} />
-        {izin.includes('legal.manage_relations') && (
-          <BagianHubungan
-            dokumenId={id}
+      {/* Data dan hubungan di kolom lebar; berkas dan tombol selesai di kolom samping. */}
+      <fieldset disabled={!versi.bolehUbah} className="formulir-panel grid min-w-0 grid-cols-[minmax(0,1fr)] items-start gap-5 [&>*]:min-w-0 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="grid content-start gap-5">
+          {izin.includes('documents.edit') && (
+            <BagianData versi={versi} onTersimpan={() => setMuatUlang((x) => x + 1)} />
+          )}
+          {izin.includes('legal.manage_relations') && (
+            <BagianHubungan
+              dokumenId={id}
+              versionId={versi.versionId}
+              internal={versi.tingkatAkses === 'internal'}
+            />
+          )}
+        </div>
+        <div className="grid content-start gap-4">
+          <BagianBerkas
             versionId={versi.versionId}
-            internal={versi.tingkatAkses === 'internal'}
+            bolehUnggah={izin.includes('documents.upload')}
           />
-        )}
-      </div>
-      <div className="mt-6">
-        <Link
-          href={`/admin/dokumen/${id}`}
-          className="tekan inline-flex min-h-11 items-center rounded-md bg-tinta px-5 font-semibold text-white hover:bg-institusi-800"
-        >
-          Selesai, kembali ke detail
-        </Link>
-      </div>
+          <Link
+            href={`/admin/dokumen/${id}`}
+            className="tekan inline-flex min-h-10 items-center justify-center rounded-lg bg-tinta px-5 text-sm font-semibold text-white hover:bg-[#1d3461]"
+          >
+            Selesai, kembali ke detail
+          </Link>
+        </div>
+      </fieldset>
     </div>
   );
 }
@@ -146,6 +167,16 @@ export function AdminUbahDraf({ id }: { id: string }) {
 /** 1. Data dokumen: judul, deskripsi, nomor, tahun, PIC, tanggal, dan akses. */
 function BagianData({ versi, onTersimpan }: { versi: Versi; onTersimpan: () => void }) {
   const { csrfToken } = useSession();
+  const [categories, setCategories] = useState<PilihanKategoriDokumen[]>([]);
+  const [category, setCategory] = useState(versi.kategoriId?.[0] ?? '');
+  const [galatKategori, setGalatKategori] = useState('');
+  useEffect(() => {
+    let aktif = true;
+    void ambilApi<PilihanKategoriDokumen[]>('/admin/document-options/kategori')
+      .then((r) => { if (aktif) setCategories(r); })
+      .catch(() => { if (aktif) setGalatKategori('Pilihan kategori belum dapat dimuat. Muat ulang halaman.'); });
+    return () => { aktif = false; };
+  }, []);
   const [form, setForm] = useState({
     judul: versi.judul,
     deskripsi: versi.deskripsi ?? '',
@@ -171,6 +202,7 @@ function BagianData({ versi, onTersimpan }: { versi: Versi; onTersimpan: () => v
           pic: form.pic || null,
           tanggalPenetapan: form.tanggalPenetapan || null,
           tingkatAkses: form.tingkatAkses,
+          kategoriId: category ? [category] : [],
         },
       });
     } catch (e) {
@@ -181,27 +213,27 @@ function BagianData({ versi, onTersimpan }: { versi: Versi; onTersimpan: () => v
 
   return (
     <Card>
-      <h2 className="text-lg font-bold">1. Data dokumen</h2>
+      <h2 className="text-base font-bold">1. Data dokumen</h2>
       <p className="mt-1 text-sm text-slate-600">
-        Nomor, PIC, dan tanggal penetapan boleh kosong selama masih draf, tetapi wajib diisi sebelum
-        dokumen diterbitkan.
+        Semua data dan tepat satu file dokumen wajib lengkap sebelum diajukan untuk verifikasi.
       </p>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <Field
           className="sm:col-span-2"
           label="Judul *"
           id="ubah-judul"
+          placeholder="Isi dengan Judul Dokumen"
           maxLength={500}
           value={form.judul}
           onChange={(e) => ubah('judul', e.target.value)}
         />
         <div className="grid gap-1 sm:col-span-2">
           <TextAreaField
-            label="Deskripsi singkat (opsional)"
+            label="Deskripsi singkat *"
             id="ubah-deskripsi"
             maxLength={1000}
             rows={3}
-            placeholder="mis. Mengatur tata cara pengajuan cuti bagi dosen dan tenaga kependidikan."
+            placeholder="Deskripsi singkat tentang dokumen"
             value={form.deskripsi}
             onChange={(e) => ubah('deskripsi', e.target.value)}
           />
@@ -238,6 +270,16 @@ function BagianData({ versi, onTersimpan }: { versi: Versi; onTersimpan: () => v
           onChange={(e) => ubah('tanggalPenetapan', e.target.value)}
         />
         <SelectField
+          label="Unit kerja / kategori *"
+          id="ubah-kategori"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+        >
+          <option value="">Pilih kategori</option>
+          {categories.map((c) => <option key={c.id} value={c.id} disabled={c.bolehPilih === false || c.aktif === false}>{c.nama}{c.aktif === false ? ' (nonaktif)' : c.bolehPilih === false ? ' (di luar hak akses)' : ''}</option>)}
+        </SelectField>
+        {galatKategori && <p role="alert" className="text-sm text-red-700">{galatKategori}</p>}
+        <SelectField
           className="sm:col-span-2"
           label="Siapa yang boleh melihat"
           id="ubah-akses"
@@ -245,7 +287,7 @@ function BagianData({ versi, onTersimpan }: { versi: Versi; onTersimpan: () => v
           onChange={(e) => ubah('tingkatAkses', e.target.value)}
         >
           <option value="publik">Publik: semua orang</option>
-          <option value="internal">Internal: hanya Dosen/Staf yang masuk</option>
+          <option value="internal">Dosen/Staf: hanya yang sudah masuk</option>
         </SelectField>
       </div>
       <div className="mt-5">
@@ -261,13 +303,11 @@ function BagianData({ versi, onTersimpan }: { versi: Versi; onTersimpan: () => v
   );
 }
 
-/** 2. Berkas: dokumen utama (wajib) dan lampiran (opsional). */
+/** 2. Satu file utama; lampiran lama tetap terlihat untuk koreksi draf. */
 function BagianBerkas({ versionId, bolehUnggah }: { versionId: string; bolehUnggah: boolean }) {
   const { csrfToken } = useSession();
   const [berkas, setBerkas] = useState<Berkas[]>();
   const [utama, setUtama] = useState<File>();
-  const [lampiran, setLampiran] = useState<File>();
-  const [judulLampiran, setJudulLampiran] = useState('');
 
   const muat = useCallback(() => {
     ambilApi<Berkas[]>(`/admin/documents/versions/${versionId}/files`)
@@ -305,7 +345,7 @@ function BagianBerkas({ versionId, bolehUnggah }: { versionId: string; bolehUngg
   const fileUtama = berkas?.find((b) => b.jenisBerkas === 'UTAMA');
   const daftarLampiran = berkas?.filter((b) => b.jenisBerkas === 'LAMPIRAN') ?? [];
   const kelasInput =
-    'text-sm file:mr-3 file:rounded-md file:border-0 file:bg-institusi-600 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-institusi-700';
+    'w-full min-w-0 cursor-pointer text-sm text-slate-600 file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-slate-700 file:ring-1 file:ring-slate-300 hover:file:bg-slate-50';
 
   const baris = (b: Berkas, Ikon: typeof FileText) => (
     <li
@@ -324,7 +364,7 @@ function BagianBerkas({ versionId, bolehUnggah }: { versionId: string; bolehUngg
           </span>
         </span>
       </span>
-      {bolehUnggah && (
+      {bolehUnggah && b.bolehHapus ? (
         <ConfirmAction
           label="Hapus"
           tone="danger"
@@ -333,14 +373,27 @@ function BagianBerkas({ versionId, bolehUnggah }: { versionId: string; bolehUngg
           confirmLabel="Ya, hapus"
           onConfirm={() => hapus(b.id)}
         />
-      )}
+      ) : bolehUnggah && berkas?.length === 0 ? (
+        <Button
+          type="button"
+          tone="secondary"
+          ukuran="kecil"
+          disabled
+          title="Hanya pengunggah berkas atau Superadmin yang dapat menggantinya."
+        >
+          Hapus
+        </Button>
+      ) : null}
     </li>
   );
 
   return (
     <Card>
-      <h2 className="text-lg font-bold">2. Berkas</h2>
-      <p className="mt-1 text-sm text-slate-600">Format PDF.</p>
+      <h2 className="text-base font-bold">2. Berkas</h2>
+      <p className="mt-1 text-sm text-slate-600">
+        Format {LABEL_JENIS_BERKAS}. Hanya PDF yang dapat dipratinjau di halaman publik; jenis
+        lain tampil sebagai unduhan.
+      </p>
 
       <h3 className="mt-5 font-semibold">Dokumen utama (wajib)</h3>
       <p className="text-sm text-slate-600">
@@ -356,7 +409,7 @@ function BagianBerkas({ versionId, bolehUnggah }: { versionId: string; bolehUngg
           <input
             id="unggah-utama"
             type="file"
-            accept="application/pdf,.pdf"
+            accept={TERIMA_BERKAS}
             aria-label="Pilih berkas dokumen utama"
             onChange={(e) => setUtama(e.target.files?.[0])}
             className={kelasInput}
@@ -376,47 +429,10 @@ function BagianBerkas({ versionId, bolehUnggah }: { versionId: string; bolehUngg
         <p className="mt-3 text-sm text-amber-800">Belum ada dokumen utama.</p>
       )}
 
-      <h3 className="mt-6 font-semibold">Lampiran (opsional)</h3>
-      <p className="text-sm text-slate-600">
-        Berkas tambahan, misalnya tabel atau formulir pendukung. Boleh lebih dari satu.
-      </p>
-      {daftarLampiran.length > 0 && (
+      {daftarLampiran.length > 0 && <div className="mt-5">
+        <p className="text-sm text-amber-900">Berkas lama: gabungkan lampiran dalam satu file utama sebelum mengajukan ulang.</p>
         <ul className="mt-3 grid gap-2">{daftarLampiran.map((b) => baris(b, Paperclip))}</ul>
-      )}
-      {bolehUnggah && (
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <Field
-            label="Nama lampiran (opsional)"
-            id="judul-lampiran"
-            placeholder="mis. Lampiran I: Kalender"
-            value={judulLampiran}
-            onChange={(e) => setJudulLampiran(e.target.value)}
-          />
-          <div className="grid content-end gap-3">
-            <input
-              id="unggah-lampiran"
-              type="file"
-              accept="application/pdf,.pdf"
-              aria-label="Pilih berkas lampiran"
-              onChange={(e) => setLampiran(e.target.files?.[0])}
-              className={kelasInput}
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <ConfirmAction
-              label="Unggah lampiran"
-              title="Unggah lampiran?"
-              description={`${lampiran?.name ?? ''} ditambahkan sebagai lampiran.`}
-              disabled={!lampiran}
-              onConfirm={async () => {
-                if (lampiran) await unggah(lampiran, 'LAMPIRAN', judulLampiran);
-                setLampiran(undefined);
-                setJudulLampiran('');
-              }}
-            />
-          </div>
-        </div>
-      )}
+      </div>}
     </Card>
   );
 }
@@ -466,7 +482,7 @@ function BagianHubungan({
     if (cari.trim().length < 2) return;
     let aktif = true;
     const jeda = setTimeout(() => {
-      ambilApiBerdaftar<HasilCari>('/admin/documents', {
+      ambilApiBerdaftar<HasilCari>(beralasan ? '/admin/documents/relation-targets' : '/admin/documents', {
         kueri: { q: cari.trim(), halaman: 1, perHalaman: 8 },
       })
         .then((r) => {
@@ -480,7 +496,7 @@ function BagianHubungan({
       aktif = false;
       clearTimeout(jeda);
     };
-  }, [cari, dokumenId]);
+  }, [cari, dokumenId, beralasan]);
 
   async function tambah() {
     if (!pilihan) return;
@@ -510,7 +526,7 @@ function BagianHubungan({
 
   return (
     <Card>
-      <h2 className="text-lg font-bold">3. Hubungan dengan dokumen lain (opsional)</h2>
+      <h2 className="text-base font-bold">3. Hubungan dengan dokumen lain (opsional)</h2>
       <p className="mt-1 text-sm text-slate-600">
         Isi bila dokumen ini mencabut, mengubah, atau berdasarkan dokumen lain. Contoh: SK baru yang
         mencabut SK lama. Sebelum terbit, Anda akan diminta memastikan akibatnya.
@@ -641,7 +657,7 @@ function BagianHubungan({
                 />
                 <p className="text-xs text-slate-600">
                   {internal
-                    ? 'Dokumen ini Internal, jadi alasan hanya terlihat oleh Dosen/Staf yang masuk.'
+                    ? 'Dokumen ini khusus Dosen/Staf, jadi alasan hanya terlihat oleh Dosen/Staf yang masuk.'
                     : `Tampil di halaman "${pilihan.judul}" pada panel Keterangan status.`}
                 </p>
               </div>

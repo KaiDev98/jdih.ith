@@ -30,18 +30,49 @@ public_home:
   latest_public_document: true
   profile_scope: "Tentang ITH"
 
+document_collections_ui:
+  format_public_layout: "folder cards, three desktop columns"
+  sop_request_public_layout: "three desktop columns, two tablet columns, one mobile column; blue document-signature cards without decorative numbering"
+  collection_page_search_bar: false
+  collection_admin_search_bar: false
+  all_documents_desktop: "fixed viewport; inner list scrolling; persistent filters and pagination"
+  all_documents_collection_dropdown: [PRODUK_HUKUM, SOP, FORMAT, PERMOHONAN_SK]
+  sop_request_admin_role: SUPERADMIN
+  collection_dropdown_style: "Radix radio menu; brief open/close animation; soft blue focus; keyboard and reduced motion"
+
 auth:
-  provider: "Google OAuth/OIDC"
-  staff_domain: "@ith.ac.id"
-  student_domain: "@mahasiswa.ith.ac.id"
-  local_password_v1: false
+  standalone_auth_pages: ["/masuk", "/daftar", "/masuk/admin", "/masuk/superadmin"]
+  auth_public_navbar_footer: false
+  auth_visual_style: "2026-10-29 latest: desktop split layout with document/section symbols and contrasting typography on the left, login/registration on the right; no campus photo; compact form on mobile and short landscape; ITH palette"
+  auth_page_scroll: false
+  auth_registration_steps: [Identitas, Unit kerja, Keamanan]
+  auth_desktop_frame_max: "1680x900"
+  auth_desktop_form_max_width: 520
+  auth_login_back_button: false
+  auth_registration_back_button: true
+  auth_registration_unit_picker: "animated Radix radio menu; scrollable units; keyboard/typeahead/Escape; preserves master/manual values and validation"
+  auth_mobile_login_style: "navy masthead joined to white rounded form; role icons; compact short-screen layout"
+  auth_registration_live_step_guide: true
+  auth_registration_confirmation_summary: [nama, email, unit]
+  auth_visual_viewport_keyboard_adaptation: true
+  auth_keyboard_layout: "reuse pre-keyboard background geometry, card skin, brand, tabs and form spacing without a separate keyboard design; resize only the form scroll area; keep focused input visible; handle visual-only and layout resize"
+  provider: "email/password + Google OAuth/OIDC"
+  google_staff_domain: "@ith.ac.id"
+  google_student_domain_denied: "@mahasiswa.ith.ac.id"
+  local_password_v1: true
+  email_password_registration_domains: "any valid email domain"
+  google_domain_required: "ith.ac.id"
+  google_wildcard_allowed: false
+  email_only_google_account_linking: false
+  password_login_roles_are_separate: true
   new_staff_status: "MENUNGGU_VERIFIKASI"
   admin_approval_required: true
   admin_accounts_preprovisioned: true
   allow_admin_creation_in_ui: false
   allow_admin_promotion_in_ui: false
+  account_verifier: "SUPERADMIN"
   registration_fields:
-    - "Google identity"
+    - "name/email/password or verified Google identity"
     - "unit"
   nip_nidn_required: false
   allow_manual_unit_proposal: true
@@ -52,7 +83,64 @@ roles:
     - "ADMIN"
     - "DOSEN_STAF"
     - "PENGUNJUNG"
-  verifier: "ADMIN with verification permission"
+  verifier: "SUPERADMIN"
+
+admin_document_policy:
+  can_create_documents: true
+  can_edit_only_own_documents: true
+  owner_source: "dokumen.created_by + dokumen_versi.created_by"
+  can_submit_only_own_versions: true
+  can_verify_or_publish: false
+  can_manage_sop_permohonan_sk: false
+  can_view_sop_permohonan_sk_in_panel: false
+  can_view_audit: false
+  sop_permohonan_sk_menu_visible: false
+  verification_queue_read_scope: "all submitted documents except SOP Permohonan SK; Superadmin alone can verify"
+  category_scope: "categories mapped to the Admin account's unit"
+  input_category_visibility: "all categories visible; unauthorized/inactive options disabled; boolean eligibility from server"
+  amendment_target_scope: "own document and own active published version; enforce search, relation POST and resubmission"
+  global_menu_items_visible: true
+  global_menu_items_disabled: false
+  global_pages_readable: true
+  global_write_controls_disabled: true
+  global_write_exception: "Format Persuratan: all templates, including other accounts' uploads"
+  can_manage_all_letter_templates: true
+  letter_template_permission: "templates.manage"
+  document_input_options_unit_scoped: true
+  account_email_visibility: "own email visible by session/target ID; other accounts masked in UI and API; Superadmin sees all"
+  mask_own_email_in_admin_session_response: false
+  preserve_original_email_for_internal_authentication: true
+
+panel_routes:
+  ADMIN: "/admin"
+  SUPERADMIN: "/superadmin"
+  api_namespace: "/api/v1/admin"
+  document_detail_contexts: ["dokumen/:id", "dokumen/verifikasi/:id", "dokumen/pengajuan/:id"]
+  preserve_document_version_and_source_list: true
+  notification_document_navigation: "full-page link; SUBMIT -> verification, RETURN -> submissions, APPROVE -> verified"
+
+panel_layout:
+  account_order: "Superadmin first, current Admin second, then newest; sort before API pagination"
+  staff_account_columns: [Nama, Email, Peran, Unit, Status]
+  staff_verification_entry: "Pengguna -> Buka verifikasi -> Tinjau; active Superadmin with decision permission only"
+  template_workspace: "searchable list with status filters and responsive upload editor; preserve confirmation and permission checks"
+  max_content_width_px: 1600
+  desktop_sidebar_width_px: 240
+  desktop_header_height_px: 56
+  detail_preview_before_history: true
+  bounded_history_and_table_scroll: true
+  touch_target_minimum_px: 44
+  respects_reduced_motion: true
+  animations_without_extra_dependencies: true
+
+superadmin_document_policy:
+  dashboard_audit_activity_visible: false
+  dashboard_requests_audit_feed: false
+  can_manage_all_documents: true
+  can_verify_all_documents: true
+  can_manage_sop_permohonan_sk: true
+  can_manage_global_settings: true
+  audit_reader: "active SUPERADMIN with audit.read; Admin direct permission does not grant access"
 
 document_access:
   levels:
@@ -88,8 +176,20 @@ document_workflow:
     - "TERBIT"
     - "DITARIK"
   rejected_state: false
-  author_can_approve_own_version: false
+  author_can_approve_own_version: "only active Superadmin with workflow.approve, owning both document and version"
+  sop_permohonan_sk_approval: "APPROVE and PUBLISH in one transaction; reviewed impact confirmation and both permissions required; ordinary document approval unchanged"
+  sop_permohonan_sk_access: [publik, internal]
+  own_superadmin_draft_flow: "DRAF/REVISI -> DISETUJUI, without SUBMIT/verification queue; full readiness and audit required"
   return_revision_requires_note: true
+  approval_requires_note: false
+  submission_required_metadata: [judul, deskripsi, nomor, tahun, pic, tanggal_penetapan, tingkat_akses, kategori]
+  submission_requires_valid_main_file: true
+  admin_all_documents_states: [DISETUJUI, TERBIT, DITARIK]
+  draft_submission_list_states: [DRAF, REVISI, DIAJUKAN]
+  verification_queue_states: [DIAJUKAN]
+  verification_queue_refresh: "focus, workflow event, every 30 seconds when visible, and manual refresh"
+  notifications: "Superadmin: latest SUBMIT per version while DIAJUKAN only; Admin: own APPROVE/RETURN with reason; resubmission creates new incoming event; panel polling 30s"
+  notification_dismissal: "per-account notifikasi_dihapus; single/all with confirmation and audit; all uses ID snapshot cutoff; workflow/audit preserved"
   publish_transactional: true
   write_actions_require_confirmation_popup: true
   publish_required_version_metadata: [judul, nomor, pic, tanggal_penetapan]
@@ -156,7 +256,19 @@ sop_initial_categories:
   - "BMN"
   - "Kepegawaian"
   - "Keuangan"
-  - "LPPM"
+  - "LPPM-PM"
+  - "Bagian Hukum"
+  - "SPI"
+  - "Komisi Etik Kemahasiswaan"
+  - "Laboratorium"
+  - "Senat"
+
+sop_unit_sync:
+  source: "kategori"
+  preserve_existing_ids_on_rename: true
+  lppm_code: "SOP-LPPM"
+  komisi_kemahasiswaan_removed: true
+  preserve_komisi_etik: true
 
 search_v1:
   keyword_fields:
@@ -178,7 +290,10 @@ search_v1:
 
 document_files:
   main_file_required: true
-  multiple_attachments: true
+  multiple_attachments: false
+  maximum_files_per_submission: 1
+  preserve_historical_attachments: true
+  unpublished_file_review: "active panel account with documents.read_admin; Superadmin reviews before verification"
   access_recheck_on_download: true
   access_recheck_on_preview: true
   checksum: true
@@ -193,6 +308,7 @@ versioning:
   draft_revision_replaces_public_immediately: false
 
 letter_templates:
+  public_layout: "three desktop columns, server search, 12 items per page; access-filtered totals"
   module: "Format Persuratan"
   primary_format_v1: ".docx"
   ui_columns: [Judul, Download]
@@ -207,8 +323,10 @@ letter_templates:
   versioning: true
   old_version_behavior: "ARCHIVED"
   hard_delete_normal_history: false
+  manager: "SUPERADMIN"
 
 popup_rule:
+  visual_style: "white surface, subtle accent, light translucent backdrop, short motion; Radix portal with focus management"
   write_actions_require_confirmation: true
   success_feedback: true
   error_feedback: true
@@ -236,6 +354,7 @@ database_v2:
     - "dokumen_relasi"
     - "dokumen_akses_rahasia"
     - "dokumen_workflow"
+    - "notifikasi_dihapus"
     - "dokumen_status_hukum_riwayat"
     - "template_surat"
     - "template_surat_versi"

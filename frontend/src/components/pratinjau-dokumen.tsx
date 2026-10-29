@@ -1,10 +1,51 @@
 'use client';
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { ExternalLink, FileText, LoaderCircle, Maximize2, Paperclip } from 'lucide-react';
-import { alamatBerkas, pesanGagalBerkas, UnduhKecil } from './aksi-berkas';
+import { Download, ExternalLink, FileText, LoaderCircle, Maximize2, Paperclip } from 'lucide-react';
+import { alamatBerkas, pesanGagalBerkas, UnduhKecil, useUnduh } from './aksi-berkas';
 
-export type BerkasPratinjau = { id: string; nama: string; label: string };
+export type BerkasPratinjau = {
+  id: string;
+  nama: string;
+  label: string;
+  /** false untuk berkas yang tidak dapat ditampilkan peramban (DOCX, XLSX, PPTX). */
+  pratinjau?: boolean;
+};
+
+/** Pengganti penampil untuk berkas non-PDF: cukup ajakan mengunduh. */
+function TanpaPratinjau({ slug, berkas }: { slug: string; berkas: BerkasPratinjau }) {
+  const { sibuk, galat, unduh } = useUnduh(slug, berkas.id, berkas.nama);
+  const ekstensi = /[.]([a-z0-9]+)$/i.exec(berkas.nama)?.[1]?.toUpperCase();
+  return (
+    <div className="grid h-full place-items-center rounded-xl bg-slate-50 p-6 text-center ring-1 ring-slate-200 ring-inset">
+      <div className="grid max-w-sm justify-items-center gap-3 text-sm">
+        <span className="grid size-12 place-items-center rounded-xl bg-white text-institusi-600 shadow-[0_1px_3px_rgb(23_35_64/0.12)]">
+          <FileText aria-hidden className="size-6" />
+        </span>
+        <p className="font-semibold text-tinta">
+          {ekstensi ? `Berkas ${ekstensi}` : 'Berkas ini'} tidak dapat ditampilkan di peramban
+        </p>
+        <p className="text-slate-600">
+          Unduh berkas untuk membukanya dengan aplikasi di perangkat Anda.
+        </p>
+        <button
+          type="button"
+          onClick={() => void unduh()}
+          disabled={sibuk}
+          className="mt-1 inline-flex h-10 items-center gap-2 rounded-full bg-institusi-600 px-5 font-semibold text-white transition hover:bg-institusi-700 disabled:opacity-70"
+        >
+          <Download aria-hidden className="size-4" />
+          {sibuk ? 'Mengunduh…' : 'Unduh berkas'}
+        </button>
+        {galat && (
+          <p role="alert" className="text-red-700">
+            {galat}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
 
 /** Peramban yang tidak bisa menampilkan PDF di halaman (mis. Chrome Android) menyatakannya di sini. */
 const tanpaLangganan = () => () => undefined;
@@ -43,19 +84,37 @@ export function PratinjauDokumen({
   const [aktifId, setAktifId] = useState(berkas[0]?.id);
   const [hasil, setHasil] = useState<{ id: string; url?: string; pesan?: string }>();
   const bingkai = useRef<HTMLDivElement>(null);
+  const panelPratinjau = useRef<HTMLElement>(null);
+  // Does not alter the initial markup. Browsers without IntersectionObserver
+  // retain the immediate preview; supported browsers wait until it is nearby.
+  const [bolehMuat, setBolehMuat] = useState(() => typeof IntersectionObserver === 'undefined');
   const didukung = usePdfDidukung();
   const layarPenuh = useLayarPenuhDidukung();
   const aktif = berkas.find((b) => b.id === aktifId) ?? berkas[0];
   const idAktif = aktif?.id;
+  const bisaPratinjau = aktif?.pratinjau !== false;
 
   useEffect(() => {
-    if (!idAktif || !didukung) return;
+    if (bolehMuat || !panelPratinjau.current) return;
+    const observer = new IntersectionObserver(entries => {
+      if (!entries.some(entry => entry.isIntersecting)) return;
+      setBolehMuat(true);
+      observer.disconnect();
+    }, { rootMargin: '200px' });
+    observer.observe(panelPratinjau.current);
+    return () => observer.disconnect();
+  }, [bolehMuat]);
+
+  useEffect(() => {
+    if (!bolehMuat || !idAktif || !didukung || !bisaPratinjau) return;
     const batal = new AbortController();
     let url = '';
     fetch(alamatBerkas(slug, idAktif, 'inline'), { credentials: 'include', signal: batal.signal })
       .then(async (response) => {
         if (!response.ok) throw new Error(pesanGagalBerkas(response.status, 'pratinjau'));
-        url = URL.createObjectURL(await response.blob());
+        const blob = await response.blob();
+        if (batal.signal.aborted) return;
+        url = URL.createObjectURL(blob);
         setHasil({ id: idAktif, url });
       })
       .catch((e: unknown) => {
@@ -69,7 +128,7 @@ export function PratinjauDokumen({
       batal.abort();
       if (url) URL.revokeObjectURL(url);
     };
-  }, [slug, idAktif, didukung]);
+  }, [slug, idAktif, didukung, bisaPratinjau, bolehMuat]);
 
   if (!aktif) return null;
   const terkini = hasil?.id === aktif.id ? hasil : undefined;
@@ -124,6 +183,7 @@ export function PratinjauDokumen({
 
       <div className="grid min-w-0 gap-5 lg:col-start-1 lg:row-start-1">
         <section
+          ref={panelPratinjau}
           id="pratinjau"
           aria-label="Pratinjau dokumen"
           className="kartu-dokumen scroll-mt-24 p-3 sm:p-4"
@@ -134,16 +194,18 @@ export function PratinjauDokumen({
               <span className="hidden text-slate-500 sm:inline"> · {aktif.nama}</span>
             </p>
             <div className="flex shrink-0 items-center gap-1">
-              <a
-                href={alamatBerkas(slug, aktif.id, 'inline')}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={tombolAlat}
-                title="Buka di tab baru"
-              >
-                <ExternalLink aria-hidden className="size-4" />
-                <span className="sr-only sm:not-sr-only">Tab baru</span>
-              </a>
+              {bisaPratinjau && (
+                <a
+                  href={alamatBerkas(slug, aktif.id, 'inline')}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={tombolAlat}
+                  title="Buka di tab baru"
+                >
+                  <ExternalLink aria-hidden className="size-4" />
+                  <span className="sr-only sm:not-sr-only">Tab baru</span>
+                </a>
+              )}
               {terkini?.url && layarPenuh && (
                 <button
                   type="button"
@@ -158,7 +220,11 @@ export function PratinjauDokumen({
             </div>
           </div>
 
-          {didukung ? (
+          {!bisaPratinjau ? (
+            <div className="h-[50vh] max-h-120 min-h-72">
+              <TanpaPratinjau slug={slug} berkas={aktif} />
+            </div>
+          ) : didukung ? (
             <div
               ref={bingkai}
               className="h-[60vh] max-h-160 min-h-96 overflow-hidden rounded-xl bg-[#2a2a2e]"

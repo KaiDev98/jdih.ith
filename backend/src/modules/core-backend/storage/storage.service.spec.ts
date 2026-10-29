@@ -45,6 +45,17 @@ describe('LocalStorageDriver', () => {
     expect(await storage.exists(staged.storageKey)).toBe(false);
   });
 
+  it('reads only the requested bytes while retaining the complete object size', async () => {
+    const storage = await driver();
+    const staged = await storage.stage(Readable.from([Buffer.from('0123456789')]));
+    await storage.finalize(staged);
+    const file = await storage.open(staged.storageKey, { start: 3, end: 6 });
+    const chunks: Buffer[] = [];
+    for await (const chunk of file.stream) chunks.push(chunk as Buffer);
+    expect(file.size).toBe(10);
+    expect(Buffer.concat(chunks).toString()).toBe('3456');
+  });
+
   it('rejects keys that could escape the private storage root', async () => {
     const storage = await driver();
     await expect(storage.open('../../public/secret.pdf')).rejects.toThrow();

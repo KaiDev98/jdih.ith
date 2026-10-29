@@ -1,0 +1,90 @@
+{
+  "date": "2026-10-26T04:10:15.659Z",
+  "checks": 12,
+  "rows": [
+    {
+      "browser": "Chromium",
+      "width": 320,
+      "role": "anonymous",
+      "path": "/produk-hukum/load-1",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 320,
+      "role": "DOSEN_STAF",
+      "path": "/produk-hukum/load-1",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 1440,
+      "role": "anonymous",
+      "path": "/produk-hukum/load-1",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 1440,
+      "role": "DOSEN_STAF",
+      "path": "/produk-hukum/load-1",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 320,
+      "role": "anonymous",
+      "path": "/produk-hukum/load-1",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 320,
+      "role": "DOSEN_STAF",
+      "path": "/produk-hukum/load-1",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 1440,
+      "role": "anonymous",
+      "path": "/produk-hukum/load-1",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 1440,
+      "role": "DOSEN_STAF",
+      "path": "/produk-hukum/load-1",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 320,
+      "role": "anonymous",
+      "path": "/produk-hukum/load-1",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 320,
+      "role": "DOSEN_STAF",
+      "path": "/produk-hukum/load-1",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 1440,
+      "role": "anonymous",
+      "path": "/produk-hukum/load-1",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 1440,
+      "role": "DOSEN_STAF",
+      "path": "/produk-hukum/load-1",
+      "ok": true
+    }
+  ]
+}

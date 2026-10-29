@@ -1,0 +1,411 @@
+/* Penyempurnaan portal: identitas dan susunan utama tetap, detail lebih tenang. */
+.portal-publik {
+  --portal-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.portal-publik :is(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--color-institusi-500);
+  outline-offset: 3px;
+}
+.portal-publik .hero-beranda :is(a, button):focus-visible,
+.portal-publik .footer-institusi :is(a, button):focus-visible {
+  outline-color: #ffbd89;
+}
+.portal-publik [id] {
+  scroll-margin-top: 6rem;
+}
+.portal-publik .portal-nav-link {
+  position: relative;
+}
+.portal-publik .portal-nav-link[aria-current='page'],
+.portal-publik .portal-nav-link[data-current='true'] {
+  color: #9a451a;
+  background: #fff4e9;
+}
+.portal-publik .portal-nav-link::after {
+  content: '';
+  position: absolute;
+  inset-inline: 12px;
+  bottom: 3px;
+  height: 2px;
+  border-radius: 2px;
+  background: #c26a2e;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 180ms var(--portal-ease);
+}
+.portal-publik .portal-nav-link:is([aria-current='page'], [data-current='true'])::after {
+  transform: scaleX(1);
+}
+
+.portal-publik .portal-section-heading h2 {
+  text-wrap: balance;
+}
+.portal-publik .regulasi-card {
+  position: relative;
+  overflow: hidden;
+}
+.portal-publik .regulasi-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--color-institusi-400);
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+.portal-publik .regulasi-card:focus-visible::before {
+  opacity: 1;
+}
+.portal-publik .portal-hero-ring {
+  margin-right: 1rem;
+}
+.portal-publik .portal-search-shell {
+  border: 1px solid #ffffff99;
+  box-shadow: 0 20px 48px -24px #08142880;
+  transition:
+    border-color 220ms var(--portal-ease),
+    box-shadow 220ms var(--portal-ease);
+}
+.portal-publik .portal-search-shell:focus-within {
+  border-color: #d8e8f8;
+  box-shadow:
+    0 0 0 4px #b3d1f140,
+    0 24px 56px -24px #08142899;
+}
+/* Indikator fokus mengikuti bentuk pil, bukan persegi pada input di dalamnya. */
+.portal-publik .portal-search-shell input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.portal-publik .portal-search-shortcut {
+  pointer-events: none;
+  transition: opacity 160ms ease;
+}
+.portal-publik .portal-search-shell:focus-within .portal-search-shortcut {
+  opacity: 0;
+}
+@media (forced-colors: active) {
+  .portal-publik .portal-search-shell:focus-within {
+    outline: 2px solid Highlight;
+    outline-offset: 4px;
+  }
+}
+.portal-publik .portal-subhero > div {
+  padding-block: clamp(2rem, 4vw, 3.5rem);
+}
+.portal-publik .portal-subhero h1 {
+  margin-top: 0.625rem;
+}
+.portal-publik .portal-subhero p:last-child {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: #e1e9f2;
+}
+
+.portal-publik .portal-template-list {
+  box-shadow: 0 6px 24px -22px #17304066;
+}
+.portal-publik .portal-template-row {
+  min-width: 0;
+  transition: background-color 160ms ease;
+}
+.portal-publik .portal-template-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.portal-publik .portal-template-row > div:last-child {
+  min-width: 0;
+}
+.portal-publik .portal-template-row button {
+  min-height: 44px;
+}
+.portal-publik .portal-template-icon {
+  color: #55738e;
+  background: #f0f4f8;
+}
+.portal-publik .portal-template-row:focus-within {
+  background: #fffaf5;
+}
+.portal-publik .gulir-hasil:focus-visible {
+  outline-offset: 0;
+  border-radius: 14px;
+}
+.portal-publik .portal-result-toolbar {
+  min-height: 44px;
+}
+.portal-publik .portal-filter-toggle {
+  min-height: 44px;
+}
+.portal-publik .portal-filter-chip {
+  min-height: 32px;
+}
+.portal-publik .portal-contact-card {
+  padding: clamp(1.25rem, 3vw, 2rem);
+}
+
+/* Isi tetap terbaca bila skrip animasi belum berjalan. */
+/* Hero Produk Hukum seluler tanpa lapisan/garis dekoratif atau tepi kotak jumlah. */
+@media (max-width: 639px) {
+  /* Bayangan panel tidak dipotong tepat di batas hero pada layar ponsel. */
+  .portal-publik .beranda .hero-beranda {
+    overflow: visible;
+  }
+  .portal-publik .beranda .hero-beranda::before {
+    inset: 0;
+    animation: none;
+  }
+  .portal-publik .beranda .tumpuan-panel::before {
+    inset-inline: 0;
+    bottom: -1px;
+    height: calc(50% + 1px);
+  }
+  .portal-publik:has(.hero-produk) > header > .garis-logo {
+    display: none;
+  }
+  .portal-publik .hero-produk::before,
+  .portal-publik .hero-produk::after {
+    content: none;
+  }
+  .portal-publik .hero-produk .topeng-baris {
+    overflow: visible;
+  }
+  .portal-publik .hero-produk > div > div > p:last-child {
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    padding: 0;
+  }
+}
+.portal-publik [data-muncul] {
+  --tunda-total: 0ms;
+  opacity: 1;
+  transform: none;
+  transition-duration: 300ms;
+  transition-delay: 0ms;
+}
+.portal-publik [data-muncul] :is(.isi-gulir, .ikut-muncul, .isi-bertahap > *, .titik-muncul) {
+  opacity: 1;
+  transform: none;
+  transition-duration: 260ms;
+  transition-delay: 0ms;
+}
+.portal-publik .hero-beranda::after,
+.portal-publik .garis-logo {
+  animation: none;
+}
+
+@keyframes portal-arrive {
+  from {
+    opacity: 0.85;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes beranda-logo-masuk {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .portal-publik :is(.masuk, .masuk-ringan, .masuk-skala, .masuk-pudar, .isi-baris) {
+    animation-duration: 420ms;
+    animation-delay: 60ms;
+  }
+  .portal-publik .cincin-gores circle {
+    animation-duration: 700ms;
+    animation-delay: 80ms;
+  }
+  .portal-publik .garis-sorot::after {
+    animation-duration: 400ms;
+    animation-delay: 180ms;
+  }
+  .portal-publik [data-muncul][data-terlihat] {
+    animation: portal-arrive 300ms var(--portal-ease) both;
+  }
+  .portal-publik .panel-action {
+    transition:
+      background-color 160ms,
+      box-shadow 180ms,
+      transform 180ms;
+  }
+  .portal-publik .panel-action:not(:disabled):active {
+    transform: scale(0.98);
+  }
+
+  /* Pembuka beranda mengalir bertahap; halaman lain tetap memakai tempo ringkas. */
+  .portal-publik .beranda .hero-beranda .isi-baris {
+    animation-duration: 1050ms;
+    animation-delay: 60ms;
+    animation-timing-function: cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .portal-publik .beranda .hero-beranda .isi-baris.baris-2 {
+    animation-delay: 180ms;
+  }
+  .portal-publik .beranda .portal-home-hero p.masuk {
+    animation-duration: 900ms;
+    animation-delay: 200ms;
+    animation-timing-function: cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .portal-publik .beranda .portal-home-hero .masuk:has(.portal-search-shell) {
+    animation-duration: 950ms;
+    animation-delay: 320ms;
+    animation-timing-function: cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .portal-publik .beranda .portal-hero-ring .masuk-skala {
+    animation-name: beranda-logo-masuk;
+    animation-duration: 1100ms;
+    animation-delay: 180ms;
+    animation-timing-function: cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .portal-publik .beranda .portal-hero-ring .masuk-pudar {
+    animation-duration: 1200ms;
+    animation-delay: 100ms;
+  }
+  .portal-publik .beranda .cincin-gores circle {
+    animation-duration: 1300ms;
+    animation-delay: 140ms;
+  }
+  .portal-publik .beranda .garis-sorot::after {
+    animation-duration: 700ms;
+    animation-delay: 600ms;
+  }
+  .portal-publik .beranda .tumpuan-panel > .masuk {
+    animation-duration: 900ms;
+    animation-delay: 380ms;
+  }
+  .portal-publik .beranda .butir-jenis {
+    animation-duration: 800ms;
+    animation-delay: 440ms;
+  }
+  .portal-publik .beranda .butir-jenis:nth-child(n + 3) {
+    animation-delay: 510ms;
+  }
+  .portal-publik .beranda .butir-jenis:nth-child(n + 5) {
+    animation-delay: 580ms;
+  }
+}
+@media (hover: hover) {
+  .portal-publik .regulasi-card:hover::before {
+    opacity: 1;
+  }
+  .portal-publik .beranda-disempurnakan .kartu-angkat:hover {
+    transform: translateY(-2px);
+  }
+  .portal-publik .portal-template-row:hover {
+    background: #f8fafc;
+  }
+}
+@media (min-width: 360px) and (max-width: 639px) {
+  .portal-publik .portal-search-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .portal-publik .portal-search-filters > * {
+    min-width: 0;
+  }
+  .portal-publik .portal-search-filters [role='combobox'] {
+    width: 100%;
+    min-width: 0;
+  }
+}
+@media (max-width: 1023px) {
+  .portal-publik .portal-results-scroll {
+    max-height: none;
+    overflow: visible;
+    overscroll-behavior: auto;
+  }
+  .portal-publik .portal-results-layout {
+    padding-top: 1.25rem;
+    gap: 1.25rem;
+  }
+}
+@media (max-width: 639px) {
+  .portal-publik .portal-home-hero {
+    padding-top: 2rem;
+    gap: 1.5rem;
+  }
+  .portal-publik .portal-home-hero h1 {
+    font-size: clamp(1.9rem, 7.8vw, 2.25rem);
+    line-height: 1.13;
+  }
+  .portal-publik .portal-home-hero p {
+    font-size: 0.9375rem;
+    line-height: 1.75;
+  }
+  .portal-publik .portal-section-heading h2 {
+    font-size: 1.65rem;
+  }
+  .portal-publik .portal-template-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+  .portal-publik .portal-template-row > div:last-child {
+    margin-left: 3.25rem;
+    justify-items: stretch;
+  }
+  .portal-publik .portal-template-row button {
+    justify-content: center;
+  }
+  .portal-publik .portal-filter-input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+  .portal-publik .footer-institusi {
+    font-size: 0.875rem;
+  }
+}
+@media (pointer: coarse) {
+  .portal-publik :is([role='combobox'], .butir-menu) {
+    min-height: 44px;
+  }
+  .portal-publik
+    :is(
+      .panel-action,
+      .portal-nav-link,
+      .portal-filter-chip,
+      .portal-filter-option,
+      .portal-status-option
+    ) {
+    min-height: 44px;
+  }
+  .portal-publik .portal-filter-clear {
+    width: 44px;
+    height: 44px;
+    right: 0;
+  }
+  .portal-publik .portal-filter-input {
+    padding-right: 44px;
+  }
+  .portal-publik .footer-institusi a[class*='rounded-full'] {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+@media (pointer: coarse) and (max-width: 767px) {
+  .portal-publik :is(input, select, textarea) {
+    font-size: 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .portal-publik *,
+  .portal-publik *::before,
+  .portal-publik *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  .portal-publik .beranda-disempurnakan .kartu-angkat:hover {
+    transform: none;
+  }
+}

@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useId, useRef, useState } from 'react';
 import {
   ArrowRight,
@@ -15,6 +16,8 @@ import {
 } from 'lucide-react';
 import { macamJenis, tampilanJenis } from '@/lib/tampilan-jenis';
 import { IkonSop, KotakCentang } from '@/components/ikon-jenis';
+import { MenuAkunPublik } from '@/components/menu-akun-publik';
+import { FeedbackSesi } from '@/components/feedback-sesi';
 
 /**
  * Isi menu Produk Hukum dan menu SOP.
@@ -51,10 +54,12 @@ const UNIT_SOP: readonly UnitSopMenu[] = [
   { nama: 'BMN', kode: 'SOP-BMN' },
   { nama: 'Kepegawaian', kode: 'SOP-KEPEGAWAIAN' },
   { nama: 'Keuangan', kode: 'SOP-KEUANGAN' },
-  { nama: 'LPPM', kode: 'SOP-LPPM' },
+  { nama: 'LPPM-PM', kode: 'SOP-LPPM' },
   { nama: 'Bagian Hukum', kode: 'SOP-HUKUM' },
   { nama: 'SPI', kode: 'SOP-SPI' },
-  { nama: 'Komisi Etik', kode: 'SOP-KOMISI-ETIK' },
+  { nama: 'Komisi Etik Kemahasiswaan', kode: 'SOP-KOMISI-ETIK' },
+  { nama: 'Laboratorium', kode: 'SOP-LAB' },
+  { nama: 'Senat', kode: 'SOP-SENAT' },
 ];
 
 export const MENU_PRODUK_HUKUM: readonly ButirProduk[] = [
@@ -278,16 +283,19 @@ function DropdownNavigasi({
   label,
   lebarPanel,
   rataKanan = false,
+  aktif = false,
   children,
 }: {
   label: string;
   lebarPanel: string;
   /** Panel lebar di sisi kanan navigasi dibuka rata kanan agar tidak keluar layar. */
   rataKanan?: boolean;
+  aktif?: boolean;
   children: (tutup: () => void) => React.ReactNode;
 }) {
   const [buka, setBuka] = useState(false);
   const wadah = useRef<HTMLDivElement>(null);
+  const pemicu = useRef<HTMLButtonElement>(null);
   const idPanel = useId();
 
   useEffect(() => {
@@ -296,7 +304,10 @@ function DropdownNavigasi({
       if (!wadah.current?.contains(event.target as Node)) setBuka(false);
     };
     const tombolEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setBuka(false);
+      if (event.key === 'Escape') {
+        setBuka(false);
+        pemicu.current?.focus();
+      }
     };
     document.addEventListener('mousedown', klikLuar);
     document.addEventListener('keydown', tombolEscape);
@@ -309,12 +320,14 @@ function DropdownNavigasi({
   return (
     <div ref={wadah} className="relative">
       <button
+        ref={pemicu}
         type="button"
         aria-haspopup="true"
         aria-expanded={buka}
         aria-controls={idPanel}
+        data-current={aktif ? 'true' : undefined}
         onClick={() => setBuka((nilai) => !nilai)}
-        className={`inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors duration-150 ${buka ? 'bg-institusi-50 text-institusi-800' : 'text-slate-700 hover:bg-slate-100 hover:text-tinta'}`}
+        className={`portal-nav-link inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors duration-150 ${buka ? 'bg-institusi-50 text-institusi-800' : 'text-slate-700 hover:bg-slate-100 hover:text-tinta'}`}
       >
         {label}
         <ChevronDown
@@ -357,11 +370,17 @@ function DaftarTautan({
   onPilih: () => void;
   seluler?: boolean;
 }) {
+  const pathname = usePathname();
   return (
     <ul className="grid gap-0.5">
       {butir.map((item) => (
         <li key={item.href}>
-          <Link href={item.href} onClick={onPilih} className={kelasButirMenu(seluler)}>
+          <Link
+            href={item.href}
+            onClick={onPilih}
+            aria-current={pathname === item.href ? 'page' : undefined}
+            className={kelasButirMenu(seluler)}
+          >
             <KotakIkon
               ikon={item.ikon}
               kelas="bg-slate-100 text-slate-600 group-hover:bg-institusi-50 group-hover:text-institusi-700"
@@ -375,12 +394,6 @@ function DaftarTautan({
   );
 }
 const tautanSesudah = [{ label: 'Format Persuratan', href: '/format-persuratan' }];
-
-/**
- * Tombol utama navigasi: SOP Permohonan SK, prosedur yang paling sering dicari
- * pengunjung, dengan halamannya sendiri. Portal publik sengaja tidak memuat
- * tombol Masuk; pengelola dan Dosen/Staf masuk lewat tautan langsung.
- */
 function TombolPermohonanSk({
   onPilih,
   seluler = false,
@@ -388,9 +401,11 @@ function TombolPermohonanSk({
   onPilih?: () => void;
   seluler?: boolean;
 }) {
+  const pathname = usePathname();
   return (
     <Link
       href="/permohonan-sk"
+      aria-current={pathname === '/permohonan-sk' ? 'page' : undefined}
       onClick={onPilih}
       className={`tekan group inline-flex items-center justify-center gap-2 rounded-lg bg-institusi-600 font-semibold whitespace-nowrap text-white hover:bg-institusi-700 ${seluler ? 'mt-2 flex w-full px-3 py-3' : 'ml-2 min-h-10 px-3.5 text-sm'}`}
     >
@@ -401,7 +416,7 @@ function TombolPermohonanSk({
 }
 
 const kelasTautanDesktop =
-  'rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap text-slate-700 transition-colors duration-150 hover:bg-slate-100 hover:text-tinta';
+  'portal-nav-link rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap text-slate-700 transition-colors duration-150 hover:bg-slate-100 hover:text-tinta';
 
 /**
  * Navigasi utama. Tampilan desktop baru dipakai mulai lebar `xl`, karena dengan
@@ -417,32 +432,62 @@ export function NavigasiPublik({
   unitSop?: readonly UnitSopMenu[];
 }) {
   const [buka, setBuka] = useState(false);
+  const pathname = usePathname() ?? '';
+  const search = useSearchParams();
+  const jenisDipilih = search?.get('jenis');
+  const sopAktif =
+    pathname === '/produk-hukum' &&
+    (jenis.length
+      ? jenis.some((j) => j.kode === jenisDipilih && adalahSop(j))
+      : jenisDipilih === 'SOP');
   const produk = menuProdukHukum(jenis);
   const sop = menuSop(jenis, unitSop);
   return (
     <>
       <nav aria-label="Navigasi utama" className="hidden items-center gap-1 xl:flex 2xl:gap-2">
         {tautanSebelum.map((item) => (
-          <Link key={item.href} href={item.href} className={kelasTautanDesktop}>
+          <Link
+            key={item.href}
+            href={item.href}
+            aria-current={pathname === item.href ? 'page' : undefined}
+            className={kelasTautanDesktop}
+          >
             {item.label}
           </Link>
         ))}
-        <DropdownNavigasi label="Tentang" lebarPanel="w-52">
+        <DropdownNavigasi
+          label="Tentang"
+          lebarPanel="w-52"
+          aktif={['/profil', '/kontak'].includes(pathname)}
+        >
           {(tutup) => <DaftarTautan butir={MENU_TENTANG} onPilih={tutup} />}
         </DropdownNavigasi>
-        <DropdownNavigasi label="Produk Hukum" lebarPanel="w-72">
+        <DropdownNavigasi
+          label="Produk Hukum"
+          lebarPanel="w-72"
+          aktif={pathname.startsWith('/produk-hukum') && !sopAktif && !search?.get('tahun')}
+        >
           {(tutup) => <DaftarProdukHukum entri={produk} onPilih={tutup} />}
         </DropdownNavigasi>
         {sop && (
-          <DropdownNavigasi label="SOP" lebarPanel="w-[30rem]">
+          <DropdownNavigasi label="SOP" lebarPanel="w-[30rem]" aktif={sopAktif}>
             {(tutup) => <DaftarSop menu={sop} onPilih={tutup} />}
           </DropdownNavigasi>
         )}
-        <DropdownNavigasi label="Berdasarkan Tahun" lebarPanel="w-60">
+        <DropdownNavigasi
+          label="Berdasarkan Tahun"
+          lebarPanel="w-60"
+          aktif={pathname === '/produk-hukum' && !!search?.get('tahun') && !sopAktif}
+        >
           {(tutup) => <DaftarTahun tahun={tahun} onPilih={tutup} />}
         </DropdownNavigasi>
         {tautanSesudah.map((item) => (
-          <Link key={item.href} href={item.href} className={kelasTautanDesktop}>
+          <Link
+            key={item.href}
+            href={item.href}
+            aria-current={pathname === item.href ? 'page' : undefined}
+            className={kelasTautanDesktop}
+          >
             {item.label}
           </Link>
         ))}
@@ -500,11 +545,33 @@ function ButtonMobile({
   produk: readonly ButirProduk[];
   sop: MenuSop | null;
 }) {
+  const pathname = usePathname();
+  const wadah = useRef<HTMLDivElement>(null);
+  const pemicu = useRef<HTMLButtonElement>(null);
   const tutup = () => setBuka(false);
+  useEffect(() => {
+    if (!buka) return;
+    const klikLuar = (event: PointerEvent) => {
+      if (!wadah.current?.contains(event.target as Node)) setBuka(false);
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setBuka(false);
+        pemicu.current?.focus();
+      }
+    };
+    document.addEventListener('pointerdown', klikLuar);
+    document.addEventListener('keydown', escape);
+    return () => {
+      document.removeEventListener('pointerdown', klikLuar);
+      document.removeEventListener('keydown', escape);
+    };
+  }, [buka, setBuka]);
 
   return (
-    <div className="xl:hidden">
+    <div ref={wadah} className="xl:hidden">
       <button
+        ref={pemicu}
         type="button"
         aria-label={buka ? 'Tutup menu' : 'Buka menu'}
         aria-expanded={buka}
@@ -525,7 +592,12 @@ function ButtonMobile({
         <ul className="mx-auto grid max-w-7xl gap-px">
           {tautanSebelum.map((item) => (
             <li key={item.href}>
-              <Link onClick={tutup} href={item.href} className={kelasButirSeluler}>
+              <Link
+                onClick={tutup}
+                href={item.href}
+                aria-current={pathname === item.href ? 'page' : undefined}
+                className={`portal-nav-link ${kelasButirSeluler}`}
+              >
                 {item.label}
               </Link>
             </li>
@@ -546,7 +618,12 @@ function ButtonMobile({
           </BagianSeluler>
           {tautanSesudah.map((item) => (
             <li key={item.href}>
-              <Link onClick={tutup} href={item.href} className={kelasButirSeluler}>
+              <Link
+                onClick={tutup}
+                href={item.href}
+                aria-current={pathname === item.href ? 'page' : undefined}
+                className={`portal-nav-link ${kelasButirSeluler}`}
+              >
                 {item.label}
               </Link>
             </li>
@@ -608,9 +685,13 @@ export function PublicHeader({
             </span>
           </span>
         </Link>
-        <NavigasiPublik tahun={tahun} jenis={jenis} unitSop={unitSop} />
+        <div className="flex min-w-0 shrink-0 items-center gap-1 sm:gap-2">
+          <NavigasiPublik tahun={tahun} jenis={jenis} unitSop={unitSop} />
+          <MenuAkunPublik />
+        </div>
       </div>
       <div aria-hidden className="garis-logo h-0.5" />
+      <FeedbackSesi />
     </header>
   );
 }

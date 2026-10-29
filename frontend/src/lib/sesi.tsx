@@ -1,15 +1,15 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import type { PenggunaAktif } from '@jdih/shared';
+import type { PenggunaSesiTampil } from '@jdih/shared';
 import { ambilApi, GalatApi } from './api-client';
 
 type SesiHttp = { terautentikasi: false; perluRegistrasi: boolean; csrfToken: string | null } | {
-  terautentikasi: true; pengguna: PenggunaAktif; csrfToken: string;
+  terautentikasi: true; pengguna: PenggunaSesiTampil; csrfToken: string;
 };
 interface SesiState {
   state: 'loading' | 'anonymous' | 'registration' | 'authenticated' | 'error';
-  pengguna?: PenggunaAktif;
+  pengguna?: PenggunaSesiTampil;
   csrfToken: string | null;
   galat?: string;
   muatUlang: () => Promise<void>;
@@ -30,7 +30,7 @@ async function ambilSesi(): Promise<SesiHttp> {
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<SesiState['state']>('loading');
-  const [pengguna, setPengguna] = useState<PenggunaAktif>();
+  const [pengguna, setPengguna] = useState<PenggunaSesiTampil>();
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
   const [galat, setGalat] = useState<string>();
   const muatUlang = useCallback(async () => {

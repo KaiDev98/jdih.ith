@@ -1,8 +1,63 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NavigasiPublik } from './navigasi-publik';
 
 const desktop = () => screen.getByRole('navigation', { name: 'Navigasi utama' });
+const alamat = vi.hoisted(() => ({ path: '/', query: '' }));
+vi.mock('next/navigation', () => ({
+  usePathname: () => alamat.path,
+  useSearchParams: () => new URLSearchParams(alamat.query),
+}));
+afterEach(() => {
+  alamat.path = '/';
+  alamat.query = '';
+});
+
+describe('orientasi dan keyboard navigasi publik', () => {
+  it('menandai halaman aktif pada tautan langsung', () => {
+    alamat.path = '/format-persuratan';
+    render(<NavigasiPublik />);
+    expect(within(desktop()).getByRole('link', { name: 'Format Persuratan' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(within(desktop()).getByRole('link', { name: 'Beranda' })).not.toHaveAttribute(
+      'aria-current',
+    );
+  });
+  it.each([
+    ['jenis=SOP', 'SOP'],
+    ['tahun=2026', 'Berdasarkan Tahun'],
+    ['', 'Produk Hukum'],
+  ])('menandai kelompok sesuai alamat %s', (query, label) => {
+    alamat.path = '/produk-hukum';
+    alamat.query = query;
+    render(<NavigasiPublik />);
+    expect(within(desktop()).getByRole('button', { name: label })).toHaveAttribute(
+      'data-current',
+      'true',
+    );
+  });
+  it('Escape menutup dropdown dan mengembalikan fokus ke pemicunya', () => {
+    render(<NavigasiPublik />);
+    const tombol = within(desktop()).getByRole('button', { name: 'Produk Hukum' });
+    fireEvent.click(tombol);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(tombol).toHaveAttribute('aria-expanded', 'false');
+    expect(tombol).toHaveFocus();
+  });
+  it('menu seluler dapat ditutup lewat Escape atau klik di luar', () => {
+    render(<NavigasiPublik />);
+    const tombol = screen.getByRole('button', { name: 'Buka menu' });
+    fireEvent.click(tombol);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(tombol).toHaveAttribute('aria-expanded', 'false');
+    expect(tombol).toHaveFocus();
+    fireEvent.click(tombol);
+    fireEvent.pointerDown(document.body);
+    expect(tombol).toHaveAttribute('aria-expanded', 'false');
+  });
+});
 
 describe('menu Produk Hukum', () => {
   it('Produk Hukum adalah tombol dropdown, bukan tautan ke halaman', () => {
@@ -66,7 +121,7 @@ describe('menu SOP', () => {
     );
   });
 
-  it('berisi semua unit, termasuk Bagian Hukum, SPI, dan Komisi Etik', () => {
+  it('menampilkan LPPM-PM, Lab, dan Senat tanpa Komisi Kemahasiswaan atau mengganti kode lama', () => {
     render(<NavigasiPublik />);
     fireEvent.click(within(desktop()).getByRole('button', { name: 'SOP' }));
     const harapan: [string, string][] = [
@@ -78,16 +133,19 @@ describe('menu SOP', () => {
       ['BMN', 'SOP-BMN'],
       ['Kepegawaian', 'SOP-KEPEGAWAIAN'],
       ['Keuangan', 'SOP-KEUANGAN'],
-      ['LPPM', 'SOP-LPPM'],
+      ['LPPM-PM', 'SOP-LPPM'],
       ['Bagian Hukum', 'SOP-HUKUM'],
       ['SPI', 'SOP-SPI'],
-      ['Komisi Etik', 'SOP-KOMISI-ETIK'],
+      ['Komisi Etik Kemahasiswaan', 'SOP-KOMISI-ETIK'],
+      ['Laboratorium', 'SOP-LAB'],
+      ['Senat', 'SOP-SENAT'],
     ];
     for (const [label, kode] of harapan)
       expect(within(desktop()).getByRole('link', { name: label })).toHaveAttribute(
         'href',
         `/produk-hukum?jenis=SOP&kategori=${kode}`,
       );
+    expect(within(desktop()).queryByRole('link', { name: 'Komisi Kemahasiswaan' })).toBeNull();
   });
 
   it('mengikuti kode jenis SOP dan kategori SOP di basis data', () => {

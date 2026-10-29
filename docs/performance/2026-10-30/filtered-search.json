@@ -1,0 +1,60 @@
+{
+  "label": "search-verified",
+  "date": "2026-10-29T18:27:06.177Z",
+  "machine": {
+    "platform": "win32",
+    "cpu": "13th Gen Intel(R) Core(TM) i7-13620H",
+    "logicalCPUs": 16,
+    "memoryGiB": 7.796928405761719
+  },
+  "fixture": {
+    "documents": 10000,
+    "accounts": 100,
+    "fileBytes": 1049199,
+    "files": 10000,
+    "mysqlVersion": "8.4.11",
+    "fileId": "4"
+  },
+  "notes": [
+    "Local production build and compiled API on the same Windows host as the load generator.",
+    "Self-signed TLS trusted only by the disposable harness.",
+    "10,000 unique file paths use hard-linked identical 1 MiB content; this is a warm storage test.",
+    "Measurements do not prove capacity on a different VPS or real WAN."
+  ],
+  "results": [
+    {
+      "name": "filtered-search",
+      "users": 25,
+      "thinkMs": 300,
+      "seconds": 30.854,
+      "requests": 808,
+      "rps": 26.187852466454917,
+      "failures": 0,
+      "failureRate": 0,
+      "statuses": {
+        "200": 808
+      },
+      "failureReasons": {},
+      "latencyMs": {
+        "p50": 655.9392000000007,
+        "p95": 934.5796999999984,
+        "p99": 1165.3999000000001,
+        "max": 1417.875
+      },
+      "ttfbP95Ms": 934.3390999999974,
+      "bytes": 309196,
+      "api": {
+        "samples": 31,
+        "peakRssMiB": 217.7578125,
+        "peakCpuPct": 17.131474103585656,
+        "peakEventLoopP99Ms": 65.208319
+      },
+      "web": {
+        "samples": 30,
+        "peakRssMiB": 212.2578125,
+        "peakCpuPct": 3.1809145129224654,
+        "peakEventLoopP99Ms": 97.255423
+      }
+    }
+  ]
+}

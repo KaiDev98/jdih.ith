@@ -151,6 +151,7 @@ export const dokumen = mysqlTable('dokumen', {
   kode_dokumen: varchar('kode_dokumen', { length: 64 }).notNull(),
   slug: varchar('slug', { length: 191 }).notNull(),
   jenis_dokumen_id: idType('jenis_dokumen_id').notNull(),
+  peruntukan: mysqlEnum('peruntukan', ['PERMOHONAN_SK']),
   status_hukum: mysqlEnum('status_hukum', ['BERLAKU', 'DIUBAH', 'DICABUT']).notNull(),
   current_published_version_id: idType('current_published_version_id'),
   created_by: idType('created_by').notNull(),
@@ -199,6 +200,7 @@ export const dokumen_versi_tag = mysqlTable('dokumen_versi_tag', {
 export const dokumen_berkas = mysqlTable('dokumen_berkas', {
   id: idType('id').notNull(),
   dokumen_versi_id: idType('dokumen_versi_id').notNull(),
+  uploaded_by: idType('uploaded_by').notNull(),
   jenis_berkas: mysqlEnum('jenis_berkas', ['UTAMA', 'LAMPIRAN']).notNull(),
   judul: varchar('judul', { length: 255 }),
   storage_key: varchar('storage_key', { length: 512 }).notNull(),
@@ -254,6 +256,11 @@ export const dokumen_workflow = mysqlTable('dokumen_workflow', {
   catatan: varchar('catatan', { length: 2000 }),
   actor_id: idType('actor_id').notNull(),
   created_at: datetime('created_at', { mode: 'string', fsp: 6 }).notNull(),
+});
+export const notifikasi_dihapus = mysqlTable('notifikasi_dihapus', {
+  pengguna_id: idType('pengguna_id').notNull(),
+  workflow_id: idType('workflow_id').notNull(),
+  dihapus_at: datetime('dihapus_at', { mode: 'string', fsp: 6 }).notNull(),
 });
 export const dokumen_status_hukum_riwayat = mysqlTable('dokumen_status_hukum_riwayat', {
   id: idType('id').notNull(),

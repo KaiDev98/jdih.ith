@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import Link from '@/components/admin/tautan-panel';
+import { useRouterPanel as useRouter } from '@/components/admin/tautan-panel';
 import { useState } from 'react';
 import { AlertCircle, ChevronDown, KeyRound, LoaderCircle, LogOut, UserCog } from 'lucide-react';
 import type { PenggunaAktif } from '@jdih/shared';
@@ -85,8 +85,9 @@ function DialogKeluar({
         onBukaChange(b);
       }}
     >
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-sm" closeDisabled={sibuk} aria-busy={sibuk}>
         <DialogHeader>
+          <span aria-hidden className="ui-dialog-icon mb-1"><LogOut className="size-5" /></span>
           <DialogTitle>Keluar dari akun?</DialogTitle>
           <DialogDescription>
             Sesi di perangkat ini akan diakhiri. Anda perlu masuk lagi untuk membuka panel.
@@ -102,7 +103,7 @@ function DialogKeluar({
           <Button variant="outline" onClick={() => onBukaChange(false)} disabled={sibuk}>
             Batal
           </Button>
-          <Button variant="destructive" onClick={() => void keluar()} disabled={sibuk}>
+          <Button onClick={() => void keluar()} disabled={sibuk}>
             {sibuk ? <LoaderCircle className="animate-spin" /> : <LogOut />}
             {sibuk ? 'Keluar…' : 'Keluar'}
           </Button>
@@ -122,7 +123,7 @@ export function MenuProfil({ pengguna }: { pengguna: PenggunaAktif }) {
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            className="flex items-center gap-2.5 rounded-lg p-1 pr-1.5 text-left transition-colors outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:bg-muted sm:pr-2"
+            className="flex items-center gap-2.5 rounded-xl p-1 pr-1.5 text-left transition-colors outline-none hover:bg-white focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:bg-white sm:pr-2"
             aria-label={`Menu akun ${pengguna.nama}`}
           >
             <AvatarPengguna pengguna={pengguna} className="size-8" />

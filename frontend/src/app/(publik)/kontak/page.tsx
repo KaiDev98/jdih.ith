@@ -15,7 +15,7 @@ const kelasTautan = 'font-medium text-institusi-900 hover:underline [overflow-wr
 
 export default async function Kontak() {
   const k = KONTAK_INSTITUSI;
-  // Telepon dan surel dikelola Admin; bila gagal dimuat, barisnya cukup tidak tampil.
+  // Telepon dan surel dikelola Superadmin; bila gagal dimuat, barisnya cukup tidak tampil.
   const kontak = await ambilPublik<KontakKantor>('/public/contact', { cache: 'no-store' }).catch(
     () => null,
   );
@@ -68,7 +68,7 @@ export default async function Kontak() {
         deskripsi="Untuk pertanyaan seputar produk hukum dan layanan JDIH ITH, hubungi kami melalui:"
       />
       <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
-        <Card>
+        <Card className="portal-contact-card">
           <dl className="grid gap-6 sm:grid-cols-2">
             {butirKontak.map(({ kunci, ikon: Ikon, label, isi }) => (
               <div key={kunci} className="flex min-w-0 gap-4">

@@ -78,6 +78,9 @@ export class AuditService {
         'tingkatAkses',
         'targetId',
         'reason',
+        'jumlahDihapus',
+        'sampaiId',
+        'jalur',
       ];
       return JSON.stringify(
         Object.fromEntries(

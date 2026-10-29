@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Building2 } from 'lucide-react';
+import { Network } from 'lucide-react';
 import { PilihanDropdown } from './pilihan-dropdown';
 
 /**
@@ -20,7 +20,7 @@ export function PemilihUnitSop({
       id="unit-sop-beranda"
       label="Unit kerja"
       sembunyikanLabel
-      ikon={Building2}
+      ikon={Network}
       className="w-full sm:w-64"
       opsi={[
         { value: '', label: 'Pilih unit kerja' },

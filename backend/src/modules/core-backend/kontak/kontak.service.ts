@@ -7,7 +7,7 @@ import {
   skemaKontakKantor,
   skemaSimpanButirKontak,
 } from '@jdih/shared';
-import { cekIzin } from '../../identity/security.js';
+import { cekIzin, cekSuperadmin } from '../../identity/security.js';
 import { AuditService } from '../../identity/audit.service.js';
 import { CoreBackendRepository } from '../core-backend.repository.js';
 
@@ -53,6 +53,7 @@ export class KontakService {
   }
 
   async tambah(actor: PenggunaAktif, input: unknown) {
+    cekSuperadmin(actor);
     cekIzin(actor, ['contact.manage']);
     const { jenis, label, nilai } = skemaSimpanButirKontak.parse(input);
     return this.repo.transaction(async (db) => {
@@ -84,6 +85,7 @@ export class KontakService {
   }
 
   async ubah(actor: PenggunaAktif, id: string, input: unknown) {
+    cekSuperadmin(actor);
     cekIzin(actor, ['contact.manage']);
     const { jenis, label, nilai } = skemaSimpanButirKontak.parse(input);
     return this.repo.transaction(async (db) => {
@@ -110,6 +112,7 @@ export class KontakService {
   }
 
   async hapus(actor: PenggunaAktif, id: string) {
+    cekSuperadmin(actor);
     cekIzin(actor, ['contact.manage']);
     return this.repo.transaction(async (db) => {
       const sebelum = await this.kunci(db, id);

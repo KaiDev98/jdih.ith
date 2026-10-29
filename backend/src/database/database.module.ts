@@ -14,6 +14,7 @@ import mysql from 'mysql2';
 
 import type { KonfigurasiApp } from '../config/configuration.js';
 import * as skema from './v2/schema.js';
+import { koneksiV2Sah } from './v2-connection-policy.js';
 
 /** Token penyuntikan untuk instans Drizzle. */
 export const BASIS_DATA = 'BASIS_DATA';
@@ -54,7 +55,9 @@ class PenutupKolam implements OnApplicationShutdown {
           database: db.nama,
           connectionLimit: db.batasKolam,
           waitForConnections: true,
-          queueLimit: 0,
+          queueLimit: db.batasAntrean,
+          connectTimeout: db.waktuKoneksiMs,
+          maxPreparedStatements: db.batasPernyataan,
           // Seluruh DATETIME disimpan dalam UTC; koneksi tidak boleh menggeser nilainya.
           timezone: db.zonaWaktu,
           charset: 'utf8mb4_0900_ai_ci',
@@ -79,12 +82,8 @@ class PenutupKolam implements OnApplicationShutdown {
           const [rows] = await pool.query<RowDataPacket[]>(
             'SELECT VERSION() version, DATABASE() db',
           );
-          if (
-            !String(rows[0]?.version).startsWith('8.4.') ||
-            rows[0]?.db !== db.nama ||
-            !/^jdih_ith_v2_(dev|test[a-z0-9_]*)$/.test(db.nama)
-          )
-            throw new Error('Identity requires isolated MySQL 8.4 V2 database');
+          if (!koneksiV2Sah(rows[0]?.version, rows[0]?.db, db.nama, konfigurasi.get('aplikasi.produksi', { infer: true })))
+            throw new Error('MySQL 8.4 V2 database does not match the configured environment');
           return pool;
         } catch {
           await pool.end();

@@ -17,13 +17,14 @@ export interface AliranBerkas {
   stream: Readable;
   size: number;
 }
+export interface RentangByte { start: number; end: number }
 
 /** Storage abstraction. Domain services never receive a filesystem path. */
 export abstract class StorageService {
   abstract stage(source: Readable): Promise<BerkasDisimpanSementara>;
   abstract finalize(staged: BerkasDisimpanSementara): Promise<void>;
   abstract discard(staged: BerkasDisimpanSementara): Promise<void>;
-  abstract open(storageKey: string): Promise<AliranBerkas>;
+  abstract open(storageKey: string, range?: RentangByte): Promise<AliranBerkas>;
   abstract exists(storageKey: string): Promise<boolean>;
   abstract verify(storageKey: string, size: number, checksum: Buffer): Promise<boolean>;
   abstract delete(storageKey: string): Promise<void>;
@@ -92,12 +93,12 @@ export class LocalStorageDriver extends StorageService {
     ]);
   }
 
-  async open(storageKey: string): Promise<AliranBerkas> {
+  async open(storageKey: string, range?: RentangByte): Promise<AliranBerkas> {
     const path = this.objectPath(storageKey);
     try {
       const info = await stat(path);
       if (!info.isFile()) throw new NotFoundException();
-      return { stream: createReadStream(path), size: info.size };
+      return { stream: createReadStream(path, range), size: info.size };
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') throw new NotFoundException();
       throw error;

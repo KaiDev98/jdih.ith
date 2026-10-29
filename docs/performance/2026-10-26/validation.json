@@ -1,0 +1,14 @@
+{
+  "date": "2026-10-26T04:05:51.447Z",
+  "passed": [
+    "Homepage counts/latest match real SQL; private versions excluded",
+    "HTML nonce changes on every request and HTML remains no-store",
+    "Identity-dependent search cannot enter shared caches",
+    "Internal documents and Admin/Superadmin permissions remain enforced",
+    "Production test login is disabled",
+    "Public, Internal and panel PDF full/range/suffix/invalid/If-Range HTTP behavior",
+    "Four simultaneous real create/upload/approve/publish/withdraw workflows, immediate visibility and file revocation"
+  ],
+  "workflowMs": 508.1343999999999,
+  "simultaneousWriters": 4
+}

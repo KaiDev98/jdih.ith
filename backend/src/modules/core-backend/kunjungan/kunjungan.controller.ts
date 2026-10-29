@@ -42,7 +42,9 @@ export class KunjunganController {
   @Post()
   @Publik()
   @TanpaCsrf()
-  @Throttle({ umum: { limit: 10, ttl: 60000 } })
+  // Batas per IP; longgar karena pengguna satu jaringan kampus berbagi IP NAT.
+  // Peramban sendiri hanya mengirim POST sekali per hari.
+  @Throttle({ umum: { limit: 30, ttl: 60000 } })
   async catat(@Req() req: PermintaanBerpengguna, @Res({ passthrough: true }) res: Response) {
     res.setHeader('Cache-Control', 'no-store');
     const sekarang = new Date();

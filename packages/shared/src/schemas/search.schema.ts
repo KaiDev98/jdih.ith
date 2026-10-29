@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { skemaPeruntukanDokumen } from './dokumen.schema.js';
 import { skemaStatusHukum, skemaStatusWorkflow, skemaTingkatAkses } from '../enums.js';
 import { URUTAN_DOKUMEN } from '../api.js';
 import {
@@ -9,6 +10,7 @@ import {
   skemaHalaman,
   teksWajib,
   skemaTanggapanHalaman,
+  skemaKataKunci,
 } from './common.schema.js';
 const tahunKueri = z.union([
   skemaTahun,
@@ -31,6 +33,18 @@ export const skemaCariDokumen = skemaHalaman.extend({
 export const skemaCariDokumenAdmin = skemaCariDokumen.extend({
   statusWorkflow: skemaStatusWorkflow.optional(),
   tingkatAkses: skemaTingkatAkses.optional(),
+});
+/** Filter koleksi panel diterapkan sebelum hitung total dan pagination. */
+export const skemaDaftarDokumenPanel = z.strictObject({
+  halaman: skemaHalaman.shape.halaman,
+  perHalaman: skemaHalaman.shape.perHalaman,
+  q: skemaKataKunci,
+  statusWorkflow: z
+    .enum(['DRAF', 'DIAJUKAN', 'REVISI', 'DISETUJUI', 'TERBIT', 'DIGANTI', 'DITARIK'])
+    .optional(),
+  peruntukan: skemaPeruntukanDokumen.optional(),
+  kelompok: z.enum(['PRODUK_HUKUM', 'SOP']).optional(),
+  cakupan: z.enum(['TERVERIFIKASI', 'PENGAJUAN']).default('TERVERIFIKASI'),
 });
 const ringkasan = {
   id: skemaId,
@@ -81,3 +95,26 @@ export type KueriCariDokumenAdmin = z.infer<typeof skemaCariDokumenAdmin>;
 export type HasilCariAnonim = z.infer<typeof skemaHasilCariAnonim>;
 export type HasilCariAuthorized = z.infer<typeof skemaHasilCariAuthorized>;
 export type TahunTersedia = z.infer<typeof skemaTahunTersedia>;
+
+/** Satu snapshot beranda; hanya dokumen PUBLIK yang sedang TERBIT. */
+export const skemaBerandaPublik = z.strictObject({
+  jenis: z.array(
+    z.strictObject({
+      id: skemaId,
+      kode: z.string(),
+      nama: teksWajib(150, 'Jenis'),
+      jumlah: z.number().int().min(0),
+      dokumen: skemaHasilCariAnonim.nullable(),
+    }),
+  ),
+  kategori: z.array(
+    z.strictObject({
+      id: skemaId,
+      kode: z.string(),
+      nama: teksWajib(150, 'Kategori'),
+      jumlah: z.number().int().min(0),
+    }),
+  ),
+  tahun: skemaTahunTersedia,
+});
+export type BerandaPublik = z.infer<typeof skemaBerandaPublik>;

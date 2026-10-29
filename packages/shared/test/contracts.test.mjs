@@ -4,6 +4,44 @@ import { readFileSync } from 'node:fs';
 import * as c from '../dist/index.js';
 const ok = (schema, value) => assert.equal(schema.safeParse(value).success, true);
 const bad = (schema, value) => assert.equal(schema.safeParse(value).success, false);
+test('email registration accepts all providers but cannot assign role or approval', () => {
+  const value = { nama: 'Dosen Kampus', email: ' Dosen@Gmail.com ', password: 'PasswordKuat123', konfirmasiPassword: 'PasswordKuat123', unitManual: 'Unit lain' };
+  ok(c.skemaDaftarEmail, value);
+  assert.equal(c.skemaDaftarEmail.parse(value).email, 'dosen@gmail.com');
+  for (const email of ['user@ith.ac.id', 'user@yahoo.com', 'user@contoh.id']) ok(c.skemaDaftarEmail, { ...value, email });
+  for (const extra of [{ peran: ['ADMIN'] }, { role: 'SUPERADMIN' }, { status: 'AKTIF' }, { verifiedBy: '1' }, { googleSub: 'spoof' }]) bad(c.skemaDaftarEmail, { ...value, ...extra });
+  bad(c.skemaDaftarEmail, { ...value, konfirmasiPassword: 'SalahSekali123' });
+  bad(c.skemaDaftarEmail, { ...value, password: 'pendek', konfirmasiPassword: 'pendek' });
+  bad(c.skemaDaftarEmail, { ...value, unitKerjaId: '1' });
+  bad(c.skemaDaftarEmail, { ...value, unitManual: undefined });
+});
+test('homepage snapshot rejects private fields and invalid public counts', () => {
+  const value = { jenis: [{ id: '1', kode: 'PER', nama: 'Peraturan', jumlah: 0, dokumen: null }], kategori: [], tahun: [2026] };
+  ok(c.skemaBerandaPublik, value);
+  bad(c.skemaBerandaPublik, { ...value, token: 'private' });
+  bad(c.skemaBerandaPublik, { ...value, jenis: [{ ...value.jenis[0], jumlah: -1 }] });
+  const doc = { id: '2', slug: 'peraturan-uji', tipe: 'Peraturan', judul: 'Peraturan Uji', nomor: '7', tahun: 2026, tanggalPenetapan: '2026-10-01', statusHukum: 'BERLAKU', dilihat: 0 };
+  ok(c.skemaBerandaPublik, { ...value, jenis: [{ ...value.jenis[0], jumlah: 1, dokumen: doc }] });
+  bad(c.skemaBerandaPublik, { ...value, jenis: [{ ...value.jenis[0], jumlah: 1, dokumen: { ...doc, tingkatAkses: 'internal' } }] });
+});
+test('notification dismissal validates snapshot ID without accepting another recipient', () => {
+  ok(c.skemaHapusSemuaNotifikasi, { sampaiId: '9007199254740993' });
+  for (const value of [{}, { sampaiId: 9 }, { sampaiId: '0' }, { sampaiId: '18446744073709551616' }, { sampaiId: '9', penggunaId: '12' }])
+    bad(c.skemaHapusSemuaNotifikasi, value);
+  ok(c.skemaHasilHapusNotifikasi, { jumlahDihapus: 0 });
+  bad(c.skemaHasilHapusNotifikasi, { jumlahDihapus: -1 });
+});
+test('administrative read capability flags are boolean server output', () => {
+  ok(c.skemaKemampuanDokumenAdmin, { bolehUbah: false, bolehRevisi: false });
+  bad(c.skemaKemampuanDokumenAdmin, { bolehUbah: 'true', bolehRevisi: false });
+  bad(c.skemaBuatDokumen, { kodeDokumen: 'TEST', slug: 'test', jenisDokumenId: '1', versi: { judul: 'Test', tingkatAkses: 'publik' }, bolehUbah: true });
+});
+test('input options expose explicit server-side eligibility and direct approval remains output-only', () => {
+  ok(c.skemaPilihanKategoriDokumen, { id: '3', kode: 'TIK', nama: 'TIK', aktif: true, bolehPilih: false });
+  bad(c.skemaPilihanKategoriDokumen, { id: '3', kode: 'TIK', nama: 'TIK', aktif: true, bolehPilih: 'true' });
+  ok(c.skemaKemampuanDokumenAdmin, { bolehUbah: true, bolehRevisi: true, bolehSetujuiLangsung: true, bolehJadiTargetRelasi: false });
+  bad(c.skemaSetujuiDokumen, { catatan: '', bolehSetujuiLangsung: true, createdBy: '12' });
+});
 const cases = [
   ['access', c.skemaTingkatAkses, ['publik', 'internal'], ['terbatas', 'PUBLIK', 'rahasia']],
   [
@@ -156,15 +194,36 @@ test('required return/withdraw notes reject unicode whitespace', () => {
   ok(c.skemaKembalikanRevisi, { catatan: 'Perbaiki' });
   ok(c.skemaTarikDokumen, { alasan: 'Koreksi publikasi' });
 });
+test('approval note is optional, blank normalizes to omitted, supplied notes remain bounded', () => {
+  for (const value of [{}, { catatan: '' }, { catatan: ' \n\t\u00a0' }]) {
+    ok(c.skemaSetujuiDokumen, value);
+    assert.equal(c.skemaSetujuiDokumen.parse(value).catatan, undefined);
+  }
+  assert.equal(c.skemaSetujuiDokumen.parse({ catatan: '  Sudah sesuai  ' }).catatan, 'Sudah sesuai');
+  bad(c.skemaSetujuiDokumen, { catatan: 'x'.repeat(2001) });
+  bad(c.skemaSetujuiDokumen, { catatan: 123 });
+});
 for (const schema of [c.skemaAjukanDokumen, c.skemaSetujuiDokumen])
   test(
     'workflow command rejects actor on ' + (schema === c.skemaAjukanDokumen ? 'submit' : 'approve'),
     () => {
-      ok(schema, {});
+      ok(schema, schema === c.skemaSetujuiDokumen ? { catatan: 'Berkas dan metadata sesuai' } : {});
       bad(schema, { actorId: '1' });
       bad(schema, { verifiedBy: '1' });
     },
   );
+test('pengajuan memerlukan seluruh metadata dan kategori', () => {
+  const complete = { judul: 'SOP', deskripsi: 'Prosedur', nomor: '1', tahun: 2026, pic: 'Hukum', tanggalPenetapan: '2026-10-23', tingkatAkses: 'publik', kategoriId: ['1'] };
+  ok(c.skemaKesiapanPengajuan, complete);
+  for (const field of Object.keys(complete)) {
+    const partial = { ...complete };
+    delete partial[field];
+    bad(c.skemaKesiapanPengajuan, partial);
+  }
+  bad(c.skemaKesiapanPengajuan, { ...complete, kategoriId: [] });
+  ok(c.skemaSetujuiDokumen, { catatan: '  ' });
+  ok(c.skemaSetujuiDokumen, {});
+});
 const impact = {
   targetDocumentId: '2',
   statusSaatIni: 'BERLAKU',
@@ -219,7 +278,8 @@ test('search items and detail carry view/download counts', () => {
   const item = { id: '1', slug: 'aturan', judul: 'Aturan', nomor: '1', tahun: 2026, tipe: 'Peraturan Rektor', statusHukum: 'BERLAKU', tanggalPenetapan: '2026-01-01', dilihat: 12 };
   ok(c.skemaHasilCariAnonim, item);
   bad(c.skemaHasilCariAnonim, { ...item, dilihat: -1 });
-  const { dilihat: _, ...tanpa } = item;
+  const tanpa = { ...item };
+  delete tanpa.dilihat;
   bad(c.skemaHasilCariAnonim, tanpa);
   ok(c.skemaStatistikDokumen, { dilihat: 0, diunduh: 0 });
   bad(c.skemaStatistikDokumen, { dilihat: 1, diunduh: 1, pengunduh: ['a'] });
@@ -264,6 +324,7 @@ const detail = {
   statusHukum: 'BERLAKU',
   pic: 'PIC bebas',
   keteranganStatus: null,
+  statusPeraturan: [],
   statistik: { dilihat: 3, diunduh: 1 },
   berkasUtama: file,
   lampiran: [],
@@ -297,15 +358,34 @@ test('detail carries optional description and status note', () => {
   bad(c.skemaKeteranganStatus, { ...keterangan, sumber: { ...keterangan.sumber, tingkatAkses: 'internal' } });
   bad(c.skemaKeteranganStatus, { ...keterangan, actorId: '1' });
 });
-test('version description and status reason are optional; blank becomes null', () => {
+test('status peraturan lists amending/revoking documents in both directions', () => {
+  const lain = { id: '9', slug: 'peraturan-baru', tipe: 'Peraturan Rektor', judul: 'Peraturan Baru', nomor: '2', tahun: 2026 };
+  for (const jenis of ['DICABUT_DENGAN', 'DIUBAH_DENGAN', 'MENCABUT', 'MENGUBAH'])
+    ok(c.skemaStatusPeraturan, { jenis, dokumen: lain });
+  bad(c.skemaStatusPeraturan, { jenis: 'TERKAIT', dokumen: lain });
+  // Tingkat akses dokumen yang ditautkan tidak pernah ikut dikirim.
+  bad(c.skemaStatusPeraturan, { jenis: 'MENCABUT', dokumen: { ...lain, tingkatAkses: 'internal' } });
+  ok(c.skemaDetailDokumenPublik, { ...detail, statusHukum: 'DICABUT', statusPeraturan: [{ jenis: 'DICABUT_DENGAN', dokumen: lain }] });
+});
+test('upload accepts PDF and macro-free Office files; preview only flags capability', () => {
+  for (const mime of [
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  ])
+    ok(c.skemaMimeBerkas, mime);
+  for (const mime of ['application/msword', 'application/vnd.ms-word.document.macroEnabled.12', 'application/zip'])
+    bad(c.skemaMimeBerkas, mime);
+  ok(c.skemaDetailDokumenPublik, { ...detail, berkasUtama: { ...file, kemampuan: { preview: false, download: true } } });
+  bad(c.skemaDetailDokumenPublik, { ...detail, berkasUtama: { ...file, kemampuan: { preview: true, download: false } } });
+});
+test('version description is optional; blank becomes null', () => {
   const versi = { judul: 'Contoh', tingkatAkses: 'publik' };
   ok(c.skemaBuatVersiDokumen, versi);
   assert.equal(c.skemaBuatVersiDokumen.parse({ ...versi, deskripsi: '   ' }).deskripsi, null);
   assert.equal(c.skemaBuatVersiDokumen.parse({ ...versi, deskripsi: ' Isi ' }).deskripsi, 'Isi');
   bad(c.skemaBuatVersiDokumen, { ...versi, deskripsi: 'x'.repeat(1001) });
-  ok(c.skemaUbahStatusHukum, { statusHukum: 'DICABUT' });
-  assert.equal(c.skemaUbahStatusHukum.parse({ statusHukum: 'DICABUT', alasan: '' }).alasan, null);
-  bad(c.skemaUbahStatusHukum, { statusHukum: 'DICABUT', alasan: 'x'.repeat(1001) });
 });
 for (const field of [
   'createdBy',
@@ -382,4 +462,13 @@ test('password login and change rules', () => {
   bad(c.skemaUbahPassword, { ...baru, passwordBaru: '12345678901', konfirmasiPassword: '12345678901' });
   bad(c.skemaUbahPassword, { passwordSaatIni: 'SamaPersis11', passwordBaru: 'SamaPersis11', konfirmasiPassword: 'SamaPersis11' });
   bad(c.skemaStatusPassword, { punyaPassword: true, diubahPada: null, hash: 'x' });
+});
+test('document peruntukan only allows PERMOHONAN_SK and null to unmark', () => {
+  const dok = { kodeDokumen: 'SOP-PSK', slug: 'sop-psk', jenisDokumenId: '7', versi: { judul: 'SOP', tingkatAkses: 'publik' } };
+  ok(c.skemaBuatDokumen, dok);
+  ok(c.skemaBuatDokumen, { ...dok, peruntukan: 'PERMOHONAN_SK' });
+  bad(c.skemaBuatDokumen, { ...dok, peruntukan: 'BERANDA' });
+  ok(c.skemaUbahDokumen, { peruntukan: null });
+  ok(c.skemaUbahDokumen, { peruntukan: 'PERMOHONAN_SK' });
+  bad(c.skemaUbahDokumen, { peruntukan: '' });
 });

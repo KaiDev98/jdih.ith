@@ -1,5 +1,10 @@
 # JDIH ITH V2 — Final Acceptance Record
 
+> Catatan historis Phase 6. Untuk kondisi branch `nesta` dan bukti terbaru,
+> gunakan [audit rilis 30 Oktober 2026](RELEASE_AUDIT_2026-10-30.md) dan
+> [panduan deployment V2](DEPLOYMENT_V2.md). Kebijakan yang telah direvisi dalam
+> context V2 tetap lebih tinggi daripada uraian historis di bawah.
+
 This record captures repository/runtime acceptance for Phase 6 against branch
 `niyato`, starting from HEAD `d1caa3b4302dd9db64cc17d40bdcd96b9485830a`.
 The acceptance changes remain uncommitted. This is not production deployment

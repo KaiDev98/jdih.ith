@@ -2,6 +2,124 @@
 
 This file tells Codex how to move from the current foundation to the agreed V2 without losing design intent.
 
+## Revisi tampilan autentikasi 2026-10-29
+
+Revisi koleksi setelah autentikasi: bedakan galeri map Format Persuratan dari
+SOP Permohonan SK dan hapus search bar pada kedua halaman
+publik/panel. Semua Dokumen memakai dropdown koleksi dan bingkai desktop tetap;
+daftar panjang bergulir di dalam, filter/pagination tetap terlihat. Uji filter
+sebelum pagination, pemisahan data template, penolakan SOP khusus untuk Admin,
+ukuran desktop pendek dan gulir halaman seluler. Tidak mengubah workflow.
+Revisi lanjutan SOP publik: kartu tiga kolom desktop, dua kolom tablet dan satu
+kolom ponsel. Gunakan ikon dokumen bertanda tangan, tanpa angka urut dekoratif;
+nomor resmi, tahun, status hukum dan pembatasan akses tetap tersedia.
+
+Polesan lanjutan login/daftar: bingkai desktop maksimal 1680 × 900 px dan formulir
+maksimal 520 px; masthead ponsel menyambung dengan kartu formulir. Dropdown
+Semua Dokumen memakai menu Radix, animasi buka/tutup dan fokus biru lembut,
+dengan keyboard/Escape serta reduced motion. Pertahankan filter dan batas peran.
+Tab
+dengan garis aktif, indikator langkah bernomor, panduan kiri tersinkron dengan
+formulir dan ringkasan nama/email/unit sebelum konfirmasi. Pertahankan data saat
+kembali, fokus heading langkah, validasi dan adaptasi keyboard. Uji seluruh
+langkah pendaftaran, termasuk unit manual dan galat pada layar pendek.
+Revisi lanjutan: hilangkan tombol kembali pada login, rapikan bingkai logo dan
+wordmark; pendaftaran tetap mempunyai tombol kembali. Ganti unit pendaftaran
+dengan menu beranimasi. Uji unit master/usulan, penghapusan usulan saat kembali
+ke master, validasi/fokus, daftar unit panjang, keyboard, reduced motion serta
+regresi keyboard ponsel.
+Perbaikan regresi keyboard: uji saat innerHeight dan visualViewport sama-sama
+mengecil, saat hanya visualViewport berubah, perpindahan fokus, validasi,
+rotasi/zoom, serta pemulihan setelah keyboard ditutup. Header identitas
+tetap terlihat dan terpisah dari area gulir formulir; isian aktif tidak tertutup.
+Tampilan latar, kartu, logo, tab dan jarak formulir harus sama sebelum/sesudah
+keyboard terbuka. Simpan tampilan sebelum media query berubah; jangan membuat
+varian keyboard yang berbeda. Uji kesamaan geometri/warna serta akses isian.
+
+Revisi lanjutan: kedua sisi login berada dalam satu bingkai. Unit Superadmin
+pada daftar Pengguna diberi label Superadmin; nilai unit dan izin tidak berubah.
+Format Persuratan dan SOP Permohonan SK memakai grid tiga kolom, pencarian dan
+pagination. Akses SOP dapat Publik/Dosen-Staf aktif. Persetujuan sekaligus terbit
+hanya untuk SOP khusus ini, atomik dengan konfirmasi dampak, izin dan audit.
+Uji kegagalan storage agar persetujuan/pointer tidak berubah, revisi mempertahankan
+versi lama, penyaringan staf aktif/pending, serta pagination koleksi panjang.
+
+Instruksi terakhir user menggantikan layout polos terpusat dan usulan foto:
+desktop memakai simbol dokumen/pasal dan tipografi kontras di kiri, formulir di
+kanan untuk login ketiga peran serta pendaftaran. Tidak menggunakan foto kampus.
+Pertahankan identitas ITH, animasi singkat dengan reduced motion, formulir
+responsif tanpa gulir halaman, dan adaptasi keyboard. Periksa lebar desktop,
+ponsel, landscape pendek serta keadaan galat. URL, endpoint login, pendaftaran,
+verifikasi akun dan otorisasi server tetap mengikuti aturan yang sudah berlaku.
+
+## Revisi autentikasi dan filter 2026-10-26
+
+Instruksi tampilan terbaru 2026-10-26: pisahkan semua login/daftar dari layout
+portal publik tanpa mengubah URL. Layout autentikasi memakai latar polos terang
+dan kartu formulir terpusat, tanpa foto kampus sesuai revisi terbaru user.
+Halaman autentikasi tanpa gulir: tiga langkah daftar dengan data tersimpan saat
+kembali, validasi shared Zod, dan konfirmasi akhir. Uji tinggi viewport pendek,
+landscape, keyboard, galat, serta batas isian/tombol agar tetap di dalam layar.
+Kolom Unit kembali tampil pada daftar Dosen/Staf. Urutkan Superadmin lalu Admin
+pelihat sebelum pagination; verifikasi akun ditonjolkan di Pengguna Superadmin.
+Uji urutan pada tabel/kartu, unit master/usulan, keputusan khusus Superadmin,
+dan akses baca pencarian/filter Format Persuratan. Hilangkan dekorasi garis
+hero Produk Hukum di ponsel; periksa layout login dan panel pada ukuran seluler/desktop.
+
+Pendaftaran email/password seluruh domain di `/daftar`, login Dosen/Staf di
+`/masuk`, dan Google hanya ith.ac.id menggantikan Google-only. Status awal selalu
+MENUNGGU_VERIFIKASI, peran DOSEN_STAF; akses internal setelah keputusan Superadmin.
+Uji spoof peran/status, email duplikat/serentak, password hash, Origin, cookie,
+pending/approve/nonaktif, pembatasan domain Google dan isolasi jalur Admin/Superadmin.
+Gunakan kolom password yang sudah tersedia, tanpa migrasi destruktif. Jangan
+auto-link Google dengan akun lokal berdasarkan email. Susunan filter: Tahun,
+Kategori, Jenis Produk Hukum, Status.
+
+## Revisi aktif 2026-10-23
+
+Revisi input/workflow 2026-10-25: semua unit/kategori formulir terlihat, pilihan
+di luar hak Admin nonaktif, dan penyimpanan tetap memeriksa unit akun. Target
+MENGUBAH/MENCABUT Admin harus dokumen dan versi TERBIT miliknya; periksa pencarian,
+POST relasi dan pengajuan ulang. DRAF/REVISI milik Superadmin dapat DISETUJUI
+langsung tanpa antrean, dengan kelengkapan/file valid/izin/konfirmasi/audit.
+Terapkan patch-020 untuk CHECK transisi APPROVE, tanpa menghapus riwayat.
+Uji manipulasi API serta alur nyata MySQL dengan fixture transaksi rollback.
+
+Penyempurnaan UI panel 2026-10-25: gunakan lebar horizontal secara responsif,
+pratinjau dokumen lebih awal, ringkasan berdampingan, riwayat/tabel dengan gulir
+terbatas, serta motion ringan yang menghormati reduced motion. Periksa kedua
+peran pada lebar 360/768/1024/1440/1920px, fokus keyboard, dialog, menu seluler,
+konfirmasi dan kontrol nonaktif; tidak mengubah hak akses atau aturan workflow.
+
+Perbaikan navigasi 2026-10-25: gunakan detail bersarang `dokumen/verifikasi/:id`
+dan `dokumen/pengajuan/:id` agar menu aktif, breadcrumb, tombol kembali dan
+riwayat versi tetap dalam daftar asal. Tautan notifikasi membuka halaman langsung
+dengan `versionId` yang tepat: SUBMIT ke antrean, RETURN ke pengajuan, APPROVE ke
+dokumen terverifikasi. Uji klik melalui browser, pergantian versi setelah galat,
+dan pemisahan cakupan API; tidak ada perubahan schema atau kewenangan verifikasi.
+
+Ketentuan terkait SOP/unggahan pada fase lama di bawah digantikan revisi ini.
+Klarifikasi terbaru: SOP Permohonan SK hanya untuk Superadmin; menu, pencarian,
+daftar, notifikasi, halaman dan API pengelolaannya tidak tersedia bagi Admin.
+SOP biasa tetap dapat diajukan Admin sesuai unit. Antrean dapat dibaca lintas
+pembuat kecuali SOP khusus tersebut; tindakan verifikasi tetap hanya Superadmin.
+Semua Dokumen hanya versi terverifikasi; draf dan
+pengajuan mempunyai daftar terpisah. SUBMIT/APPROVE memerlukan seluruh metadata,
+kategori dan tepat satu file utama valid. APPROVE opsional alasan; RETURN wajib alasan, tampil
+pada detail dan notifikasi panel berbasis riwayat workflow yang disimpan atomik.
+Pratinjau file belum terbit memakai endpoint panel terotorisasi. Terapkan
+`database/v2/patch-018-label-kategori-sop.sql` untuk nama kategori/unit terbaru,
+tanpa mengubah ID/kode atau menghapus data. Isi notifikasi berasal dari workflow.
+Revisi hapus notifikasi: terapkan `patch-019-notifikasi-dihapus.sql` untuk
+preferensi hapus per akun, tanpa menghapus workflow/audit. Endpoint DELETE wajib
+memeriksa cakupan penerima, CSRF dan menyimpan audit atomik. Hapus semua memakai
+batas ID saat konfirmasi dibuka; notifikasi baru tidak ikut terhapus.
+Revisi popup: satukan konfirmasi melalui Dialog Radix dengan permukaan putih,
+latar terang transparan dan animasi singkat; cegah penutupan/klik ganda saat proses.
+Notifikasi Superadmin hanya SUBMIT terakhir setiap versi yang masih DIAJUKAN;
+keputusan/perlu perbaikan ditujukan ke Admin. RETURN -> perbaikan -> SUBMIT
+menghasilkan notifikasi pengajuan baru, tanpa menghidupkan notifikasi lama.
+
 ## Rule 1 — Do not start with a giant rewrite
 
 The repository already has useful infrastructure.
@@ -136,7 +254,7 @@ Acceptance:
 
 ## Phase 4 — Account Approval
 
-Admin:
+Superadmin:
 - list pending.
 - detail.
 - resolve manual unit.
@@ -178,6 +296,10 @@ Seed product types:
 - SOP.
 
 Seed initial SOP categories as configurable master data.
+Keep categories and work units aligned. Apply patch-016 for the LPPM-PM rename
+(retain code SOP-LPPM and existing IDs) and the Lab and Senat additions.
+Apply patch-017 afterward to remove the unused Komisi Kemahasiswaan category/unit,
+with audit and FK protection. Komisi Etik remains a separate entry.
 
 ## Phase 7 — Documents & Versioning
 
@@ -256,7 +378,11 @@ Implement:
 
 ## Phase 13 — Dashboard & Audit
 
-Admin only.
+Admin may view the dashboard. Superadmin manages and reads the audit log.
+Audit menus, command search and direct page/API access are Superadmin-only,
+including when an Admin has a direct audit.read permission. Dashboard activity
+audit is removed for all roles; dashboards must not request the audit feed.
+Use a wide, short dashboard card and a compact scrollable desktop audit table.
 
 No public statistics page.
 
@@ -272,12 +398,31 @@ Public:
 Admin:
 - dashboard.
 - documents.
+
+Superadmin:
 - verification.
 - users.
 - secret grants.
 - templates.
 - masters.
 - audit.
+- SOP Permohonan SK management.
+
+Keep global menus and information pages clickable for Admin; disable only write
+controls. Read access never grants global write permissions. Use `/admin` for Admin
+and `/superadmin` for Superadmin, including login redirects, links and breadcrumbs.
+The REST API retains `/api/v1/admin`. Enforce document ownership, unit-matched input
+categories and Superadmin-only verification/global writes in backend services.
+Global master lists and unit-scoped input options use separate read endpoints.
+Exception: SOP Permohonan SK appears only in the Superadmin panel. Hide it from
+Admin menus, dashboard shortcuts and command search; block direct Admin page/API
+access and exclude SOP from Admin document lists and verification queues. Keep
+published SOP available in the public portal.
+Format Persuratan is editable by every active Admin and Superadmin with
+`templates.manage`, including templates uploaded by another account. Enable create,
+new version activation and archive controls, preserve confirmation and audit, and
+apply patch-015-admin-format-persuratan.sql to existing V2 databases. No ownership
+or unit restriction applies to templates; law-document rules remain unchanged.
 
 ## Definition of Done per Task
 

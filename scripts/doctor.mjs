@@ -11,6 +11,7 @@ import { createConnection } from 'node:net';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseEnv } from 'node:util';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -21,32 +22,31 @@ const catat = (nama, keadaan, keterangan, perbaikan) =>
 /* ─────────────────────────────── Perkakas ─────────────────────────────────── */
 
 const versiNode = process.versions.node;
-const mayorNode = Number(versiNode.split('.')[0]);
+const [mayorNode, minorNode, patchNode] = versiNode.split('.').map(Number);
+const nodeDidukung = (mayorNode === 24 && (minorNode > 22 || (minorNode === 22 && patchNode >= 2))) ||
+  (mayorNode === 26 && minorNode >= 13);
 catat(
   'Node.js',
-  mayorNode >= 20 ? 'ok' : 'gagal',
+  nodeDidukung ? 'ok' : 'gagal',
   `v${versiNode}`,
-  mayorNode >= 20 ? undefined : 'Perlu Node 20.9 atau lebih baru (Next 16 mensyaratkannya).',
+  nodeDidukung ? undefined : 'Gunakan Node LTS 24.22.2 atau versi LTS yang didukung pada package.json/.nvmrc.',
 );
 
 /* ─────────────────────────── Berkas konfigurasi ───────────────────────────── */
 
 function bacaEnv(jalur) {
   if (!existsSync(jalur)) return null;
-  const hasilEnv = {};
-  for (const baris of readFileSync(jalur, 'utf8').split(/\r?\n/)) {
-    const cocok = /^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/.exec(baris);
-    if (cocok) hasilEnv[cocok[1]] = cocok[2].trim();
-  }
-  return hasilEnv;
+  return parseEnv(readFileSync(jalur, 'utf8'));
 }
 
-const envApi = bacaEnv(join(root, 'backend', '.env'));
+const envDb = bacaEnv(join(root, '.env.v2.local'));
+const envIdentity = bacaEnv(join(root, 'backend', '.env.identity.local'));
+const envApi = { ...envDb, ...envIdentity, ...process.env };
 catat(
-  'backend/.env',
-  envApi ? 'ok' : 'gagal',
-  envApi ? 'ada' : 'belum ada',
-  envApi ? undefined : 'Jalankan: npm run setup:env',
+  'Konfigurasi API V2',
+  envApi.DB_NAME && envApi.SESSION_KEY ? 'ok' : 'gagal',
+  envApi.DB_NAME && envApi.SESSION_KEY ? 'tersedia (nilai tidak ditampilkan)' : 'belum lengkap',
+  envApi.DB_NAME && envApi.SESSION_KEY ? undefined : 'Jalankan: npm run setup:env lalu isi konfigurasi V2.',
 );
 
 const envWeb = bacaEnv(join(root, 'frontend', '.env'));
@@ -57,19 +57,19 @@ catat(
   envWeb ? undefined : 'Jalankan: npm run setup:env',
 );
 
-if (envApi) {
+if (envApi.SESSION_KEY) {
   const contoh = ['ganti-dengan', 'ubah-ini', 'changeme'];
-  const belumDiganti = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'COOKIE_SECRET'].filter((kunci) => {
+  const belumDiganti = ['SESSION_KEY'].filter((kunci) => {
     const nilai = envApi[kunci] ?? '';
     return nilai.length < 32 || contoh.some((tanda) => nilai.includes(tanda));
   });
   catat(
-    'Rahasia JWT dan kuki',
+    'Rahasia sesi V2',
     belumDiganti.length === 0 ? 'ok' : 'gagal',
     belumDiganti.length === 0
       ? 'sudah diisi nilai kuat'
       : `belum diganti: ${belumDiganti.join(', ')}`,
-    belumDiganti.length === 0 ? undefined : 'Jalankan: npm run setup:env -- --paksa',
+    belumDiganti.length === 0 ? undefined : 'Buat SESSION_KEY acak minimal 32 karakter dalam konfigurasi privat.',
   );
 }
 
@@ -83,12 +83,12 @@ catat(
   sharedTerbangun ? undefined : 'Jalankan: npm run build:shared',
 );
 
-const skemaDrizzle = join(root, 'backend', 'src', 'database', 'generated', 'schema.ts');
+const skemaDrizzle = join(root, 'database', 'v2', 'schema.sql');
 catat(
-  'Skema Drizzle',
+  'Skema SQL V2',
   existsSync(skemaDrizzle) ? 'ok' : 'peringatan',
-  existsSync(skemaDrizzle) ? 'sudah dibangkitkan' : 'belum dibangkitkan',
-  existsSync(skemaDrizzle) ? undefined : 'Jalankan: npm run db:import lalu npm run db:pull',
+  existsSync(skemaDrizzle) ? 'tersedia' : 'belum tersedia',
+  existsSync(skemaDrizzle) ? undefined : 'Pulihkan database/v2/schema.sql dari rilis. Jangan gunakan import/reset legacy.',
 );
 
 /* ──────────────────────────── Ketersediaan porta ──────────────────────────── */
@@ -108,14 +108,14 @@ function periksaPorta(host, porta, batasMs = 1200) {
 }
 
 const hostDb = envApi?.DB_HOST ?? '127.0.0.1';
-const portaDb = Number(envApi?.DB_PORT ?? 3306);
+const portaDb = Number(envApi.DB_PORT ?? 3307);
 
 const dbHidup = await periksaPorta(hostDb, portaDb);
 catat(
-  'MySQL / MariaDB',
+  'Koneksi TCP MySQL 8',
   dbHidup ? 'ok' : 'gagal',
   dbHidup ? `menjawab pada ${hostDb}:${portaDb}` : `tidak menjawab pada ${hostDb}:${portaDb}`,
-  dbHidup ? undefined : 'Nyalakan MySQL dari XAMPP Control Panel, lalu ulangi.',
+  dbHidup ? undefined : 'Nyalakan MySQL 8 dan cocokkan DB_HOST/DB_PORT pada konfigurasi V2.',
 );
 
 const apiHidup = await periksaPorta('127.0.0.1', Number(envApi?.API_PORT ?? 3001));

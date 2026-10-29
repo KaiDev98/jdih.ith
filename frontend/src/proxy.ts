@@ -5,6 +5,13 @@ import type { NextRequest } from 'next/server';
 type LingkunganCsp = 'development' | 'production' | 'test';
 
 /**
+ * Hash atribut `style="color:transparent"` yang selalu dipasang next/image.
+ * Lewat 'unsafe-hashes' hanya nilai persis itu yang diizinkan; atribut style
+ * lain dan elemen <style> tanpa nonce tetap diblokir.
+ */
+const HASH_GAYA_NEXT_IMAGE = "'sha256-zlqnbDt84zf1iSefLU/ImC54isoprH/MRiVZGskwexk='";
+
+/**
  * Strict CSP for rendered pages. Next.js reads this request header while
  * rendering and applies the nonce to its hydration/bootstrap scripts.
  */
@@ -13,7 +20,7 @@ export function kebijakanCsp(nonce: string, lingkungan: LingkunganCsp): string {
   const directives = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${pengembangan ? " 'unsafe-eval'" : ''}`,
-    `style-src 'self' 'nonce-${nonce}'`,
+    `style-src 'self' 'nonce-${nonce}' 'unsafe-hashes' ${HASH_GAYA_NEXT_IMAGE}`,
     'img-src \'self\' data: blob: https://lh3.googleusercontent.com',
     "font-src 'self' data:",
     `connect-src 'self'${pengembangan ? ' ws: wss:' : ''}`,

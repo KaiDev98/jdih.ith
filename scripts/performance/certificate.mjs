@@ -1,0 +1,11 @@
+import { readFile, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { execFileSync } from 'node:child_process';
+const root = resolve('test-results/performance-local');
+const marker = JSON.parse(await readFile(resolve(root, 'marker.json'), 'utf8'));
+if (marker.data !== resolve(root, 'mysql-data')) throw new Error('Invalid disposable instance');
+const configuration = resolve(root, 'openssl.cnf');
+await writeFile(configuration, '[req]\ndistinguished_name=req_dn\n[req_dn]\n');
+const openssl = process.env.OPENSSL_BIN ?? (process.platform === 'win32' ? 'C:/Program Files/Git/usr/bin/openssl.exe' : 'openssl');
+execFileSync(openssl, ['req', '-config', configuration, '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', resolve(root, 'tls.key'), '-out', resolve(root, 'tls.crt'), '-days', '2', '-subj', '/CN=localhost', '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'], { windowsHide: true, stdio: 'pipe' });
+console.log('Disposable localhost certificate ready.');

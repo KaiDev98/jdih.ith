@@ -21,6 +21,14 @@ server {
     ssl_certificate_key /path/to/provisioned/private-key.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
 
+    keepalive_timeout 65s;
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 5;
+    gzip_min_length 1024;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+
     client_max_body_size 55m;
     client_body_timeout 120s;
     client_header_timeout 30s;
@@ -52,6 +60,17 @@ server {
         proxy_read_timeout 300s;
     }
 
+    # Immutable Next build assets retain Next's own cache headers. Buffer static
+    # responses so slow clients do not occupy rendering connections for long.
+    location ^~ /_next/static/ {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Connection "";
+        proxy_buffering on;
+        access_log off;
+    }
+
     location / {
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
@@ -66,5 +85,8 @@ server {
         proxy_connect_timeout 10s;
         proxy_send_timeout 120s;
         proxy_read_timeout 120s;
+        # Preserve RSC/HTML streaming. Never proxy-cache nonce-bearing HTML,
+        # authenticated data or API files.
+        proxy_buffering off;
     }
 }

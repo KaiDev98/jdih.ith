@@ -20,8 +20,14 @@ const urlApiInternal = process.env.API_INTERNAL_URL ?? 'http://localhost:3001';
 
 const konfigurasi: NextConfig = {
   reactStrictMode: true,
+  devIndicators: false,
   poweredByHeader: false,
   output: 'standalone',
+  // Native Sharp libraries are loaded dynamically. Include their companion
+  // DLL/SO files too; missing libraries silently fall back to full-size images.
+  outputFileTracingIncludes: {
+    '/*': ['../node_modules/@img/sharp-*/lib/**/*', '../node_modules/@img/sharp-libvips-*/lib/**/*'],
+  },
 
   // @jdih/shared adalah paket sumber di dalam monorepo, bukan paket terbitan npm.
   transpilePackages: ['@jdih/shared'],
@@ -44,6 +50,8 @@ const konfigurasi: NextConfig = {
 
   async rewrites() {
     return [
+      // Kedua peran berbagi komponen, dengan alamat panel yang berbeda.
+      { source: '/superadmin/:jalur*', destination: '/admin/:jalur*' },
       {
         source: '/api/v1/:jalur*',
         destination: `${urlApiInternal}/api/v1/:jalur*`,

@@ -1,0 +1,267 @@
+{
+  "reports": [
+    {
+      "role": "ADMIN",
+      "width": 1024,
+      "height": 768,
+      "bodyTop": 0,
+      "bodyHeight": 768,
+      "bodyWidth": 1024,
+      "mainTop": 0,
+      "listTop": 600,
+      "filterBottom": 245.5,
+      "menu": {
+        "items": [
+          "Semua dokumen hukum",
+          "Produk Hukum",
+          "SOP",
+          "Format Persuratan"
+        ],
+        "animation": "qs7Cpa_collection-menu-in",
+        "focusOutline": "solid",
+        "focusShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "overflow": false
+      }
+    },
+    {
+      "role": "ADMIN",
+      "width": 1366,
+      "height": 768,
+      "bodyTop": 0,
+      "bodyHeight": 768,
+      "bodyWidth": 1366,
+      "mainTop": 0,
+      "listTop": 600,
+      "filterBottom": 222.75,
+      "menu": {
+        "items": [
+          "Semua dokumen hukum",
+          "Produk Hukum",
+          "SOP",
+          "Format Persuratan"
+        ],
+        "animation": "qs7Cpa_collection-menu-in",
+        "focusOutline": "solid",
+        "focusShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "overflow": false
+      }
+    },
+    {
+      "role": "ADMIN",
+      "width": 1920,
+      "height": 1080,
+      "bodyTop": 0,
+      "bodyHeight": 1080,
+      "bodyWidth": 1920,
+      "mainTop": 0,
+      "listTop": 600,
+      "filterBottom": 222.75,
+      "menu": {
+        "items": [
+          "Semua dokumen hukum",
+          "Produk Hukum",
+          "SOP",
+          "Format Persuratan"
+        ],
+        "animation": "qs7Cpa_collection-menu-in",
+        "focusOutline": "solid",
+        "focusShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "overflow": false
+      }
+    },
+    {
+      "role": "ADMIN",
+      "width": 1366,
+      "height": 600,
+      "bodyTop": 0,
+      "bodyHeight": 600,
+      "bodyWidth": 1366,
+      "mainTop": 0,
+      "listTop": 600,
+      "filterBottom": 222.75,
+      "menu": {
+        "items": [
+          "Semua dokumen hukum",
+          "Produk Hukum",
+          "SOP",
+          "Format Persuratan"
+        ],
+        "animation": "qs7Cpa_collection-menu-in",
+        "focusOutline": "solid",
+        "focusShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "overflow": false
+      }
+    },
+    {
+      "role": "ADMIN",
+      "width": 390,
+      "height": 844,
+      "mobileScroll": true,
+      "menu": {
+        "items": [
+          "Semua dokumen hukum",
+          "Produk Hukum",
+          "SOP",
+          "Format Persuratan"
+        ],
+        "animation": "qs7Cpa_collection-menu-in",
+        "focusOutline": "solid",
+        "focusShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "overflow": false
+      }
+    },
+    {
+      "role": "ADMIN",
+      "width": 320,
+      "height": 640,
+      "mobileScroll": true,
+      "menu": {
+        "items": [
+          "Semua dokumen hukum",
+          "Produk Hukum",
+          "SOP",
+          "Format Persuratan"
+        ],
+        "animation": "qs7Cpa_collection-menu-in",
+        "focusOutline": "solid",
+        "focusShadow": "rgba(70, 118, 165, 0.008) 0px 0px 0px 0.25194px",
+        "overflow": false
+      }
+    },
+    {
+      "role": "SUPERADMIN",
+      "width": 1024,
+      "height": 768,
+      "bodyTop": 0,
+      "bodyHeight": 768,
+      "bodyWidth": 1024,
+      "mainTop": 0,
+      "listTop": 600,
+      "filterBottom": 245.5,
+      "menu": {
+        "items": [
+          "Semua dokumen hukum",
+          "Produk Hukum",
+          "SOP",
+          "Format Persuratan",
+          "SOP Permohonan SK"
+        ],
+        "animation": "qs7Cpa_collection-menu-in",
+        "focusOutline": "solid",
+        "focusShadow": "rgba(70, 118, 165, 0.008) 0px 0px 0px 0.251843px",
+        "overflow": false
+      }
+    },
+    {
+      "role": "SUPERADMIN",
+      "width": 1366,
+      "height": 768,
+      "bodyTop": 0,
+      "bodyHeight": 768,
+      "bodyWidth": 1366,
+      "mainTop": 0,
+      "listTop": 600,
+      "filterBottom": 222.75,
+      "menu": {
+        "items": [
+          "Semua dokumen hukum",
+          "Produk Hukum",
+          "SOP",
+          "Format Persuratan",
+          "SOP Permohonan SK"
+        ],
+        "animation": "qs7Cpa_collection-menu-in",
+        "focusOutline": "solid",
+        "focusShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "overflow": false
+      }
+    },
+    {
+      "role": "SUPERADMIN",
+      "width": 1920,
+      "height": 1080,
+      "bodyTop": 0,
+      "bodyHeight": 1080,
+      "bodyWidth": 1920,
+      "mainTop": 0,
+      "listTop": 600,
+      "filterBottom": 222.75,
+      "menu": {
+        "items": [
+          "Semua dokumen hukum",
+          "Produk Hukum",
+          "SOP",
+          "Format Persuratan",
+          "SOP Permohonan SK"
+        ],
+        "animation": "qs7Cpa_collection-menu-in",
+        "focusOutline": "solid",
+        "focusShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "overflow": false
+      }
+    },
+    {
+      "role": "SUPERADMIN",
+      "width": 1366,
+      "height": 600,
+      "bodyTop": 0,
+      "bodyHeight": 600,
+      "bodyWidth": 1366,
+      "mainTop": 0,
+      "listTop": 600,
+      "filterBottom": 222.75,
+      "menu": {
+        "items": [
+          "Semua dokumen hukum",
+          "Produk Hukum",
+          "SOP",
+          "Format Persuratan",
+          "SOP Permohonan SK"
+        ],
+        "animation": "qs7Cpa_collection-menu-in",
+        "focusOutline": "solid",
+        "focusShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "overflow": false
+      }
+    },
+    {
+      "role": "SUPERADMIN",
+      "width": 390,
+      "height": 844,
+      "mobileScroll": true,
+      "menu": {
+        "items": [
+          "Semua dokumen hukum",
+          "Produk Hukum",
+          "SOP",
+          "Format Persuratan",
+          "SOP Permohonan SK"
+        ],
+        "animation": "qs7Cpa_collection-menu-in",
+        "focusOutline": "solid",
+        "focusShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "overflow": false
+      }
+    },
+    {
+      "role": "SUPERADMIN",
+      "width": 320,
+      "height": 640,
+      "mobileScroll": true,
+      "menu": {
+        "items": [
+          "Semua dokumen hukum",
+          "Produk Hukum",
+          "SOP",
+          "Format Persuratan",
+          "SOP Permohonan SK"
+        ],
+        "animation": "qs7Cpa_collection-menu-in",
+        "focusOutline": "solid",
+        "focusShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "overflow": false
+      }
+    }
+  ],
+  "errors": []
+}

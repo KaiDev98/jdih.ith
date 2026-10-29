@@ -14,7 +14,9 @@ out/
 .env
 .env.local
 .env.*.local
+.env.*
 !.env.example
+!.env.*.example
 
 # Log
 logs/
@@ -32,8 +34,13 @@ playwright-report/
 
 # Berkas unggahan pengguna (disimpan di luar repositori)
 /storage/
+/backend/storage/
 uploads/
 public/uploads/
+
+# Referensi lokal desain dan dokumen uji, bukan aset aplikasi
+/Hero_Sec/
+/Materi 1.pdf
 
 # Cadangan basis data
 *.sql.gz

@@ -33,13 +33,18 @@ describe('AppModule HTTP security wiring (no database/network provider)', () => 
   };
   const identity = {
     authenticate: vi.fn(),
+    penggunaSesiTampil: vi.fn(),
     logout: vi.fn().mockResolvedValue(undefined),
     pending: vi.fn().mockResolvedValue([]),
     units: vi.fn().mockResolvedValue([]),
+    loginUji: vi.fn().mockResolvedValue({ token, expires: new Date(Date.now() + 3600000) }),
+    loginPassword: vi.fn().mockResolvedValue({ token, expires: new Date(Date.now() + 3600000) }),
+    registerWithPassword: vi.fn().mockResolvedValue({ token, expires: new Date(Date.now() + 3600000), result: { id: '9', status: 'MENUNGGU_VERIFIKASI', peran: ['DOSEN_STAF'] } }),
   };
   beforeAll(async () => {
     Object.assign(process.env, {
       NODE_ENV: 'test',
+      LOGIN_UJI: 'true',
       DB_NAME: 'jdih_ith_v2_test',
       DB_USER: 'test',
       DB_PORT: '3308',
@@ -86,6 +91,10 @@ describe('AppModule HTTP security wiring (no database/network provider)', () => 
         ? Promise.resolve({ user: { ...user, status, izin } })
         : Promise.reject(new UnauthorizedException()),
     );
+    identity.penggunaSesiTampil.mockImplementation(async (candidate: string) => {
+      const session = await identity.authenticate(candidate) as { user: PenggunaAktif };
+      return session.user;
+    });
   };
   it('unmarked route denied anonymously and works with valid active session', async () => {
     auth();
@@ -100,6 +109,32 @@ describe('AppModule HTTP security wiring (no database/network provider)', () => 
   });
   it('@Publik liveness endpoint is accessible without cookie', async () =>
     expect((await fetch(base + '/api/v1/kesehatan/hidup')).status).toBe(200));
+  it('pendaftaran email memerlukan same-origin, memberi sesi privat pending, tanpa bergantung login Google', async () => {
+    const path = base + '/api/v1/auth/register/email';
+    const input = { nama: 'Pendaftar', email: 'user@gmail.com', password: 'PasswordKuat123', konfirmasiPassword: 'PasswordKuat123', unitManual: 'Unit lain' };
+    for (const origin of [undefined, 'https://evil.test']) expect((await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json', ...(origin ? { origin } : {}) }, body: JSON.stringify(input) })).status).toBe(403);
+    const response = await fetch(path, { method: 'POST', headers: { origin: 'http://localhost:3000', 'content-type': 'application/json' }, body: JSON.stringify(input) });
+    expect(response.status).toBe(201);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(response.headers.get('set-cookie')).toContain('HttpOnly');
+    expect(response.headers.get('set-cookie')).toContain('SameSite=Lax');
+    expect(await response.text()).not.toContain(token);
+    expect(identity.registerWithPassword).toHaveBeenCalledOnce();
+  });
+  it('login staff menggunakan jalurnya sendiri dan same-origin', async () => {
+    const input = { email: 'user@gmail.com', password: 'PasswordKuat123' };
+    const response = await fetch(base + '/api/v1/auth/login/staff', { method: 'POST', headers: { origin: 'http://localhost:3000', 'content-type': 'application/json' }, body: JSON.stringify(input) });
+    expect(response.status).toBe(201);
+    expect(identity.loginPassword).toHaveBeenCalledWith(input, expect.any(String), expect.any(String), 'staff');
+  });
+  it.each([['ADMIN', '/admin'], ['SUPERADMIN', '/superadmin']])('login uji %s mengarah langsung ke panel perannya', async (role, panel) => {
+    const response = await fetch(`${base}/api/v1/auth/uji/${role}`, { redirect: 'manual' });
+    expect(response.status).toBe(302);
+    expect(response.headers.get('location')).toBe(`http://localhost:3000${panel}`);
+    expect(response.headers.get('set-cookie')).toContain('HttpOnly');
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(identity.loginUji).toHaveBeenCalledWith(role, expect.any(String), expect.any(String));
+  });
   it('pending denied default route but may read auth/me', async () => {
     auth('MENUNGGU_VERIFIKASI');
     const headers = { cookie: 'jdih_session=' + token };

@@ -15,18 +15,19 @@ import {
   X,
 } from 'lucide-react';
 import {
-  LABEL_URUTAN_DOKUMEN,
   type FasetCari,
   type HasilCariAnonim,
   type HasilCariAuthorized,
   type MetaHalaman,
   type UrutanDokumen,
 } from '@jdih/shared';
+import { LABEL_URUTAN_DOKUMEN } from '@jdih/shared/api';
 import { ambilApi, ambilApiBerdaftar, GalatApi } from '@/lib/api-client';
 import { useSession } from '@/lib/sesi';
 import { cn } from '@/lib/cn';
 import { tampilanJenis } from '@/lib/tampilan-jenis';
 import { LatarFotoHero } from './latar-foto-hero';
+import { LambangProdukHukum } from './lambang-produk-hukum';
 import { PilihanDropdown } from './pilihan-dropdown';
 
 type Baris = HasilCariAnonim | HasilCariAuthorized;
@@ -105,12 +106,15 @@ function Kerangka() {
   return (
     <ul aria-hidden className="grid gap-3">
       {[0, 1, 2, 3].map((i) => (
-        <li key={i} className="flex gap-4 rounded-xl border border-tinta/10 bg-white px-5 py-5">
+        <li
+          key={i}
+          className="flex min-w-0 gap-4 rounded-xl border border-tinta/10 bg-white px-5 py-5"
+        >
           <span className="size-11 shrink-0 animate-pulse rounded-xl bg-slate-100" />
-          <span className="grid flex-1 gap-2.5">
-            <span className="h-3 w-40 animate-pulse rounded bg-slate-100" />
+          <span className="grid min-w-0 flex-1 gap-2.5">
+            <span className="h-3 w-40 max-w-full animate-pulse rounded bg-slate-100" />
             <span className="h-4 w-3/4 animate-pulse rounded bg-slate-200/70" />
-            <span className="h-3 w-56 animate-pulse rounded bg-slate-100" />
+            <span className="h-3 w-56 max-w-full animate-pulse rounded bg-slate-100" />
           </span>
         </li>
       ))}
@@ -121,8 +125,9 @@ function Kerangka() {
 /**
  * Halaman daftar produk hukum: kepala halaman terang, panel penyaring di kiri,
  * dan daftar hasil di kanan. Penyaring berlaku langsung tanpa tombol terapkan.
- * Daftar hasil bergulir di dalam panelnya sendiri dan memuat halaman berikutnya
- * saat digulir mendekati ujung, sehingga halaman tidak memanjang.
+ * Di desktop hasil bergulir dalam panel; ponsel/tablet memakai gulir halaman.
+ * Pemuatan berikutnya mengikuti area gulir yang sesuai dan tetap tersedia
+ * melalui tombol untuk pengguna keyboard atau browser tanpa pengamat gulir.
  */
 export function PencarianProduk({
   initialQuery = '',
@@ -302,7 +307,7 @@ export function PencarianProduk({
     [faset],
   );
 
-  // Halaman berikutnya dimuat ketika ujung daftar mendekati tepi bawah panel gulir.
+  // Desktop mengikuti panel gulir; ponsel/tablet mengikuti viewport halaman.
   // Pengamat dipasang ulang setiap kali satu halaman selesai dimuat, sehingga bila
   // ujungnya masih terlihat (daftar pendek), halaman berikutnya langsung menyusul.
   useEffect(() => {
@@ -310,14 +315,27 @@ export function PencarianProduk({
     if (!ujung || !adaLanjut || memuatLanjut || galatLanjut) return;
     if (typeof IntersectionObserver === 'undefined') return;
     const berikutnya = (hasil?.halaman ?? 0) + 1;
-    const pengamat = new IntersectionObserver(
-      ([e]) => {
-        if (e?.isIntersecting) setHalaman(berikutnya);
-      },
-      { root: gulirHasil.current, rootMargin: '0px 0px 240px 0px' },
-    );
-    pengamat.observe(ujung);
-    return () => pengamat.disconnect();
+    const media = window.matchMedia?.('(min-width: 1024px)');
+    let pengamat: IntersectionObserver;
+    const pasang = () => {
+      pengamat?.disconnect();
+      pengamat = new IntersectionObserver(
+        ([e]) => {
+          if (e?.isIntersecting) setHalaman(berikutnya);
+        },
+        {
+          root: !media || media.matches ? gulirHasil.current : null,
+          rootMargin: '0px 0px 240px 0px',
+        },
+      );
+      pengamat.observe(ujung);
+    };
+    pasang();
+    media?.addEventListener('change', pasang);
+    return () => {
+      pengamat.disconnect();
+      media?.removeEventListener('change', pasang);
+    };
   }, [adaLanjut, memuatLanjut, galatLanjut, hasil?.halaman]);
 
   function ubah(perubahan: Partial<Filter>) {
@@ -327,13 +345,10 @@ export function PencarianProduk({
 
   const jenisAktif = jenis.find((j) => j.id === filter.jenisDokumenId);
   const namaJenis = jenisAktif?.nama ?? (masterSiap ? undefined : initialJenisNama);
+  const kodeJenis = jenisAktif?.kode ?? (masterSiap ? undefined : initialJenisKode);
   const namaKategori = kategori.find((k) => k.id === filter.kategoriId)?.nama;
   const judul = namaJenis ?? 'Semua produk hukum';
   const total = hasil?.meta?.totalButir;
-  const { ikon: IkonJudul } = tampilanJenis(
-    jenisAktif?.kode ?? initialJenisKode,
-    jenisAktif?.nama ?? initialJenisNama,
-  );
   const chipAktif = [
     filter.q && {
       kunci: 'q',
@@ -365,10 +380,10 @@ export function PencarianProduk({
 
   return (
     <>
-      <header className="hero-beranda text-white">
+      <header className="hero-produk hero-beranda text-white">
         <LatarFotoHero />
         <div className="mx-auto max-w-7xl px-4 pt-8 pb-10 sm:px-6 lg:px-8 lg:pt-10 lg:pb-12">
-          <nav aria-label="Jejak halaman" className="text-sm text-white/70">
+          <nav aria-label="Jejak halaman" className="masuk-ringan tunda-1 text-sm text-white/70">
             <ol className="flex flex-wrap items-center gap-1.5">
               <li>
                 <Link href="/" className="hover:text-white">
@@ -406,25 +421,30 @@ export function PencarianProduk({
             </ol>
           </nav>
           <div className="mt-6 flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
-            <div className="flex min-w-0 items-center gap-4">
-              <span
-                aria-hidden
-                className="hidden size-14 shrink-0 place-items-center rounded-2xl bg-white text-tinta shadow-[0_10px_24px_-12px_rgb(0_0_0/0.5)] sm:grid"
-              >
-                {namaJenis ? <IkonJudul className="size-7" /> : <Library className="size-7" />}
-              </span>
+            <div className="min-w-0 basis-full pl-15 sm:pl-20 lg:flex-1 lg:basis-0">
               <div className="min-w-0">
-                <h1 className="text-[1.75rem] leading-tight font-extrabold tracking-[-0.02em] [overflow-wrap:anywhere] sm:text-4xl">
-                  {judul}
-                </h1>
-                <p className="mt-1.5 max-w-2xl text-gigi-100">
+                <div className="relative">
+                  <div className="absolute top-1/2 -left-15 -translate-y-1/2 sm:-left-20">
+                    <LambangProdukHukum
+                      key={kodeJenis ?? namaJenis ?? 'semua'}
+                      kode={kodeJenis}
+                      nama={namaJenis}
+                    />
+                  </div>
+                  <h1 className="text-[1.75rem] leading-tight font-extrabold tracking-[-0.02em] [overflow-wrap:anywhere] sm:text-4xl">
+                    <span className="topeng-baris">
+                      <span className="isi-baris">{judul}</span>
+                    </span>
+                  </h1>
+                </div>
+                <p className="masuk tunda-3 mt-1.5 max-w-2xl text-gigi-100">
                   {namaJenis
                     ? `${namaJenis} Institut Teknologi Bacharuddin Jusuf Habibie yang telah diterbitkan.`
                     : 'Peraturan, keputusan, instruksi, surat edaran, dan SOP Institut Teknologi Bacharuddin Jusuf Habibie.'}
                 </p>
               </div>
             </div>
-            <p className="flex items-baseline gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-white/80 ring-1 ring-white/15 backdrop-blur-sm">
+            <p className="masuk tunda-4 flex items-baseline gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-white/80 ring-1 ring-white/15 backdrop-blur-sm">
               <span className="text-2xl font-extrabold text-white tabular-nums">
                 {total === undefined ? '—' : angka.format(total)}
               </span>
@@ -434,7 +454,7 @@ export function PencarianProduk({
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[17.5rem_minmax(0,1fr)] lg:items-start lg:gap-8 lg:px-8">
+      <div className="portal-results-layout mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[17.5rem_minmax(0,1fr)] lg:items-start lg:gap-8 lg:px-8">
         <aside aria-label="Penyaring" className="lg:sticky lg:top-24">
           <div className="panel p-4 sm:p-5">
             <form
@@ -459,7 +479,7 @@ export function PencarianProduk({
                   value={ketik}
                   onChange={(e) => setKetik(e.target.value)}
                   placeholder={namaJenis ? `Cari di ${namaJenis}…` : 'Judul, nomor, atau tahun…'}
-                  className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pr-9 pl-9 text-sm text-tinta transition-colors outline-none placeholder:text-slate-400 hover:border-slate-300 focus:border-institusi-500 focus:bg-white focus:ring-3 focus:ring-institusi-500/20 [&::-webkit-search-cancel-button]:appearance-none"
+                  className="portal-filter-input h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pr-9 pl-9 text-sm text-tinta transition-colors outline-none placeholder:text-slate-400 hover:border-slate-300 focus:border-institusi-500 focus:bg-white focus:ring-3 focus:ring-institusi-500/20 [&::-webkit-search-cancel-button]:appearance-none"
                 />
                 {ketik && (
                   <button
@@ -469,7 +489,7 @@ export function PencarianProduk({
                       setKetik('');
                       ubah({ q: '', urut: 'terbaru' });
                     }}
-                    className="absolute top-1/2 right-1.5 grid size-7 -translate-y-1/2 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-tinta"
+                    className="portal-filter-clear absolute top-1/2 right-1.5 grid size-7 -translate-y-1/2 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-tinta"
                   >
                     <X aria-hidden className="size-4" />
                   </button>
@@ -482,7 +502,7 @@ export function PencarianProduk({
               aria-expanded={panelBuka}
               aria-controls="isi-penyaring"
               onClick={() => setPanelBuka((b) => !b)}
-              className="mt-3 flex w-full items-center justify-between rounded-lg px-1 py-1 text-sm font-semibold text-tinta lg:hidden"
+              className="portal-filter-toggle mt-3 flex w-full items-center justify-between rounded-lg px-1 py-1 text-sm font-semibold text-tinta lg:hidden"
             >
               <span className="flex items-center gap-2">
                 <SlidersHorizontal aria-hidden className="size-4 text-slate-500" />
@@ -506,6 +526,26 @@ export function PencarianProduk({
               id="isi-penyaring"
               className={cn('mt-5 grid gap-6 max-lg:mt-4', !panelBuka && 'max-lg:hidden')}
             >
+              <PilihanDropdown
+                label="Tahun"
+                value={filter.tahun}
+                onChange={(v) => ubah({ tahun: v })}
+                opsi={[
+                  { value: '', label: 'Semua tahun' },
+                  ...tahunPilihan.map((t) => ({ value: String(t), label: String(t) })),
+                ]}
+              />
+
+              <PilihanDropdown
+                label="Kategori"
+                value={filter.kategoriId}
+                onChange={(v) => ubah({ kategoriId: v })}
+                opsi={[
+                  { value: '', label: 'Semua kategori' },
+                  ...kategori.map((k) => ({ value: k.id, label: k.nama })),
+                ]}
+              />
+
               <section>
                 <JudulBagian>Jenis produk hukum</JudulBagian>
                 <ul className="grid gap-0.5">
@@ -525,7 +565,7 @@ export function PencarianProduk({
                           aria-pressed={dipilih}
                           onClick={() => ubah({ jenisDokumenId: j.id })}
                           className={cn(
-                            'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
+                            'portal-filter-option flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
                             dipilih
                               ? 'bg-institusi-50 font-semibold text-institusi-900'
                               : kosong
@@ -575,7 +615,7 @@ export function PencarianProduk({
                         aria-pressed={dipilih}
                         onClick={() => ubah({ statusHukum: v })}
                         className={cn(
-                          'flex h-9 items-center justify-center gap-1.5 rounded-lg border text-sm font-medium transition-colors',
+                          'portal-status-option flex h-9 items-center justify-center gap-1.5 rounded-lg border text-sm font-medium transition-colors',
                           dipilih
                             ? 'border-tinta bg-tinta text-white'
                             : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:text-tinta',
@@ -588,32 +628,12 @@ export function PencarianProduk({
                   })}
                 </div>
               </section>
-
-              <PilihanDropdown
-                label="Tahun"
-                value={filter.tahun}
-                onChange={(v) => ubah({ tahun: v })}
-                opsi={[
-                  { value: '', label: 'Semua tahun' },
-                  ...tahunPilihan.map((t) => ({ value: String(t), label: String(t) })),
-                ]}
-              />
-
-              <PilihanDropdown
-                label="Kategori"
-                value={filter.kategoriId}
-                onChange={(v) => ubah({ kategoriId: v })}
-                opsi={[
-                  { value: '', label: 'Semua kategori' },
-                  ...kategori.map((k) => ({ value: k.id, label: k.nama })),
-                ]}
-              />
             </div>
           </div>
         </aside>
 
         <section aria-label="Hasil" className="min-w-0">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="portal-result-toolbar mb-3 flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <p aria-live="polite" className="mr-1 text-sm text-slate-600">
                 {total === undefined ? (
@@ -634,7 +654,7 @@ export function PencarianProduk({
                   type="button"
                   onClick={c.hapus}
                   aria-label={`Hapus penyaring ${c.teks}`}
-                  className="inline-flex h-7 max-w-60 items-center gap-1.5 rounded-full border border-slate-200 bg-white pr-2 pl-3 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-tinta"
+                  className="portal-filter-chip inline-flex h-7 max-w-60 items-center gap-1.5 rounded-full border border-slate-200 bg-white pr-2 pl-3 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-tinta"
                 >
                   <span className="truncate">{c.teks}</span>
                   <X aria-hidden className="size-3.5 shrink-0 text-slate-400" />
@@ -656,7 +676,10 @@ export function PencarianProduk({
           <div
             ref={gulirHasil}
             aria-busy={memuat || memuatLanjut}
-            className="gulir-hasil -mx-1.5 -mt-1 max-h-[max(26rem,calc(100dvh-13rem))] overflow-y-auto overscroll-contain px-1.5 pt-1 pb-4"
+            role="region"
+            aria-label="Daftar dokumen"
+            tabIndex={0}
+            className="portal-results-scroll gulir-hasil -mx-1.5 -mt-1 max-h-[max(26rem,calc(100dvh-13rem))] overflow-y-auto overscroll-contain px-1.5 pt-1 pb-4"
           >
             {memuat ? (
               <Kerangka />
@@ -699,83 +722,86 @@ export function PencarianProduk({
                   const { ikon: Ikon, kotak } = tampilanJenis(kodeJenis, row.tipe);
                   const akses = 'tingkatAkses' in row ? row.tingkatAkses : undefined;
                   return (
-                    <li
-                      key={row.id}
-                      className="kartu-dokumen group relative flex gap-4 rounded-xl border border-tinta/10 bg-white px-4 py-4 sm:px-5 sm:py-5"
-                    >
-                      <span
-                        aria-hidden
-                        className={cn(
-                          'grid size-11 shrink-0 place-items-center rounded-xl transition-transform group-hover:scale-105',
-                          kotak,
-                        )}
+                    <li key={row.id}>
+                      <Link
+                        href={`/produk-hukum/${row.slug}`}
+                        aria-labelledby={`judul-hasil-${row.id}`}
+                        className="kartu-dokumen group relative flex items-center gap-4 rounded-xl border border-tinta/10 bg-white px-4 py-4 outline-none focus-visible:ring-2 focus-visible:ring-institusi-500 focus-visible:ring-offset-2 sm:px-5 sm:py-5"
                       >
-                        <Ikon className="size-5" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
-                          <span className="font-semibold text-slate-700">{row.tipe}</span>
-                          <span aria-hidden>·</span>
-                          <span className="tabular-nums">
-                            No. <Sorot teks={row.nomor} kata={filter.q} />
-                          </span>
-                          {akses && (
+                        <div className="min-w-0 flex-1 pl-15">
+                          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+                            <span className="font-semibold text-slate-700">{row.tipe}</span>
+                            <span aria-hidden>·</span>
+                            <span className="tabular-nums">
+                              No. <Sorot teks={row.nomor} kata={filter.q} />
+                            </span>
+                            {akses && (
+                              <span
+                                className={cn(
+                                  'rounded-full border px-2 py-px text-[0.6875rem] font-semibold',
+                                  LABEL_AKSES[akses],
+                                )}
+                              >
+                                {akses === 'internal' ? 'Dosen/Staf' : 'Publik'}
+                              </span>
+                            )}
+                          </p>
+                          <div className="relative mt-1">
                             <span
+                              aria-hidden
                               className={cn(
-                                'rounded-full border px-2 py-px text-[0.6875rem] font-semibold',
-                                LABEL_AKSES[akses],
+                                'absolute top-1/2 -left-15 grid size-11 -translate-y-1/2 place-items-center rounded-xl transition-transform group-hover:scale-105',
+                                kotak,
                               )}
                             >
-                              {akses === 'internal' ? 'Internal' : 'Publik'}
+                              <Ikon className="size-5" />
                             </span>
-                          )}
-                        </p>
-                        <h3 className="mt-1 text-base leading-snug font-bold text-tinta [overflow-wrap:anywhere] sm:text-[1.0625rem]">
-                          <Link
-                            href={`/produk-hukum/${row.slug}`}
-                            className="transition-colors outline-none group-hover:text-institusi-800 after:absolute after:inset-0 after:content-[''] focus-visible:underline"
-                          >
-                            <Sorot teks={row.judul} kata={filter.q} />
-                          </Link>
-                        </h3>
-                        <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500">
-                          <span className="inline-flex items-center gap-1.5">
-                            <CalendarDays aria-hidden className="size-3.5" />
-                            {tanggal(row.tanggalPenetapan)}
-                          </span>
-                          <span className="inline-flex items-center gap-1.5 tabular-nums">
-                            <Eye aria-hidden className="size-3.5" />
-                            {angka.format(row.dilihat)} dilihat
-                          </span>
+                            <h3
+                              id={`judul-hasil-${row.id}`}
+                              className="text-base leading-snug font-bold text-tinta transition-colors [overflow-wrap:anywhere] group-hover:text-institusi-800 sm:text-[1.0625rem]"
+                            >
+                              <Sorot teks={row.judul} kata={filter.q} />
+                            </h3>
+                          </div>
+                          <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500">
+                            <span className="inline-flex items-center gap-1.5">
+                              <CalendarDays aria-hidden className="size-3.5" />
+                              {tanggal(row.tanggalPenetapan)}
+                            </span>
+                            <span className="inline-flex items-center gap-1.5 tabular-nums">
+                              <Eye aria-hidden className="size-3.5" />
+                              {angka.format(row.dilihat)} dilihat
+                            </span>
+                            <span
+                              className={cn(
+                                'inline-flex items-center gap-1.5 font-medium sm:hidden',
+                                status.warna,
+                              )}
+                            >
+                              <span
+                                aria-hidden
+                                className={cn('size-1.5 rounded-full', status.titik)}
+                              />
+                              {status.teks}
+                            </span>
+                          </p>
+                        </div>
+                        <div className="hidden shrink-0 items-center gap-4 sm:flex">
                           <span
                             className={cn(
-                              'inline-flex items-center gap-1.5 font-medium sm:hidden',
+                              'inline-flex items-center gap-1.5 text-sm font-medium',
                               status.warna,
                             )}
                           >
-                            <span
-                              aria-hidden
-                              className={cn('size-1.5 rounded-full', status.titik)}
-                            />
+                            <span aria-hidden className={cn('size-2 rounded-full', status.titik)} />
                             {status.teks}
                           </span>
-                        </p>
-                      </div>
-                      <div className="hidden shrink-0 items-center gap-4 sm:flex">
-                        <span
-                          className={cn(
-                            'inline-flex items-center gap-1.5 text-sm font-medium',
-                            status.warna,
-                          )}
-                        >
-                          <span aria-hidden className={cn('size-2 rounded-full', status.titik)} />
-                          {status.teks}
-                        </span>
-                        <ArrowRight
-                          aria-hidden
-                          className="size-4 -translate-x-1 text-slate-300 transition-all group-hover:translate-x-0 group-hover:text-institusi-600"
-                        />
-                      </div>
+                          <ArrowRight
+                            aria-hidden
+                            className="size-4 -translate-x-1 text-slate-300 transition-all group-hover:translate-x-0 group-hover:text-institusi-600"
+                          />
+                        </div>
+                      </Link>
                     </li>
                   );
                 })}
@@ -800,11 +826,19 @@ export function PencarianProduk({
                       Coba lagi
                     </button>
                   </p>
-                ) : adaLanjut || memuatLanjut ? (
+                ) : memuatLanjut ? (
                   <p className="inline-flex items-center gap-2">
                     <LoaderCircle aria-hidden className="size-4 animate-spin text-slate-400" />
                     Memuat dokumen berikutnya…
                   </p>
+                ) : adaLanjut ? (
+                  <button
+                    type="button"
+                    onClick={() => setHalaman(hasil.halaman + 1)}
+                    className="tekan inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-tinta hover:bg-slate-50"
+                  >
+                    Muat dokumen berikutnya
+                  </button>
                 ) : (
                   <p>
                     Semua{' '}

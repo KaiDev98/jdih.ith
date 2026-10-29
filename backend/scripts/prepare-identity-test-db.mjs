@@ -51,7 +51,9 @@ try {
   }
 
   const [finalTables] = await connection.query('SHOW FULL TABLES WHERE Table_type = \'BASE TABLE\'');
-  if (finalTables.length !== 23) throw new Error(`Expected 23 V2 tables, got ${finalTables.length}`);
+  const schemaSource = await readFile(resolve(scriptDir, '../../database/v2/schema.sql'), 'utf8');
+  const expectedTables = [...schemaSource.matchAll(/^CREATE TABLE \w+/gm)].length;
+  if (finalTables.length !== expectedTables) throw new Error(`Expected ${expectedTables} V2 tables, got ${finalTables.length}`);
   const [roles] = await connection.query('SELECT COUNT(*) AS total FROM peran');
   const [permissions] = await connection.query('SELECT COUNT(*) AS total FROM izin');
   if (Number(roles[0].total) !== 3 || Number(permissions[0].total) < 20)

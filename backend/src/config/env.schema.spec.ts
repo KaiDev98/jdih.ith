@@ -20,6 +20,17 @@ const envMinimum = {
 };
 
 describe('validasiEnv', () => {
+  it.each(['*', 'gmail.com', 'mahasiswa.ith.ac.id'])('menolak domain Google %s', domain => {
+    expect(() => validasiEnv({ ...envMinimum, GOOGLE_DOMAIN_DIIZINKAN: domain })).toThrow(/GOOGLE_DOMAIN_DIIZINKAN/);
+  });
+  it('membatasi antrean dan cache prepared statement database', () => {
+    const env = validasiEnv(envMinimum);
+    expect(env.DB_POOL_QUEUE_LIMIT).toBe(100);
+    expect(env.DB_CONNECT_TIMEOUT_MS).toBe(5000);
+    expect(env.DB_MAX_PREPARED_STATEMENTS).toBe(256);
+    expect(() => validasiEnv({ ...envMinimum, DB_POOL_QUEUE_LIMIT: 0 })).toThrow(/DB_POOL_QUEUE_LIMIT/);
+    expect(() => validasiEnv({ ...envMinimum, DB_POOL_QUEUE_LIMIT: -1 })).toThrow(/DB_POOL_QUEUE_LIMIT/);
+  });
   it('menerima konfigurasi minimum dan mengisi nilai baku', () => {
     const env = validasiEnv({ ...envMinimum });
 

@@ -1,0 +1,10 @@
+{
+  "date": "2026-10-29T17:59:58.481Z",
+  "checks": [
+    "Expired/unknown cookies preserve public search, templates, detail and PDF; Internal stays 404 and panel 401",
+    "Same-origin/CSRF enforced; Admin cannot write global master data or read SOP SK/audit",
+    "Real password registration cannot self-promote; pending access, wrong login role, approval and immediate revocation verified over HTTPS",
+    "Superadmin-only SOP SK approval publishes atomically, preserves Internal access and can be withdrawn",
+    "Production test login, Swagger and non-allowlisted master table unavailable"
+  ]
+}

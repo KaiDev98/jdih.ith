@@ -41,6 +41,7 @@ function streamFile() {
 }
 
 const statistik = { catatSekali: vi.fn(() => Promise.resolve(true)) };
+const pdfTerotorisasi = { mime_type: 'application/pdf', size_bytes: '24' } as BerkasDownloadTerotorisasi;
 
 describe('download route rate limiting (HTTP)', () => {
   const files = {
@@ -50,7 +51,7 @@ describe('download route rate limiting (HTTP)', () => {
       >(),
     openAuthorized:
       vi.fn<
-        (file: BerkasDownloadTerotorisasi) => ReturnType<DocumentFilesService['openAuthorized']>
+        (...args: Parameters<DocumentFilesService['openAuthorized']>) => ReturnType<DocumentFilesService['openAuthorized']>
       >(),
   };
   const templates = {
@@ -64,17 +65,17 @@ describe('download route rate limiting (HTTP)', () => {
         ) => ReturnType<LetterTemplatesService['openAuthorized']>
       >(),
   };
-  const identity = { authenticate: vi.fn() };
+  const identity = { optionalUser: vi.fn() };
   let app: INestApplication;
   let base: string;
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    files.authorizeCurrent.mockResolvedValue({} as BerkasDownloadTerotorisasi);
+    files.authorizeCurrent.mockResolvedValue(pdfTerotorisasi);
     files.openAuthorized.mockImplementation(() => Promise.resolve(streamFile()));
     templates.authorizeOpen.mockResolvedValue({} as TemplateDownloadTerotorisasi);
     templates.openAuthorized.mockImplementation(() => Promise.resolve(streamFile()));
-    identity.authenticate.mockResolvedValue({ user: pengguna });
+    identity.optionalUser.mockImplementation((candidate: string) => Promise.resolve(candidate ? pengguna : undefined));
 
     const config = new ConfigService({
       pembatasanLaju: {
@@ -140,12 +141,50 @@ describe('download route rate limiting (HTTP)', () => {
     expect(files.openAuthorized).toHaveBeenCalledTimes(2);
   });
 
+  it('streams a byte range with no private caching and authorizes every request', async () => {
+    files.openAuthorized.mockImplementation((_file, range) => Promise.resolve({
+      ...streamFile(), stream: Readable.from([Buffer.from('first-chunk-second-chunk').subarray(range!.start, range!.end + 1)]),
+    }));
+    const res = await fetch(`${base}/api/v1/public/documents/public/files/file-range?mode=inline`, { headers: { range: 'bytes=0-4' } });
+    expect(res.status).toBe(206);
+    expect(res.headers.get('content-range')).toBe('bytes 0-4/24');
+    expect(res.headers.get('content-length')).toBe('5');
+    expect(res.headers.get('cache-control')).toBe('private, no-store');
+    expect(await res.text()).toBe('first');
+    expect(files.authorizeCurrent).toHaveBeenCalledOnce();
+    expect(files.openAuthorized).toHaveBeenCalledWith(pdfTerotorisasi, { start: 0, end: 4 });
+  });
+
+  it('returns 416 after authorization without opening storage for invalid ranges', async () => {
+    const res = await fetch(`${base}/api/v1/public/documents/public/files/file-range?mode=inline`, { headers: { range: 'bytes=999-' } });
+    expect(res.status).toBe(416);
+    expect(res.headers.get('content-range')).toBe('bytes */24');
+    expect(files.authorizeCurrent).toHaveBeenCalledOnce();
+    expect(files.openAuthorized).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the whole file when If-Range has no matching validator', async () => {
+    const res = await fetch(`${base}/api/v1/public/documents/public/files/file-range?mode=inline`, { headers: { range: 'bytes=0-4', 'if-range': '"old-content"' } });
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe('first-chunk-second-chunk');
+    expect(files.openAuthorized).toHaveBeenCalledWith(pdfTerotorisasi);
+  });
+
+  it('serves non-PDF files as attachments even when inline preview is requested', async () => {
+    files.authorizeCurrent.mockResolvedValue({
+      mime_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    } as BerkasDownloadTerotorisasi);
+    const res = await fetch(`${base}/api/v1/public/documents/public/files/file-7?mode=inline`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-disposition')).toMatch(/^attachment;/);
+  });
+
   it('limits authenticated Internal/Secret streams per server-derived user identity', async () => {
     const url = `${base}/api/v1/public/documents/internal/files/file-2`;
     const headers = { cookie: 'jdih_session=' + token };
     expect((await fetch(url, { headers })).status).toBe(200);
     expect((await fetch(url, { headers })).status).toBe(429);
-    expect(identity.authenticate).toHaveBeenCalledTimes(2);
+    expect(identity.optionalUser).toHaveBeenCalledTimes(2);
     expect(files.openAuthorized).toHaveBeenCalledTimes(1);
   });
 
@@ -153,7 +192,7 @@ describe('download route rate limiting (HTTP)', () => {
     files.authorizeCurrent.mockImplementation((slug) =>
       slug === 'secret'
         ? Promise.reject(new NotFoundException())
-        : Promise.resolve({} as BerkasDownloadTerotorisasi),
+        : Promise.resolve(pdfTerotorisasi),
     );
 
     expect((await fetch(`${base}/api/v1/public/documents/secret/files/file-3`)).status).toBe(404);

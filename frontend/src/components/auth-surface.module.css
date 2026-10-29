@@ -1,0 +1,1409 @@
+:global(html:has([data-auth-viewport])),
+:global(body:has([data-auth-viewport])) {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.surface {
+  --auth-ink: #172f50;
+  --auth-muted: #627084;
+  --auth-line: #e3e7ed;
+  --auth-accent: #edbb83;
+  --auth-accent-soft: #fbf1e5;
+  --auth-accent-ink: #825128;
+  --auth-masthead-display: none;
+  --auth-masthead-height: 0px;
+  --auth-masthead-color: transparent;
+  --auth-masthead-radius: 0px;
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+  padding: 28px clamp(24px, 5vw, 80px) 24px;
+  background: #f6f7f9;
+  color: var(--auth-ink);
+}
+.surface[data-audience='admin'] {
+  --auth-accent: #a9cce2;
+  --auth-accent-soft: #eaf2f8;
+  --auth-accent-ink: #315c7b;
+}
+.surface[data-audience='superadmin'] {
+  --auth-accent: #b4cfbb;
+  --auth-accent-soft: #eaf3ed;
+  --auth-accent-ink: #3c6149;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  gap: 20px;
+  width: 100%;
+  max-width: 1440px;
+  margin-inline: auto;
+}
+.surface[data-mode='login'] .topbar {
+  justify-content: center;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--auth-ink);
+  text-decoration: none;
+}
+.logoMark {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 48px;
+  height: 52px;
+  border: 1px solid #dce5ee;
+  border-radius: 12px;
+  background: #fff;
+}
+.logo img {
+  width: 34px;
+  height: 40px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+.logoCopy {
+  display: block;
+}
+.logoWordmark {
+  display: block;
+  font-size: 22px;
+  font-weight: 740;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+}
+.logoSuffix {
+  margin-left: 4px;
+  font-weight: 500;
+}
+.logo small {
+  display: block;
+  margin-top: 5px;
+  color: var(--auth-muted);
+  font-size: 10px;
+  font-weight: 450;
+  letter-spacing: 0.015em;
+  line-height: 1.5;
+}
+.back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid #dce4ed;
+  border-radius: 999px;
+  background: #fff;
+  color: #425a74;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.back:hover {
+  border-color: #b6c7d8;
+  background: #f2f6fa;
+  color: var(--auth-ink);
+}
+.backShort {
+  display: none;
+}
+.stage {
+  display: flex;
+  flex: 1;
+  align-items: safe center;
+  justify-content: center;
+  min-height: 0;
+  padding-block: 24px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scroll-behavior: auto;
+}
+.form {
+  width: 100%;
+  max-width: 464px;
+  min-width: 0;
+  border: 1px solid #e0e5ec;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow:
+    0 2px 4px #172f5003,
+    0 16px 48px -24px #172f5024;
+}
+.visual {
+  display: none;
+}
+.formPanel {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+}
+.roleNav {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr 1fr;
+  gap: 4px;
+  margin-inline: 32px;
+  padding: 0 0 5px;
+  border-bottom: 1px solid #e3e8ee;
+  background: #fff;
+}
+.roleNav a {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--auth-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+.roleNav a::after {
+  position: absolute;
+  right: 12px;
+  bottom: -6px;
+  left: 12px;
+  height: 2px;
+  background: var(--auth-ink);
+  transform: scaleX(0);
+  content: '';
+}
+.roleNav a[aria-current='page'] {
+  border-color: transparent;
+  background: var(--auth-accent-soft);
+  color: var(--auth-accent-ink);
+  font-weight: 650;
+}
+.roleNav a[aria-current='page']::after {
+  transform: scaleX(1);
+}
+.roleNav a:hover {
+  color: var(--auth-ink);
+}
+
+.formContent {
+  padding: 30px 36px 28px;
+}
+.formContent h1 {
+  color: var(--auth-ink);
+  font-size: clamp(25px, 3vw, 29px);
+  font-weight: 620;
+  letter-spacing: -0.045em;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+.formContent :global(.auth-heading) {
+  margin-bottom: 26px;
+}
+.formContent :global(.auth-eyebrow) {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 12px;
+  color: #556981;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.formContent :global(.auth-eyebrow) svg {
+  color: var(--auth-accent-ink);
+}
+.formContent :global(.auth-intro) {
+  margin-top: 10px;
+  color: var(--auth-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.formContent :global(.auth-fields),
+.formContent :global(.auth-password-form) {
+  display: grid;
+  gap: 18px;
+}
+.formContent :global(.auth-field) {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+}
+.formContent label {
+  color: #36465c;
+  font-size: 12px;
+  font-weight: 550;
+}
+.formContent :global(.auth-field) > label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.formContent :global(.auth-field) > label > svg {
+  color: #7a899a;
+}
+.formContent :is(input, select) {
+  height: 46px;
+  min-height: 46px;
+  border: 1px solid #ced6e0;
+  border-radius: 7px;
+  background: #fbfcfe;
+  color: var(--auth-ink);
+  box-shadow: 0 1px 2px #172f5003;
+  font-size: 14px;
+  caret-color: var(--auth-ink);
+}
+.formContent input::placeholder {
+  color: #8993a1;
+  font-size: 13px;
+}
+.formContent :is(input, select):hover:not(:focus-visible):not([aria-invalid='true']) {
+  border-color: #a5b2c3;
+}
+.formContent :is(input, select):focus-visible {
+  border-color: #386695;
+  --tw-ring-color: #3866951c;
+}
+.formContent :global(.auth-primary) {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--auth-ink);
+  border-radius: 7px;
+  background: var(--auth-ink);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 #ffffff14,
+    0 4px 10px -5px #172f5080;
+  font-size: 13px;
+  font-weight: 550;
+}
+.formContent :global(.auth-submit-arrow) {
+  position: absolute;
+  right: 18px;
+}
+.formContent :global(.auth-primary):hover:not(:disabled) {
+  border-color: #244b77;
+  background: #244b77;
+}
+.formContent :global(.auth-primary):disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+.formContent :global(.auth-link) {
+  color: #244f7c;
+  font-weight: 550;
+  text-decoration: underline;
+  text-decoration-color: #b5c5d6;
+  text-underline-offset: 4px;
+}
+.formContent :global(.auth-link):hover {
+  text-decoration-color: currentColor;
+}
+.formContent :global(.auth-switch) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 14px;
+  color: var(--auth-muted);
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+}
+.formContent :global(.auth-switch) a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+}
+.formContent :global(.auth-divider) {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-block: 18px;
+  color: #7c8795;
+  font-size: 11px;
+}
+.formContent :global(.auth-divider)::before,
+.formContent :global(.auth-divider)::after {
+  height: 1px;
+  flex: 1;
+  background: var(--auth-line);
+  content: '';
+}
+.formContent :global(.auth-google) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 46px;
+  border: 1px solid #ced6e0;
+  border-radius: 7px;
+  background: #fff;
+  color: #36465c;
+  font-size: 13px;
+  font-weight: 500;
+}
+.formContent :global(.auth-google):hover {
+  border-color: #a5b2c3;
+  background: #f8fafc;
+}
+.formContent :global(.auth-hint) {
+  margin-top: 8px;
+  color: var(--auth-muted);
+  font-size: 11px;
+  line-height: 1.6;
+  text-align: center;
+}
+.formContent :global(.auth-policy) {
+  display: block;
+  margin-top: 18px;
+  color: var(--auth-muted);
+  font-size: 11px;
+  line-height: 1.7;
+  text-align: center;
+  text-wrap: balance;
+}
+.formContent :global(.auth-policy) > svg {
+  display: inline-block;
+  margin-right: 6px;
+  vertical-align: -2px;
+}
+.formContent :global(.auth-dev-link) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  margin-top: 10px;
+  border: 1px dashed #d2b991;
+  border-radius: 7px;
+  color: #7a603a;
+  font-size: 11px;
+}
+.formContent :global(.auth-error) {
+  color: #b43d32;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.formContent :global(.auth-login-error) {
+  display: flex;
+  align-items: start;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #f0ceca;
+  border-radius: 7px;
+  background: #fdf5f4;
+  color: #9a352d;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.formContent :global(.auth-caps-warning) {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #8a511c;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.cardFoot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 46px;
+  padding: 10px 20px;
+  border-top: 1px solid #edf0f4;
+  border-radius: 0 0 16px 16px;
+  background: #fafbfc;
+  color: #627084;
+  font-size: 10px;
+  text-align: center;
+}
+.cardFoot svg {
+  flex-shrink: 0;
+  color: #7a899a;
+}
+.note {
+  flex-shrink: 0;
+  color: var(--auth-muted);
+  font-size: 10px;
+  line-height: 1.8;
+  text-align: center;
+}
+.noteLocation {
+  color: #7b8796;
+}
+.note a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  margin-top: 4px;
+  color: #425a74;
+  font-size: 11px;
+}
+.note a:hover {
+  color: var(--auth-ink);
+}
+.surface :is(a, button):focus-visible {
+  outline: 2px solid #386695;
+  outline-offset: 4px;
+}
+
+.frame {
+  display: contents;
+}
+.surface[data-mode='register'] .roleNav {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Indikator mengikuti langkah aktif, termasuk saat pengguna kembali. */
+.formContent :global(.auth-steps) {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  list-style: none;
+}
+.formContent :global(.auth-steps) li {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e3e8ee;
+  color: var(--auth-muted);
+  font-size: 11px;
+}
+.formContent :global(.auth-steps) li > span {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #dce3eb;
+  border-radius: 50%;
+  background: #f8fafc;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.formContent :global(.auth-steps) li[aria-current='step'] {
+  border-color: var(--auth-ink);
+  color: var(--auth-ink);
+  font-weight: 600;
+}
+.formContent :global(.auth-steps) li[aria-current='step'] > span {
+  border-color: var(--auth-ink);
+  background: var(--auth-ink);
+  color: #fff;
+}
+.formContent :global(.auth-steps) li[data-done='true'] {
+  border-color: #9bbba1;
+  color: #3c7148;
+}
+.formContent :global(.auth-steps) li[data-done='true'] > span {
+  border-color: #d8e6dc;
+  background: #edf5ef;
+}
+.formContent :global(.auth-step-actions) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+.formContent :global(.auth-step-actions) > :global(.auth-primary) {
+  width: auto;
+  min-width: 0;
+  flex: 1 1 0;
+}
+.formContent :global(.auth-step-back) {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border: 1px solid #ced6e0;
+  border-radius: 7px;
+  color: var(--auth-muted);
+}
+.formContent :global(.auth-step-heading) {
+  margin-bottom: 14px;
+  color: var(--auth-ink);
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+}
+
+@media (max-width: 639px) {
+  .formContent :is(input, select, textarea) {
+    font-size: 16px;
+  }
+  .surface {
+    padding: 18px 20px 12px;
+    background: #fff;
+  }
+  .logo {
+    gap: 10px;
+  }
+  .logoWordmark {
+    font-size: 20px;
+  }
+  .logoMark {
+    width: 42px;
+    height: 46px;
+    border-radius: 11px;
+  }
+  .logo img {
+    width: 28px;
+    height: 34px;
+  }
+  .logo small {
+    max-width: 165px;
+    font-size: 9px;
+  }
+  .back {
+    gap: 5px;
+    padding-inline: 11px;
+    font-size: 11px;
+  }
+  .backLabel {
+    display: none;
+  }
+  .backShort {
+    display: inline;
+  }
+  .stage {
+    padding-block: 16px;
+  }
+  .form {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .roleNav {
+    margin-inline: 0;
+  }
+  .roleNav a {
+    min-height: 44px;
+  }
+  .roleNav a svg {
+    display: none;
+  }
+  .formContent {
+    padding: 26px 0 24px;
+  }
+  .cardFoot {
+    min-height: 40px;
+    border-radius: 7px;
+    font-size: 9px;
+  }
+  .note {
+    font-size: 9px;
+  }
+  .noteLocation {
+    display: none;
+  }
+}
+
+@media (max-width: 639px) and (min-height: 740px) {
+  .surface {
+    --auth-masthead-display: block;
+    --auth-masthead-height: 160px;
+    --auth-masthead-color: #18344f;
+    --auth-masthead-radius: 0 0 28px 28px;
+    background: #eef2f6;
+    padding-inline: 16px;
+  }
+  .surface::before {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    display: var(--auth-masthead-display);
+    height: var(--auth-masthead-height);
+    border-radius: var(--auth-masthead-radius);
+    background: var(--auth-masthead-color);
+    content: '';
+    pointer-events: none;
+  }
+  .topbar {
+    position: relative;
+    z-index: 1;
+    padding-inline: 4px;
+  }
+  .logo,
+  .back {
+    color: #fff;
+  }
+  .logo small {
+    color: #c5d4e2;
+  }
+  .logo img {
+    width: 28px;
+    height: 34px;
+  }
+  .logoMark {
+    border-color: #ffffff40;
+  }
+  .back {
+    color: #dce7f0;
+    border-color: #ffffff30;
+    background: #ffffff0d;
+  }
+  .back:hover {
+    border-color: #ffffff61;
+    background: #ffffff1a;
+    color: #fff;
+  }
+  .stage {
+    position: relative;
+    z-index: 1;
+  }
+  .form {
+    border: 1px solid #e0e7ef;
+    border-radius: 22px;
+    background: #fff;
+    box-shadow: 0 16px 40px -24px #172f5052;
+  }
+  .roleNav {
+    margin: 18px 18px 0;
+  }
+  .roleNav a {
+    gap: 5px;
+    font-size: 11px;
+  }
+  .roleNav a svg {
+    display: block;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+  .formContent {
+    padding: 24px 20px;
+  }
+  .cardFoot {
+    border-radius: 0 0 22px 22px;
+  }
+  .note {
+    display: none;
+  }
+}
+
+@media (max-height: 820px) {
+  .surface {
+    padding-block: 18px;
+  }
+  .stage {
+    padding-block: 14px;
+  }
+  .formContent {
+    padding-block: 24px;
+  }
+  .formContent :global(.auth-heading) {
+    margin-bottom: 20px;
+  }
+  .formContent :global(.auth-password-form) {
+    gap: 15px;
+  }
+  .formContent :global(.auth-divider) {
+    margin-block: 14px;
+  }
+  .formContent :global(.auth-policy) {
+    margin-top: 12px;
+  }
+  .roleNav a {
+    min-height: 48px;
+  }
+  .cardFoot {
+    min-height: 40px;
+  }
+  .formContent :global(.auth-eyebrow),
+  .note {
+    display: none;
+  }
+  .surface:has([aria-invalid='true']) :global(.auth-intro),
+  .surface:has(:global(.auth-login-error)) :global(.auth-intro),
+  .surface:has([aria-invalid='true']) :global(.auth-policy),
+  .surface:has(:global(.auth-login-error)) :global(.auth-policy) {
+    display: none;
+  }
+  .noteLocation {
+    display: none;
+  }
+  .note a {
+    margin-top: 0;
+  }
+}
+@media (max-height: 700px) {
+  .surface[data-mode='register'] .cardFoot {
+    display: none;
+  }
+  .formContent :global(.auth-steps) {
+    margin-bottom: 14px;
+  }
+  .surface {
+    padding-block: 10px;
+  }
+  .stage {
+    padding-block: 6px;
+  }
+  .formContent {
+    padding-block: 16px;
+  }
+  .roleNav a {
+    min-height: 44px;
+  }
+  .formContent :global(.auth-heading) {
+    margin-bottom: 14px;
+  }
+  .formContent :global(.auth-password-form) {
+    gap: 14px;
+  }
+  .formContent :global(.auth-fields) {
+    gap: 12px;
+  }
+  .formContent :global(.auth-eyebrow) {
+    margin-bottom: 8px;
+  }
+  .formContent :global(.auth-policy),
+  .note {
+    display: none;
+  }
+  .formContent :global(.auth-switch) {
+    margin-top: 8px;
+  }
+  .cardFoot {
+    min-height: 36px;
+  }
+}
+.surface[data-short='true'] .formContent {
+  padding-block: 12px;
+}
+.surface[data-short='true'] :global(.auth-heading) {
+  margin-bottom: 14px;
+}
+.surface[data-short='true'] :global(.auth-eyebrow),
+.surface[data-short='true'] :global(.auth-intro),
+.surface[data-short='true'] .cardFoot {
+  display: none;
+}
+.surface[data-short='true'] :global(.auth-steps) {
+  margin-bottom: 12px;
+}
+.surface[data-short='true']:not([data-keyboard='true']):has([aria-invalid='true']) .topbar {
+  display: none;
+}
+@media (max-height: 900px) {
+  .surface:has([aria-invalid='true']) .cardFoot,
+  .surface:has([aria-invalid='true']) .note,
+  .surface:has(:global(.auth-login-error)) .cardFoot,
+  .surface:has(:global(.auth-login-error)) .note {
+    display: none;
+  }
+}
+.surface[data-keyboard='true'] .note {
+  display: none;
+}
+.surface[data-keyboard='true'] {
+  padding: var(--auth-keyboard-padding);
+  background: var(--auth-keyboard-background);
+}
+.surface[data-keyboard='true']::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  display: var(--auth-keyboard-masthead-display, none);
+  height: var(--auth-keyboard-masthead-height, 0px);
+  border-radius: var(--auth-keyboard-masthead-radius, 0px);
+  background: var(--auth-keyboard-masthead-color, transparent);
+  content: '';
+  pointer-events: none;
+}
+.surface[data-keyboard='true'] .stage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: safe center;
+  padding-block: 0;
+  margin-block: var(--auth-keyboard-card-space);
+  overflow-y: auto;
+  border: var(--auth-keyboard-card-border);
+  border-radius: var(--auth-keyboard-card-radius);
+  background: var(--auth-keyboard-card-background);
+  box-shadow: var(--auth-keyboard-card-shadow);
+  scroll-padding-block: 12px;
+}
+.surface[data-keyboard='true'] .frame {
+  display: contents;
+}
+.surface[data-keyboard='true'] .visual {
+  display: none;
+}
+.surface[data-keyboard='true'] .topbar {
+  position: relative;
+  inset: auto;
+  display: flex;
+  z-index: 1;
+  margin-bottom: 0;
+  padding: var(--auth-keyboard-header-padding);
+}
+.surface[data-keyboard='true'] .logo {
+  color: var(--auth-keyboard-brand-color);
+}
+.surface[data-keyboard='true'] .logo small {
+  color: var(--auth-keyboard-brand-caption);
+}
+.surface[data-keyboard='true'] .back {
+  border-color: var(--auth-keyboard-back-border);
+  background: var(--auth-keyboard-back-background);
+  color: var(--auth-keyboard-back-color);
+}
+.surface[data-keyboard='true'] .formPanel {
+  padding: 0;
+}
+.surface[data-keyboard='true'] .form {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.surface[data-keyboard='true'] .formContent {
+  padding: var(--auth-keyboard-content-padding);
+}
+.surface[data-keyboard='true'] :global(.auth-heading) {
+  display: block;
+  margin-bottom: var(--auth-keyboard-heading-margin-bottom);
+}
+.surface[data-keyboard='true'] .roleNav {
+  margin: var(--auth-keyboard-nav-margin);
+  padding: var(--auth-keyboard-nav-padding);
+}
+.surface[data-keyboard='true'] .roleNav a {
+  min-height: var(--auth-keyboard-nav-link-min-height);
+  font-size: var(--auth-keyboard-nav-link-font-size);
+  gap: var(--auth-keyboard-nav-link-gap);
+}
+.surface[data-keyboard='true'] .roleNav a svg {
+  display: var(--auth-keyboard-nav-icon-display);
+  width: var(--auth-keyboard-nav-icon-width);
+  height: var(--auth-keyboard-nav-icon-height);
+  flex-shrink: 0;
+}
+.surface[data-keyboard='true'] :global(.auth-eyebrow) {
+  display: var(--auth-keyboard-eyebrow-display);
+  margin-bottom: var(--auth-keyboard-eyebrow-margin-bottom);
+}
+.surface[data-keyboard='true'] :global(.auth-password-form) {
+  gap: var(--auth-keyboard-password-gap);
+}
+.surface[data-keyboard='true'] :global(.auth-fields) {
+  gap: var(--auth-keyboard-fields-gap);
+}
+.surface[data-keyboard='true'] :global(.auth-divider) {
+  margin-block: var(--auth-keyboard-divider-margin-block);
+}
+.surface[data-keyboard='true'] :global(.auth-policy) {
+  display: var(--auth-keyboard-policy-display);
+  margin-top: var(--auth-keyboard-policy-margin-top);
+}
+.surface[data-keyboard='true'] :global(.auth-steps) {
+  margin-bottom: var(--auth-keyboard-steps-margin-bottom);
+}
+.surface[data-keyboard='true'] .cardFoot {
+  display: var(--auth-keyboard-footer-display);
+  min-height: var(--auth-keyboard-footer-min-height);
+}
+
+/* Layar landscape tetap memuat kedua metode masuk, tanpa gulir halaman. */
+@media (max-height: 500px) and (min-width: 640px) {
+  .surface[data-mode='register']:has([aria-invalid='true']) .roleNav {
+    display: none;
+  }
+  .surface {
+    padding-block: 8px;
+  }
+  .topbar,
+  .note,
+  .cardFoot {
+    display: none;
+  }
+  .stage {
+    padding-block: 4px;
+  }
+  .form {
+    max-width: 680px;
+  }
+  .roleNav {
+    margin-inline: 24px;
+  }
+  .roleNav a {
+    min-height: 36px;
+  }
+  .formContent {
+    padding: 12px 24px;
+  }
+  .formContent h1 {
+    font-size: 23px;
+  }
+  .formContent :global(.auth-heading) {
+    margin-bottom: 12px;
+  }
+  .formContent > div:not(:global(.auth-heading)) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 24px;
+    align-items: start;
+  }
+  .formContent :global(.auth-password-form) {
+    display: contents;
+    gap: 10px;
+  }
+  .formContent :global(.auth-password-form) > [role='alert'] {
+    grid-column: 1 / -1;
+  }
+  .formContent > div > div:global(.auth-secondary) {
+    display: contents;
+  }
+  .formContent :global(.auth-primary),
+  .formContent :global(.auth-google) {
+    margin-top: 10px;
+  }
+  .surface:not([data-audience='staff']) :global(.auth-primary),
+  .formContent :global(.auth-dev-link) {
+    grid-column: 1 / -1;
+  }
+  .formContent :global(.auth-google) {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .formContent :global(.auth-hint) {
+    grid-column: 2;
+  }
+  .formContent :global(.auth-switch) {
+    margin-top: 6px;
+  }
+  .formContent :global(.auth-divider) {
+    display: none;
+  }
+  .formContent :global(.auth-register-form) {
+    grid-column: 1 / -1;
+  }
+  .formContent :global(.auth-step-heading) {
+    display: none;
+  }
+  .formContent :global(.auth-register-form) :global(.auth-fields) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .formContent :global(.auth-register-form) :global(.auth-step-actions),
+  .formContent :global(.auth-register-form) :global(.auth-fields) > :global(.auth-error) {
+    grid-column: 1 / -1;
+  }
+}
+.artwork {
+  overflow: visible;
+}
+.artBack {
+  transform: rotate(4deg);
+  transform-origin: 306px 156px;
+}
+.artPaper {
+  transform: rotate(-5deg);
+  transform-origin: 257px 176px;
+  filter: drop-shadow(0 12px 12px #091f3340);
+}
+.artDocumentLabel {
+  fill: #4b5c68;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 1.8px;
+}
+.artDocumentCaption {
+  fill: #75654f;
+  font-family: var(--font-sans);
+  font-size: 8px;
+  font-weight: 550;
+  letter-spacing: 1.2px;
+}
+.artSectionMark {
+  fill: #18344f;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 118px;
+}
+.artBookmark,
+.artSealSurface {
+  fill: var(--auth-accent);
+}
+
+/* Desktop: ilustrasi arsip dan tipografi di kiri, kartu formulir di kanan. */
+@media (min-width: 1024px) and (min-height: 700px) {
+  .surface {
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: #edf1f5;
+  }
+  .frame {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    max-width: 1680px;
+    max-height: 900px;
+    min-height: 0;
+  }
+  .topbar {
+    position: absolute;
+    z-index: 3;
+    top: 24px;
+    left: 32px;
+    right: 32px;
+    width: auto;
+    max-width: none;
+  }
+  .surface[data-mode='login']:not([data-keyboard='true']) .topbar {
+    right: auto;
+    width: calc(48% - 64px);
+  }
+  .logo {
+    gap: 12px;
+    color: #fff;
+  }
+  .logo img {
+    width: 34px;
+    height: 40px;
+  }
+  .logoMark {
+    width: 50px;
+    height: 54px;
+    border-color: #ffffff40;
+  }
+  .logo small {
+    color: #e0e8ef;
+  }
+  .back {
+    color: #627084;
+  }
+  .stage {
+    display: grid;
+    grid-template-columns: 48% minmax(0, 1fr);
+    align-items: stretch;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid #dbe2e9;
+    border-radius: 22px;
+    background: #fff;
+    box-shadow: 0 20px 60px -36px #10284055;
+  }
+  .visual {
+    position: relative;
+    display: block;
+    min-height: 0;
+    overflow: hidden;
+    border-radius: 0;
+    background: #18344f;
+  }
+  .visual::before {
+    position: absolute;
+    top: 100px;
+    right: 32px;
+    left: 32px;
+    height: 1px;
+    background: #d0dce71a;
+    content: '';
+  }
+  .visualBody {
+    position: absolute;
+    inset: 128px 36px 104px clamp(32px, 3.3vw, 64px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 26px;
+  }
+  .visualEmblem {
+    flex-shrink: 0;
+    height: clamp(240px, 29vh, 320px);
+  }
+  .visualEmblem > svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .visualCopy {
+    max-width: 560px;
+    color: #fff;
+  }
+  .visualLabel {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 20px;
+    color: var(--auth-accent);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    line-height: 1.6;
+    text-transform: uppercase;
+  }
+  .visualLabel > span {
+    width: 20px;
+    height: 1px;
+    background: currentColor;
+  }
+  .visualTitle {
+    display: grid;
+    gap: 2px;
+    font-size: clamp(34px, 3.15vw, 56px);
+    font-weight: 450;
+    letter-spacing: -0.045em;
+    line-height: 1.12;
+  }
+  .visualTitle > span:last-child {
+    color: var(--auth-accent);
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 1.12em;
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: -0.04em;
+  }
+  .visualDescription {
+    max-width: 340px;
+    margin-top: 22px;
+    color: #d0dce7;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.85;
+  }
+  .registrationGuide {
+    display: grid;
+    gap: 0;
+    max-width: 360px;
+    list-style: none;
+    color: #c8d6e3;
+  }
+  .registrationGuide li {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 14px 0;
+  }
+  .registrationGuide li + li {
+    border-top: 1px solid #d0dce71a;
+  }
+  .guideIcon {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    border: 1px solid #d0dce740;
+    border-radius: 12px;
+    color: #b8c9d9;
+  }
+  .guideIndex {
+    margin-right: 9px;
+    color: #92aabe;
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+  .registrationGuide strong {
+    color: #e6edf3;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .registrationGuide p {
+    margin-top: 5px;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .registrationGuide li[aria-current='step'] .guideIcon {
+    border-color: var(--auth-accent);
+    background: var(--auth-accent);
+    color: #18344f;
+  }
+  .registrationGuide li[aria-current='step'] :is(strong, .guideIndex) {
+    color: var(--auth-accent);
+  }
+  .registrationGuide li[data-done='true'] .guideIcon {
+    border-color: #a5c8b2;
+    color: #b9ddc6;
+  }
+  .visualFoot {
+    position: absolute;
+    right: 32px;
+    bottom: 32px;
+    left: clamp(32px, 3.3vw, 64px);
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #d0dce72b;
+    color: #c8d6e3;
+    font-size: 10px;
+    line-height: 1.7;
+  }
+  .visualFoot > span:last-child {
+    text-align: right;
+  }
+  .formPanel {
+    align-items: center;
+    padding: 72px clamp(24px, 3vw, 56px) 48px;
+  }
+  .form {
+    max-width: 520px;
+    border: 0;
+    border-radius: 0;
+    background: #fff;
+    box-shadow: none;
+  }
+  .roleNav {
+    margin: 22px 22px 0;
+  }
+  .roleNav a {
+    min-height: 44px;
+  }
+  .formContent {
+    padding: 26px 30px 28px;
+  }
+  .formContent h1 {
+    font-size: clamp(27px, 2.3vw, 32px);
+    font-weight: 600;
+  }
+  .cardFoot {
+    display: none;
+  }
+  .note {
+    position: absolute;
+    bottom: 12px;
+    left: calc(48% + 10px);
+    right: 20px;
+    display: block;
+  }
+  .note > p {
+    display: none;
+  }
+  .note a {
+    font-size: 11px;
+  }
+}
+
+@media (min-width: 1024px) and (min-height: 700px) and (max-height: 820px) {
+  .formPanel {
+    padding-bottom: 40px;
+  }
+  .roleNav {
+    margin-top: 16px;
+  }
+  .formContent {
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+  .formContent :global(.auth-heading) {
+    margin-bottom: 18px;
+  }
+  .formContent :global(.auth-eyebrow) {
+    display: none;
+  }
+  .visualBody {
+    gap: 22px;
+  }
+  .visualEmblem {
+    height: 220px;
+  }
+  .visualLabel {
+    margin-bottom: 16px;
+  }
+  .visualDescription {
+    margin-top: 16px;
+  }
+}
+
+@keyframes auth-enter {
+  from {
+    opacity: 0.4;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .visualEmblem {
+    animation: auth-enter 650ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .visualCopy {
+    animation: auth-enter 500ms 80ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .artSeal {
+    animation: auth-enter 500ms 140ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .formContent {
+    animation: auth-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .surface :is(a, button) {
+    transition:
+      color 160ms ease,
+      background-color 160ms ease,
+      border-color 160ms ease;
+  }
+  .roleNav a::after {
+    transition: transform 200ms ease;
+  }
+  .guideIcon,
+  .registrationGuide :is(strong, .guideIndex),
+  .formContent :global(.auth-steps) li,
+  .formContent :global(.auth-steps) li > span,
+  .formContent :is(input, select) {
+    transition:
+      color 180ms ease,
+      background-color 180ms ease,
+      border-color 180ms ease,
+      box-shadow 180ms ease;
+  }
+  .formContent :global(.auth-submit-arrow),
+  .back svg,
+  .note a svg {
+    transition: transform 180ms ease;
+  }
+  .formContent :global(.auth-primary):hover:not(:disabled) :global(.auth-submit-arrow),
+  .note a:hover svg {
+    transform: translateX(3px);
+  }
+  .back:hover svg {
+    transform: translateX(-3px);
+  }
+  .formContent :global(.auth-primary):active:not(:disabled) {
+    transform: translateY(1px);
+  }
+}
+@media (pointer: coarse) {
+  .formContent :is(input, select, textarea) {
+    font-size: 16px;
+  }
+  .formContent :global(.auth-switch) a {
+    min-height: 44px;
+  }
+}

@@ -1,0 +1,36 @@
+.page {
+  display: grid;
+  min-height: 70svh;
+  margin: 0;
+  padding: 48px 24px;
+  place-items: center;
+  background: #f8fafb;
+  color: #162239;
+  font-family: Arial, sans-serif;
+  box-sizing: border-box;
+}
+.content { width: min(100%, 540px); }
+.brand { font-size: 13px; font-weight: 700; letter-spacing: .14em; }
+.rule { display: block; width: 40px; height: 3px; margin: 24px 0; background: #155f87; }
+.content h1 { margin: 0; font-size: clamp(28px, 5vw, 40px); line-height: 1.18; letter-spacing: -.025em; }
+.content > p:last-of-type { margin: 20px 0 0; max-width: 440px; color: #536176; line-height: 1.7; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
+.actions button, .actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid #cbd5df;
+  border-radius: 8px;
+  background: white;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.actions button { border-color: #155f87; background: #155f87; color: white; }
+.actions :is(button, a):focus-visible { outline: 3px solid #9bc9e1; outline-offset: 3px; }

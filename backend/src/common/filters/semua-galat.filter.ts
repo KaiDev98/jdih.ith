@@ -39,10 +39,14 @@ export class SemuaGalatFilter implements ExceptionFilter {
     const jejak = randomUUID();
 
     const { status, badan, catatSebagaiGalat } = this.petakan(galat, jejak);
+    if (status === Number(HttpStatus.SERVICE_UNAVAILABLE)) tanggapan.setHeader('Retry-After', '1');
 
     if (catatSebagaiGalat) {
+      const code = galat instanceof Error && 'code' in galat &&
+        typeof galat.code === 'string' && /^[A-Z0-9_]{1,64}$/.test(galat.code) ? galat.code : '';
       this.log.error(
-        `[${jejak}] ${permintaan.method} ${permintaan.path} -> ${status}: internal failure`,
+        `[${jejak}] ${permintaan.method} ${permintaan.path} -> ${status}: internal failure ${code}`.trim(),
+        status === 500 && galat instanceof Error ? galat.stack?.split('\n').slice(1).join('\n') : undefined,
       );
     } else {
       this.log.warn(
@@ -108,6 +112,17 @@ export class SemuaGalatFilter implements ExceptionFilter {
         catatSebagaiGalat: status >= 500,
       };
     }
+
+    // Saturasi/koneksi DB bersifat sementara. Jangan bocorkan detail driver dan
+    // jangan menyamarkannya sebagai bug 500 ketika antrean yang dibatasi penuh.
+    if (galat instanceof Error && (
+      galat.message === 'Queue limit reached.' ||
+      ('code' in galat && ['ECONNREFUSED', 'ETIMEDOUT', 'ER_CON_COUNT_ERROR', 'ER_LOCK_WAIT_TIMEOUT'].includes(String(galat.code)))
+    )) return {
+      status: HttpStatus.SERVICE_UNAVAILABLE,
+      badan: { sukses: false, galat: { kode: KODE_GALAT.GALAT_PELADEN, pesan: 'Peladen sedang sibuk. Coba lagi sebentar.' }, jejak },
+      catatSebagaiGalat: true,
+    };
 
     /* Segala hal lain: bug, kegagalan basis data, kehabisan memori. */
     return {

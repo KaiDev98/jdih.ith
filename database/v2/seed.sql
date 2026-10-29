@@ -40,28 +40,34 @@ INSERT INTO izin (kode, nama, modul) VALUES
   ('contact.manage', 'Mengelola kontak kantor', 'settings') AS incoming
 ON DUPLICATE KEY UPDATE nama = incoming.nama, modul = incoming.modul;
 
--- Admin: semua izin, termasuk memverifikasi, mengubah status hukum, menarik dan
--- menghapus dokumen, serta menghapus akun. Akun Superadmin tetap tidak dapat
--- dihapus siapa pun (dijaga di layanan). Pembuat versi tetap tidak boleh
--- menyetujui versinya sendiri.
+-- Admin biasa hanya memasukkan/mengajukan dokumen miliknya. Pemeriksaan
+-- kepemilikan dan kategori per unit tetap ditegakkan oleh service.
+DELETE pi FROM peran_izin pi
+JOIN peran p ON p.id = pi.peran_id
+WHERE p.kode = 'ADMIN';
 INSERT INTO peran_izin (peran_id, izin_id)
 SELECT p.id, i.id FROM peran p CROSS JOIN izin i
 WHERE p.kode = 'ADMIN'
+  AND i.kode IN (
+    'dashboard.read',
+    'documents.read_admin', 'documents.create', 'documents.edit',
+    'documents.upload', 'documents.revise', 'workflow.submit',
+    'legal.manage_relations', 'templates.manage'
+  )
 ON DUPLICATE KEY UPDATE izin_id = peran_izin.izin_id;
 
--- Superadmin: semua izin KECUALI memverifikasi (hanya mengetahui antrean).
--- Untuk dokumen terbit: ubah, cabut/tarik, hapus permanen; serta hapus akun.
+-- Format Persuratan dapat dikelola semua Admin dan Superadmin.
+-- Verifikasi, publikasi dokumen, pengaturan global lainnya, dan SOP Permohonan SK hanya
+-- dapat dikelola Superadmin.
 INSERT INTO peran_izin (peran_id, izin_id)
 SELECT p.id, i.id FROM peran p CROSS JOIN izin i
 WHERE p.kode = 'SUPERADMIN'
-  AND i.kode NOT IN ('workflow.approve', 'workflow.return', 'workflow.publish')
 ON DUPLICATE KEY UPDATE izin_id = peran_izin.izin_id;
 
 -- DOSEN_STAF access depends on active account + document policy, not a global
--- secret permission. Admin verifier permissions can be explicitly provisioned
--- through pengguna_izin by operations; no separate VERIFIER role is created.
+-- secret permission. Workflow verification is role-bound to SUPERADMIN.
 
--- Nilai awal kontak kantor; selanjutnya dikelola Admin lewat panel, seed tidak menimpanya.
+-- Nilai awal kontak kantor; selanjutnya dikelola Superadmin lewat panel, seed tidak menimpanya.
 INSERT INTO kontak_kantor_butir (id, jenis, nilai, urutan) VALUES
   (1, 'TELEPON', '+62 853-4088-9059', 1),
   (2, 'SUREL', 'humas@ith.ac.id', 2) AS incoming
@@ -86,10 +92,12 @@ INSERT INTO kategori (kode, nama) VALUES
   ('SOP-BMN', 'BMN'),
   ('SOP-KEPEGAWAIAN', 'Kepegawaian'),
   ('SOP-KEUANGAN', 'Keuangan'),
-  ('SOP-LPPM', 'LPPM'),
+  ('SOP-LPPM', 'LPPM-PM'),
   ('SOP-HUKUM', 'Bagian Hukum'),
   ('SOP-SPI', 'SPI'),
-  ('SOP-KOMISI-ETIK', 'Komisi Etik') AS incoming
+  ('SOP-KOMISI-ETIK', 'Komisi Etik Kemahasiswaan'),
+  ('SOP-LAB', 'Laboratorium'),
+  ('SOP-SENAT', 'Senat') AS incoming
 ON DUPLICATE KEY UPDATE nama = incoming.nama;
 
 -- Unit kerja mengikuti kategori SOP (kode, nama, dan status aktif yang sama);

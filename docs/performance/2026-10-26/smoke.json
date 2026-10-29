@@ -1,0 +1,594 @@
+{
+  "date": "2026-10-26T04:03:11.958Z",
+  "checks": 84,
+  "rows": [
+    {
+      "browser": "Chromium",
+      "width": 320,
+      "role": "anonymous",
+      "path": "/",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 320,
+      "role": "anonymous",
+      "path": "/produk-hukum",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 320,
+      "role": "anonymous",
+      "path": "/masuk/admin",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 320,
+      "role": "anonymous",
+      "path": "/masuk/superadmin",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 320,
+      "role": "anonymous",
+      "path": "/masuk",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 320,
+      "role": "DOSEN_STAF",
+      "path": "/",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 320,
+      "role": "DOSEN_STAF",
+      "path": "/produk-hukum",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 320,
+      "role": "DOSEN_STAF",
+      "path": "/akun",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 320,
+      "role": "ADMIN",
+      "path": "/admin",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 320,
+      "role": "ADMIN",
+      "path": "/admin/dokumen/baru",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 320,
+      "role": "ADMIN",
+      "path": "/admin/dokumen/verifikasi",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 320,
+      "role": "SUPERADMIN",
+      "path": "/superadmin",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 320,
+      "role": "SUPERADMIN",
+      "path": "/superadmin/dokumen/baru",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 320,
+      "role": "SUPERADMIN",
+      "path": "/superadmin/dokumen/verifikasi",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 1440,
+      "role": "anonymous",
+      "path": "/",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 1440,
+      "role": "anonymous",
+      "path": "/produk-hukum",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 1440,
+      "role": "anonymous",
+      "path": "/masuk/admin",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 1440,
+      "role": "anonymous",
+      "path": "/masuk/superadmin",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 1440,
+      "role": "anonymous",
+      "path": "/masuk",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 1440,
+      "role": "DOSEN_STAF",
+      "path": "/",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 1440,
+      "role": "DOSEN_STAF",
+      "path": "/produk-hukum",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 1440,
+      "role": "DOSEN_STAF",
+      "path": "/akun",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 1440,
+      "role": "ADMIN",
+      "path": "/admin",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 1440,
+      "role": "ADMIN",
+      "path": "/admin/dokumen/baru",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 1440,
+      "role": "ADMIN",
+      "path": "/admin/dokumen/verifikasi",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 1440,
+      "role": "SUPERADMIN",
+      "path": "/superadmin",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 1440,
+      "role": "SUPERADMIN",
+      "path": "/superadmin/dokumen/baru",
+      "ok": true
+    },
+    {
+      "browser": "Chromium",
+      "width": 1440,
+      "role": "SUPERADMIN",
+      "path": "/superadmin/dokumen/verifikasi",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 320,
+      "role": "anonymous",
+      "path": "/",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 320,
+      "role": "anonymous",
+      "path": "/produk-hukum",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 320,
+      "role": "anonymous",
+      "path": "/masuk/admin",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 320,
+      "role": "anonymous",
+      "path": "/masuk/superadmin",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 320,
+      "role": "anonymous",
+      "path": "/masuk",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 320,
+      "role": "DOSEN_STAF",
+      "path": "/",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 320,
+      "role": "DOSEN_STAF",
+      "path": "/produk-hukum",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 320,
+      "role": "DOSEN_STAF",
+      "path": "/akun",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 320,
+      "role": "ADMIN",
+      "path": "/admin",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 320,
+      "role": "ADMIN",
+      "path": "/admin/dokumen/baru",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 320,
+      "role": "ADMIN",
+      "path": "/admin/dokumen/verifikasi",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 320,
+      "role": "SUPERADMIN",
+      "path": "/superadmin",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 320,
+      "role": "SUPERADMIN",
+      "path": "/superadmin/dokumen/baru",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 320,
+      "role": "SUPERADMIN",
+      "path": "/superadmin/dokumen/verifikasi",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 1440,
+      "role": "anonymous",
+      "path": "/",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 1440,
+      "role": "anonymous",
+      "path": "/produk-hukum",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 1440,
+      "role": "anonymous",
+      "path": "/masuk/admin",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 1440,
+      "role": "anonymous",
+      "path": "/masuk/superadmin",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 1440,
+      "role": "anonymous",
+      "path": "/masuk",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 1440,
+      "role": "DOSEN_STAF",
+      "path": "/",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 1440,
+      "role": "DOSEN_STAF",
+      "path": "/produk-hukum",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 1440,
+      "role": "DOSEN_STAF",
+      "path": "/akun",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 1440,
+      "role": "ADMIN",
+      "path": "/admin",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 1440,
+      "role": "ADMIN",
+      "path": "/admin/dokumen/baru",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 1440,
+      "role": "ADMIN",
+      "path": "/admin/dokumen/verifikasi",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 1440,
+      "role": "SUPERADMIN",
+      "path": "/superadmin",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 1440,
+      "role": "SUPERADMIN",
+      "path": "/superadmin/dokumen/baru",
+      "ok": true
+    },
+    {
+      "browser": "Edge",
+      "width": 1440,
+      "role": "SUPERADMIN",
+      "path": "/superadmin/dokumen/verifikasi",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 320,
+      "role": "anonymous",
+      "path": "/",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 320,
+      "role": "anonymous",
+      "path": "/produk-hukum",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 320,
+      "role": "anonymous",
+      "path": "/masuk/admin",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 320,
+      "role": "anonymous",
+      "path": "/masuk/superadmin",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 320,
+      "role": "anonymous",
+      "path": "/masuk",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 320,
+      "role": "DOSEN_STAF",
+      "path": "/",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 320,
+      "role": "DOSEN_STAF",
+      "path": "/produk-hukum",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 320,
+      "role": "DOSEN_STAF",
+      "path": "/akun",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 320,
+      "role": "ADMIN",
+      "path": "/admin",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 320,
+      "role": "ADMIN",
+      "path": "/admin/dokumen/baru",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 320,
+      "role": "ADMIN",
+      "path": "/admin/dokumen/verifikasi",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 320,
+      "role": "SUPERADMIN",
+      "path": "/superadmin",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 320,
+      "role": "SUPERADMIN",
+      "path": "/superadmin/dokumen/baru",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 320,
+      "role": "SUPERADMIN",
+      "path": "/superadmin/dokumen/verifikasi",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 1440,
+      "role": "anonymous",
+      "path": "/",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 1440,
+      "role": "anonymous",
+      "path": "/produk-hukum",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 1440,
+      "role": "anonymous",
+      "path": "/masuk/admin",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 1440,
+      "role": "anonymous",
+      "path": "/masuk/superadmin",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 1440,
+      "role": "anonymous",
+      "path": "/masuk",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 1440,
+      "role": "DOSEN_STAF",
+      "path": "/",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 1440,
+      "role": "DOSEN_STAF",
+      "path": "/produk-hukum",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 1440,
+      "role": "DOSEN_STAF",
+      "path": "/akun",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 1440,
+      "role": "ADMIN",
+      "path": "/admin",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 1440,
+      "role": "ADMIN",
+      "path": "/admin/dokumen/baru",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 1440,
+      "role": "ADMIN",
+      "path": "/admin/dokumen/verifikasi",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 1440,
+      "role": "SUPERADMIN",
+      "path": "/superadmin",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 1440,
+      "role": "SUPERADMIN",
+      "path": "/superadmin/dokumen/baru",
+      "ok": true
+    },
+    {
+      "browser": "WebKit",
+      "width": 1440,
+      "role": "SUPERADMIN",
+      "path": "/superadmin/dokumen/verifikasi",
+      "ok": true
+    }
+  ]
+}

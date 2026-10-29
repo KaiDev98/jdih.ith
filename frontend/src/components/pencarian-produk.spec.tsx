@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { skemaHasilCariAnonim } from '@jdih/shared';
 import { PencarianProduk } from './pencarian-produk';
 
@@ -63,6 +63,10 @@ beforeEach(() => {
   sesi.nilai = { state: 'anonymous' };
   api.hasil = [];
 });
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 describe('kontrak pencarian untuk pengunjung anonim', () => {
   it('menerima ringkasan dokumen publik tanpa label akses apa pun', () => {
@@ -84,19 +88,103 @@ describe('kontrak pencarian untuk pengunjung anonim', () => {
 });
 
 describe('tampilan hasil pencarian', () => {
-  it('pengunjung anonim tidak melihat label Publik maupun Internal', async () => {
+  it('menempatkan Tahun dan Kategori sebelum Jenis produk hukum sesuai urutan baca dan keyboard', async () => {
+    render(<PencarianProduk />);
+    await screen.findByRole('button', { name: /Peraturan Rektor\s*2/ });
+    const year = screen.getByText('Tahun', { exact: true });
+    const category = screen.getByText('Kategori', { exact: true });
+    const type = screen.getByText('Jenis produk hukum', { exact: true });
+    expect(year.compareDocumentPosition(category) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(category.compareDocumentPosition(type) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+  it('seluruh kartu tetap menjadi satu tautan berlabel judul dokumen', async () => {
+    api.hasil = [ringkasan];
+    render(<PencarianProduk />);
+    const card = await screen.findByRole('link', { name: ringkasan.judul });
+    expect(card).toHaveAttribute('href', '/produk-hukum/sop-praktikum');
+    expect(within(card).getByRole('heading', { name: ringkasan.judul, level: 3 })).toBeInTheDocument();
+    expect(within(card).getByText(ringkasan.tipe)).toBeInTheDocument();
+    expect(within(card).queryAllByRole('link')).toHaveLength(0);
+  });
+  it('tetap dapat memuat halaman berikutnya tanpa IntersectionObserver', async () => {
+    vi.stubGlobal('IntersectionObserver', undefined);
+    const { ambilApiBerdaftar } = await import('@/lib/api-client');
+    const meta = {
+      halaman: 1,
+      perHalaman: 15,
+      totalButir: 2,
+      totalHalaman: 2,
+      adaSebelumnya: false,
+      adaBerikutnya: true,
+    };
+    vi.mocked(ambilApiBerdaftar)
+      .mockResolvedValueOnce({ data: [ringkasan], meta })
+      .mockResolvedValueOnce({
+        data: [{ ...ringkasan, id: '11', judul: 'Dokumen berikutnya' }],
+        meta: { ...meta, halaman: 2, adaBerikutnya: false },
+      });
+    render(<PencarianProduk />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Muat dokumen berikutnya' }));
+    expect(await screen.findByText('Dokumen berikutnya')).toBeInTheDocument();
+    expect(screen.getByText('SOP Praktikum')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Muat dokumen berikutnya' }),
+    ).not.toBeInTheDocument();
+  });
+  it('pemuatan otomatis mengikuti viewport ponsel dan berganti ke panel saat desktop', async () => {
+    const listeners = new Set<() => void>();
+    const media = {
+      matches: false,
+      addEventListener: (_: string, fn: () => void) => listeners.add(fn),
+      removeEventListener: (_: string, fn: () => void) => listeners.delete(fn),
+    };
+    vi.stubGlobal('matchMedia', () => media);
+    const opsi: IntersectionObserverInit[] = [];
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(_callback: IntersectionObserverCallback, options: IntersectionObserverInit) {
+          opsi.push(options);
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    const { ambilApiBerdaftar } = await import('@/lib/api-client');
+    vi.mocked(ambilApiBerdaftar).mockResolvedValueOnce({
+      data: [ringkasan],
+      meta: {
+        halaman: 1,
+        perHalaman: 15,
+        totalButir: 2,
+        totalHalaman: 2,
+        adaSebelumnya: false,
+        adaBerikutnya: true,
+      },
+    });
+    render(<PencarianProduk />);
+    await screen.findByRole('button', { name: 'Muat dokumen berikutnya' });
+    await waitFor(() => expect(opsi.at(-1)?.root).toBeNull());
+    act(() => {
+      media.matches = true;
+      listeners.forEach((fn) => fn());
+    });
+    await waitFor(() => expect(opsi.at(-1)?.root).toBe(screen.getByRole('region', { name: 'Daftar dokumen' })));
+  });
+  it('pengunjung anonim tidak melihat label Publik maupun Dosen/Staf', async () => {
     api.hasil = [ringkasan];
     render(<PencarianProduk />);
     expect(await screen.findByText('SOP Praktikum')).toBeInTheDocument();
     expect(screen.queryByText(/Publik/i)).toBeNull();
     expect(screen.queryByText(/Internal/i)).toBeNull();
+    expect(screen.queryByText('Dosen/Staf')).toBeNull();
   });
 
   it('pengguna berhak tetap melihat label tingkat akses', async () => {
     sesi.nilai = { state: 'authenticated', pengguna: { status: 'AKTIF' } };
     api.hasil = [{ ...ringkasan, tingkatAkses: 'internal' }];
     render(<PencarianProduk />);
-    expect(await screen.findByText('Internal')).toBeInTheDocument();
+    expect(await screen.findByText('Dosen/Staf')).toBeInTheDocument();
   });
 
   it('menampilkan jenis dengan jumlahnya, dan label master sementara nilai request memakai ID', async () => {

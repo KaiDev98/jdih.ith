@@ -1,15 +1,9 @@
 import { FileText, Gavel, Scale, Stamp } from 'lucide-react';
 import { IkonInstruksi, IkonSenat, IkonSop, IkonSurat } from '@/components/ikon-jenis';
+import { macamJenis, type MacamJenis } from '@jdih/shared';
+export { macamJenis, type MacamJenis } from '@jdih/shared';
 
 /** Macam produk hukum; menentukan ikon, warna, dan gerak sorotnya. */
-export type MacamJenis =
-  | 'peraturan'
-  | 'keputusan'
-  | 'instruksi'
-  | 'edaran'
-  | 'peraturan-senat'
-  | 'keputusan-senat'
-  | 'sop';
 
 /** Ikon, warna latar ikon, dan warna titik untuk setiap jenis produk hukum. */
 export type TampilanJenis = {
@@ -47,36 +41,6 @@ const BAWAAN: TampilanJenis = {
  * Kode jenis dapat diubah Superadmin di menu Jenis Dokumen (mis. PERREK menjadi
  * PR), jadi kode yang dikenal hanya jalan pintas; penentu utamanya nama jenis.
  */
-const KODE: Record<string, MacamJenis> = {
-  PERREK: 'peraturan',
-  PR: 'peraturan',
-  SKREK: 'keputusan',
-  SK: 'keputusan',
-  INSREK: 'instruksi',
-  IR: 'instruksi',
-  SEREK: 'edaran',
-  EDREK: 'edaran',
-  SE: 'edaran',
-  PERSEN: 'peraturan-senat',
-  SKSEN: 'keputusan-senat',
-  SOP: 'sop',
-};
-// Senat diperiksa lebih dulu agar "Peraturan Senat" tidak terbaca sebagai Peraturan Rektor.
-const POLA_NAMA: [RegExp, MacamJenis][] = [
-  [/senat.*(keputusan|\bsk\b)|(keputusan|\bsk\b).*senat/i, 'keputusan-senat'],
-  [/senat/i, 'peraturan-senat'],
-  [/edaran/i, 'edaran'],
-  [/instruksi/i, 'instruksi'],
-  [/\bsop\b|prosedur/i, 'sop'],
-  [/keputusan|\bsk\b/i, 'keputusan'],
-  [/peraturan/i, 'peraturan'],
-];
-
-export function macamJenis(kode?: string, nama?: string): MacamJenis | undefined {
-  const dariKode = kode ? KODE[kode.trim().toUpperCase()] : undefined;
-  if (dariKode) return dariKode;
-  return nama ? POLA_NAMA.find(([pola]) => pola.test(nama))?.[1] : undefined;
-}
 
 export function tampilanJenis(kode?: string, nama?: string): TampilanJenis {
   const macam = macamJenis(kode, nama);

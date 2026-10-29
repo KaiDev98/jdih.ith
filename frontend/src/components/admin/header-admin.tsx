@@ -2,7 +2,7 @@
 
 import { Fragment, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { Menu } from 'lucide-react';
+import { Menu, Search } from 'lucide-react';
 import type { PenggunaAktif } from '@jdih/shared';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,9 +20,11 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import type { HitunganNav } from './hitungan-nav';
 import { jejakHalaman, type KelompokNav } from './navigasi-admin';
 import { MenuProfil } from './menu-profil';
-import { MerekAdmin, NavAdmin, TautanPortal } from './sidebar-admin';
+import { IsiSidebar } from './sidebar-admin';
+import { NotifikasiDokumenPanel } from './notifikasi-dokumen';
 
 /** Jejak halaman; di layar kecil hanya halaman saat ini dan induknya yang tampil. */
 function JejakAdmin() {
@@ -35,7 +37,7 @@ function JejakAdmin() {
           const sembunyikan = i < jejak.length - 2 ? 'hidden md:inline-flex' : '';
           return (
             <Fragment key={j.href}>
-              {i > 0 && <BreadcrumbSeparator className={sembunyikan} />}
+              {i > 0 && <BreadcrumbSeparator className={i <= jejak.length - 2 ? 'hidden md:inline-flex' : ''} />}
               <BreadcrumbItem className={sembunyikan}>
                 {terakhir ? (
                   <BreadcrumbPage>{j.label}</BreadcrumbPage>
@@ -54,13 +56,17 @@ function JejakAdmin() {
 export function HeaderAdmin({
   pengguna,
   menu,
+  hitungan,
+  onCari,
 }: {
   pengguna: PenggunaAktif;
   menu: readonly KelompokNav[];
+  hitungan: HitunganNav;
+  onCari: () => void;
 }) {
   const [menuBuka, setMenuBuka] = useState(false);
   return (
-    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:px-6">
+    <header className="header-panel sticky top-0 z-30 flex h-15 shrink-0 items-center gap-2.5 border-b border-sekat/70 bg-kanvas/95 px-4 backdrop-blur-md sm:px-5 lg:h-14 lg:px-6">
       <Sheet open={menuBuka} onOpenChange={setMenuBuka}>
         <SheetTrigger asChild>
           <Button
@@ -72,23 +78,34 @@ export function HeaderAdmin({
             <Menu />
           </Button>
         </SheetTrigger>
-        <SheetContent>
+        <SheetContent className="bg-kanvas">
           <SheetTitle className="sr-only">Menu administrasi</SheetTitle>
           <SheetDescription className="sr-only">Navigasi panel admin JDIH ITH</SheetDescription>
-          <div className="flex h-16 shrink-0 items-center border-b border-border px-5">
-            <MerekAdmin />
-          </div>
-          <div className="flex-1 overflow-y-auto px-3 py-5">
-            <NavAdmin menu={menu} onPilih={() => setMenuBuka(false)} />
-          </div>
-          <div className="shrink-0 border-t border-border p-3">
-            <TautanPortal onPilih={() => setMenuBuka(false)} />
-          </div>
+          <IsiSidebar
+            menu={menu}
+            hitungan={hitungan}
+            superadmin={pengguna.peran.includes('SUPERADMIN')}
+            onCari={onCari}
+            onPilih={() => setMenuBuka(false)}
+          />
         </SheetContent>
       </Sheet>
       <div className="min-w-0 flex-1">
         <JejakAdmin />
       </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onCari}
+        aria-label="Cari halaman atau dokumen (Ctrl+K)"
+        title="Cari (Ctrl+K)"
+        className="cari-panel shrink-0 text-slate-500 hover:bg-white hover:text-tinta xl:w-auto xl:gap-2 xl:px-3"
+      >
+        <Search />
+        <span className="hidden text-xs font-medium xl:inline">Cari cepat</span>
+        <kbd className="hidden rounded border border-sekat bg-white px-1 py-0.5 text-[10px] xl:inline">Ctrl K</kbd>
+      </Button>
+      <NotifikasiDokumenPanel key={pengguna.id} />
       <MenuProfil pengguna={pengguna} />
     </header>
   );

@@ -8,6 +8,8 @@ describe('Content Security Policy for the Next.js app', () => {
     expect(policy).toContain("default-src 'self'");
     expect(policy).toContain("script-src 'self' 'nonce-nonce-acak' 'strict-dynamic'");
     expect(policy).toContain("style-src 'self' 'nonce-nonce-acak'");
+    // Hanya atribut style bawaan next/image yang diizinkan, lewat hash persisnya.
+    expect(policy).toMatch(/style-src [^;]*'unsafe-hashes' 'sha256-[A-Za-z0-9+/=]+'(;|$)/);
     expect(policy).toContain("connect-src 'self'");
     expect(policy).toContain("frame-src 'self' blob:");
     expect(policy).toContain("form-action 'self' https://accounts.google.com");

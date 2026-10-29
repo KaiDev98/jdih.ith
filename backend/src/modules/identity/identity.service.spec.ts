@@ -56,6 +56,32 @@ function fixture() {
   return { repo, row, user, session, writes, service, db, audit };
 }
 describe('sessions', () => {
+  it('public requests retain valid identity, including pending users', async () => {
+    const f = fixture();
+    expect(await f.service.optionalUser(acak())).toEqual(f.user);
+    f.user.status = 'MENUNGGU_VERIFIKASI';
+    expect((await f.service.optionalUser(acak()))?.status).toBe('MENUNGGU_VERIFIKASI');
+  });
+  it('public requests treat absent, expired, revoked, disabled and malformed sessions as anonymous', async () => {
+    const f = fixture();
+    expect(await f.service.optionalUser('')).toBeUndefined();
+    expect(f.repo.session).not.toHaveBeenCalled();
+    expect(await f.service.optionalUser('malformed')).toBeUndefined();
+    f.session.expires_at = utc(new Date(0));
+    expect(await f.service.optionalUser(acak())).toBeUndefined();
+    f.session.expires_at = utc(new Date(Date.now() + 100000));
+    f.session.revoked_at = utc();
+    expect(await f.service.optionalUser(acak())).toBeUndefined();
+    f.session.revoked_at = null;
+    f.row.status = 'NONAKTIF';
+    expect(await f.service.optionalUser(acak())).toBeUndefined();
+  });
+  it('does not hide database failures as anonymous sessions', async () => {
+    const f = fixture();
+    const error = new Error('database unavailable');
+    vi.mocked(f.repo.session).mockRejectedValue(error);
+    await expect(f.service.optionalUser(acak())).rejects.toBe(error);
+  });
   it('valid session reloads current identity and effective permissions', async () => {
     const f = fixture(),
       token = acak();
@@ -139,6 +165,14 @@ describe('identity lifecycle', () => {
       expect(f.writes.mock.calls.some(([, q]) => q.includes('INSERT INTO sesi_pengguna'))).toBe(false);
     }
   });
+  it('pendaftaran Google tidak dapat mengambil alih email akun Admin buatan Superadmin', async () => {
+    const f = fixture();
+    f.row.google_sub = null;
+    f.user.peran = ['ADMIN'] as never;
+    await expect(f.service.register(identity, { unitManual: 'Unit' }, '', '')).rejects.toThrow();
+    expect(f.writes.mock.calls.some(([, q]) => q.includes('INSERT INTO pengguna'))).toBe(false);
+    expect(f.writes.mock.calls.some(([, q]) => q.includes('INSERT INTO sesi_pengguna'))).toBe(false);
+  });
   it('Dosen/Staf dengan sub Google yang cocok mendapat sesi', async () => {
     const f = fixture();
     f.row.google_sub = 'sub';
@@ -164,7 +198,7 @@ describe('identity lifecycle', () => {
     } as UserRow;
     const admin = {
       ...f.user,
-      peran: ['ADMIN'] as PenggunaAktif['peran'],
+      peran: ['SUPERADMIN'] as PenggunaAktif['peran'],
       izin: ['users.approve'] as PenggunaAktif['izin'],
     };
     vi.mocked(f.repo.user).mockResolvedValueOnce(f.row).mockResolvedValueOnce(target);
@@ -187,7 +221,7 @@ describe('identity lifecycle', () => {
     const target = { ...f.row, id: '2', status: 'MENUNGGU_VERIFIKASI' } as UserRow;
     vi.mocked(f.repo.user).mockResolvedValueOnce(f.row).mockResolvedValueOnce(target);
     vi.mocked(f.repo.principal)
-      .mockResolvedValueOnce({ ...f.user, peran: ['ADMIN'], izin: ['users.reject'] })
+      .mockResolvedValueOnce({ ...f.user, peran: ['SUPERADMIN'], izin: ['users.reject'] })
       .mockResolvedValueOnce({ ...f.user, id: '2' });
     await f.service.decision(acak(), '2', 'reject', { alasan: 'Tidak sesuai' });
     expect(
@@ -206,6 +240,20 @@ describe('identity lifecycle', () => {
       f.service.decision(acak(), '2', 'approve', { unitKerjaId: '1' }),
     ).rejects.toThrow();
   });
+  it.each([
+    ['approve', { unitKerjaId: '1' }],
+    ['reject', { alasan: 'Verifikasi gagal' }],
+  ] as const)('Admin dengan izin langsung tetap tidak dapat %s akun Dosen/Staf', async (kind, body) => {
+    const f = fixture();
+    const approve = vi.spyOn(f.repo, 'approveStaff');
+    const reject = vi.spyOn(f.repo, 'rejectStaff');
+    vi.mocked(f.repo.principal).mockResolvedValue({
+      ...f.user, peran: ['ADMIN'], izin: ['users.approve', 'users.reject'],
+    });
+    await expect(f.service.decision(acak(), '2', kind, body)).rejects.toThrow();
+    expect(approve).not.toHaveBeenCalled();
+    expect(reject).not.toHaveBeenCalled();
+  });
   for (const [before, after, action] of [
     ['AKTIF', 'NONAKTIF', 'DEACTIVATE'],
     ['NONAKTIF', 'AKTIF', 'REACTIVATE'],
@@ -215,7 +263,7 @@ describe('identity lifecycle', () => {
       const target = { ...f.row, id: '2', status: before } as UserRow;
       vi.mocked(f.repo.user).mockResolvedValueOnce(f.row).mockResolvedValueOnce(target);
       vi.mocked(f.repo.principal)
-        .mockResolvedValueOnce({ ...f.user, peran: ['ADMIN'], izin: ['users.set_status'] })
+        .mockResolvedValueOnce({ ...f.user, peran: ['SUPERADMIN'], izin: ['users.set_status'] })
         .mockResolvedValueOnce({ ...f.user, id: '2', status: before });
       expect(
         await f.service.decision(acak(), '2', 'status', {
@@ -235,7 +283,7 @@ describe('identity lifecycle', () => {
     const target = { ...f.row, id: '2', status: 'MENUNGGU_VERIFIKASI' } as UserRow;
     vi.mocked(f.repo.user).mockResolvedValueOnce(f.row).mockResolvedValueOnce(target);
     vi.mocked(f.repo.principal)
-      .mockResolvedValueOnce({ ...f.user, peran: ['ADMIN'], izin: ['users.set_status'] })
+      .mockResolvedValueOnce({ ...f.user, peran: ['SUPERADMIN'], izin: ['users.set_status'] })
       .mockResolvedValueOnce({ ...f.user, id: '2', status: 'MENUNGGU_VERIFIKASI' });
     await expect(
       f.service.decision(acak(), '2', 'status', { status: 'AKTIF', alasan: 'Bypass' }),

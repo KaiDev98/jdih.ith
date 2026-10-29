@@ -20,7 +20,9 @@ function bacaEnv(...berkas: string[]) {
     if (!existsSync(f)) continue;
     for (const baris of readFileSync(f, 'utf8').split(/\r?\n/)) {
       const m = /^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/.exec(baris);
-      if (m && !(m[1]! in hasil)) hasil[m[1]!] = m[2]!.replace(/^['"]|['"]$/g, '');
+      if (!m) continue;
+      const [, kunci = '', nilai = ''] = m;
+      if (!(kunci in hasil)) hasil[kunci] = nilai.replace(/^['"]|['"]$/g, '');
     }
   }
   return hasil;

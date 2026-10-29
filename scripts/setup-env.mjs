@@ -2,7 +2,7 @@
 /**
  * Menyiapkan berkas .env untuk seluruh aplikasi.
  *
- * Menyalin setiap .env.example menjadi .env, lalu mengganti nilai rahasia
+ * Menyalin contoh konfigurasi V2, lalu mengganti nilai rahasia
  * dengan nilai acak yang benar-benar kuat. Berkas .env yang SUDAH ADA tidak
  * pernah ditimpa — kecuali dijalankan dengan --paksa.
  *
@@ -21,10 +21,11 @@ const paksa = process.argv.includes('--paksa');
 const rahasia = () => randomBytes(48).toString('base64url');
 
 /** Variabel yang nilainya harus dibangkitkan, bukan disalin dari contoh. */
-const rahasiaWajib = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'COOKIE_SECRET'];
+const rahasiaWajib = ['SESSION_KEY'];
 
 const aplikasi = [
-  { nama: 'backend', contoh: 'backend/.env.example', tujuan: 'backend/.env' },
+  { nama: 'database V2', contoh: '.env.v2.example', tujuan: '.env.v2.local' },
+  { nama: 'identity V2', contoh: 'backend/.env.identity.example', tujuan: 'backend/.env.identity.local' },
   { nama: 'frontend', contoh: 'frontend/.env.example', tujuan: 'frontend/.env' },
 ];
 
@@ -67,6 +68,6 @@ for (const { nama, contoh, tujuan } of aplikasi) {
 
 if (adaPerubahan) {
   console.log('');
-  console.log('Selesai. Periksa nilai DB_USER dan DB_PASSWORD pada backend/.env');
-  console.log('bila pemasangan MySQL Anda tidak memakai pengaturan XAMPP baku.');
+  console.log('Selesai. Isi koneksi MySQL 8 pada .env.v2.local dan konfigurasi Google');
+  console.log('pada backend/.env.identity.local. Nilai rahasia tidak ditampilkan.');
 }

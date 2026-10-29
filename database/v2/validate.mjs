@@ -22,7 +22,7 @@ const expected = [
   'unit_kerja','pengguna','peran','izin','pengguna_peran','peran_izin','pengguna_izin',
   'sesi_pengguna','jenis_dokumen','kategori','tag','dokumen','dokumen_versi',
   'dokumen_versi_kategori','dokumen_versi_tag','dokumen_berkas','dokumen_relasi',
-  'dokumen_akses_rahasia','dokumen_workflow','dokumen_status_hukum_riwayat',
+  'dokumen_akses_rahasia','dokumen_workflow','notifikasi_dihapus','dokumen_status_hukum_riwayat',
   'template_surat','template_surat_versi','kontak_kantor_butir','kunjungan_harian','dokumen_statistik','audit_log'
 ].sort();
 const fks = [...schema.matchAll(/CONSTRAINT (\w+) FOREIGN KEY/g)].map(m => m[1]).sort();
@@ -30,7 +30,10 @@ const checks = [...schema.matchAll(/CONSTRAINT (\w+) CHECK/g)].map(m => m[1]).so
 const unique = [...schema.matchAll(/UNIQUE KEY (\w+)/g)].map(m => m[1]).sort();
 const indexes = [...schema.matchAll(/^ {2}(?:UNIQUE )?KEY (\w+)/gm)].map(m => m[1]).sort();
 assert.deepEqual(names, expected);
-assert.equal((schema.match(/ON DELETE RESTRICT ON UPDATE RESTRICT/g) ?? []).length, fks.length);
+assert.equal((schema.match(/ON DELETE RESTRICT ON UPDATE RESTRICT/g) ?? []).length, fks.length - 2);
+assert.equal((schema.match(/ON DELETE CASCADE ON UPDATE RESTRICT/g) ?? []).length, 2);
+for (const fk of ['fk_notifikasi_pengguna', 'fk_notifikasi_workflow'])
+  assert.match(schema, new RegExp(`CONSTRAINT ${fk} FOREIGN KEY[^\\n]+ON DELETE CASCADE ON UPDATE RESTRICT`));
 // Structural review of our deliberately regular DDL; not a MySQL syntax parser.
 const structures = new Map();
 for (const match of schema.matchAll(/CREATE TABLE (\w+) \(\n([\s\S]*?)\n\) ENGINE=InnoDB;/g)) {
@@ -42,7 +45,7 @@ for (const match of schema.matchAll(/CREATE TABLE (\w+) \(\n([\s\S]*?)\n\) ENGIN
   }
   structures.set(match[1], {columns,keys,candidateKeys});
 }
-assert.equal(structures.size,26);
+assert.equal(structures.size,27);
 for (const name of [...fks,...checks,...indexes]) assert.ok(name.length <= 64, 'Identifier too long: '+name);
 assert.equal(new Set([...fks,...checks]).size, fks.length+checks.length, 'Duplicate constraint name');
 const statements = [...schema.matchAll(/CREATE TABLE (\w+) \(\n([\s\S]*?)\n\) ENGINE=InnoDB;/g),
@@ -154,8 +157,8 @@ assert.deepEqual(list("SELECT table_name FROM information_schema.tables WHERE ta
 for (const [kind, declared] of [['FOREIGN KEY',fks],['CHECK',checks],['UNIQUE',unique]]) {
   assert.deepEqual(list("SELECT constraint_name FROM information_schema.table_constraints WHERE table_schema=DATABASE() AND constraint_type='" + kind + "'"), declared, kind);
 }
-assert.equal(query("SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema=DATABASE() AND constraint_type='PRIMARY KEY'"), '25');
-assert.equal(query("SELECT COUNT(*) FROM information_schema.referential_constraints WHERE constraint_schema=DATABASE() AND (delete_rule <> 'RESTRICT' OR update_rule <> 'RESTRICT')"), '0');
+assert.equal(query("SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema=DATABASE() AND constraint_type='PRIMARY KEY'"), String(names.length));
+assert.equal(query("SELECT COUNT(*) FROM information_schema.referential_constraints WHERE constraint_schema=DATABASE() AND (delete_rule <> IF(constraint_name IN ('fk_notifikasi_pengguna','fk_notifikasi_workflow'),'CASCADE','RESTRICT') OR update_rule <> 'RESTRICT')"), '0');
 assert.equal(query("SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema=DATABASE() AND constraint_type='CHECK' AND enforced <> 'YES'"), '0');
 const actualIndexes = list("SELECT DISTINCT index_name FROM information_schema.statistics WHERE table_schema=DATABASE() AND index_name <> 'PRIMARY'");
 for (const index of indexes) assert.ok(actualIndexes.includes(index), 'Missing index: ' + index);
@@ -191,7 +194,8 @@ expectError('zero version number', "UPDATE dokumen_versi SET nomor_versi=0 WHERE
 expectError('removed access terbatas', "UPDATE dokumen_versi SET tingkat_akses='terbatas' WHERE id=9012",1265);
 expectError('document workflow rejects DITOLAK', "UPDATE dokumen_versi SET status_workflow='DITOLAK' WHERE id=9012",1265);
 expectError('invalid legal status', "UPDATE dokumen SET status_hukum='BELUM_BERLAKU' WHERE id=901",1265);
-expectError('self approval', "UPDATE dokumen_versi SET verified_by=created_by,approved_at=UTC_TIMESTAMP(6),status_workflow='DISETUJUI' WHERE id=9012",3819);
+// Pengecualian Superadmin milik sendiri diperiksa service; SQL tetap mewajibkan identitas persetujuan.
+expectValue('approval stores verifier identity (role and ownership checked by service)', "UPDATE dokumen_versi SET verified_by=created_by,approved_at=UTC_TIMESTAMP(6),status_workflow='DISETUJUI' WHERE id=9012; SELECT verified_by=created_by FROM dokumen_versi WHERE id=9012",'1');
 expectError('approval identity required', "UPDATE dokumen_versi SET status_workflow='DISETUJUI' WHERE id=9012",3819);
 expectError('publish metadata required', "UPDATE dokumen_versi SET verified_by=9002,approved_at=UTC_TIMESTAMP(6),status_workflow='TERBIT' WHERE id=9012",3819);
 expectError('withdrawal reason required', "UPDATE dokumen_versi SET status_workflow='DITARIK',withdrawn_at=UTC_TIMESTAMP(6) WHERE id=9011",3819);

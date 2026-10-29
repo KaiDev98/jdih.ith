@@ -1,0 +1,52 @@
+{
+  "label": "baseline",
+  "profile": "Chromium mobile 390x844, 4x CPU slowdown, 100ms RTT, 1.6 Mbps download, cold HTTP cache",
+  "results": [
+    {
+      "path": "/",
+      "cls": 0,
+      "lcpMs": 5940,
+      "longTasks": 9,
+      "longTaskMs": 3647,
+      "ttfbMs": 376.30000000447035,
+      "fcpMs": 3280,
+      "domContentLoadedMs": 4059.5999999940395,
+      "transferredBytes": 790745,
+      "scriptBytes": 403756,
+      "requests": 21,
+      "overflow": false
+    },
+    {
+      "path": "/produk-hukum",
+      "cls": 0,
+      "lcpMs": 5260,
+      "longTasks": 6,
+      "longTaskMs": 2095,
+      "ttfbMs": 25.799999997019768,
+      "fcpMs": 1964,
+      "domContentLoadedMs": 965.7999999970198,
+      "transferredBytes": 789128,
+      "scriptBytes": 408541,
+      "requests": 22,
+      "overflow": false
+    },
+    {
+      "path": "/produk-hukum/load-1",
+      "cls": 0,
+      "lcpMs": 7088,
+      "longTasks": 9,
+      "longTaskMs": 2789,
+      "ttfbMs": 171,
+      "fcpMs": 2272,
+      "domContentLoadedMs": 1400.5999999940395,
+      "transferredBytes": 1196099,
+      "scriptBytes": 406397,
+      "requests": 35,
+      "overflow": false
+    }
+  ],
+  "notes": [
+    "Synthetic local lab metrics; not field Core Web Vitals or INP.",
+    "Mobile network/CPU emulated on shared Windows test host."
+  ]
+}

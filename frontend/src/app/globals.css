@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import '../components/admin/panel-compact.css';
 
 /**
  * Tema Portal JDIH ITH Parepare.
@@ -54,6 +55,10 @@
   --color-tinta: #172340;
   --color-rak: #f4f2ef;
   --color-stabilo: #f2c230;
+  /* Panel admin: kanvas hangat yang lembut di mata untuk kerja lama, dan
+     garis pemisah (sekat) bernada sama, bukan abu dingin. */
+  --color-kanvas: #f6f5f2;
+  --color-sekat: #e8e5df;
 
   /* ── Warna penanda status keberlakuan ───────────────────────────────────
      Nilainya HARUS sama dengan kolom `warna` pada tabel status_dokumen
@@ -101,6 +106,7 @@
   }
 
   html {
+    scroll-behavior: smooth;
     /* Tautan ke jangkar tidak tertutup bilah atas yang menempel. */
     scroll-padding-top: var(--tinggi-bilah-atas);
     -webkit-text-size-adjust: 100%;
@@ -156,6 +162,34 @@
 
 /* Label kecil: Archivo dipersempit, huruf kapital berjarak. */
 @layer components {
+  .profil-pintasan {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: white;
+    color: #334155;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    transition: background-color 160ms, border-color 160ms;
+  }
+  .profil-pintasan:hover {
+    background: #fff7ed;
+    border-color: #e6b889;
+  }
+  .profil-pintasan:focus-visible {
+    outline: 3px solid #d58b47;
+    outline-offset: 3px;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .profil-portal { animation: naik-ringan 320ms ease-out both; }
+    .profil-pintasan svg:last-child { transition: transform 180ms ease; }
+    .profil-pintasan:hover svg:last-child { transform: translateX(2px); }
+  }
   /* ── Gerak ──────────────────────────────────────────────────────────────
      Satu kurva ease-out tegas untuk semua yang muncul; keluar lebih cepat
      daripada masuk. Hanya transform dan opacity yang dianimasikan. */
@@ -496,6 +530,34 @@
     }
   }
 
+  /* Panel tetap dikenali di belakang dialog; hindari lapisan hitam pekat. */
+  .ui-dialog-backdrop {
+    background: linear-gradient(135deg, rgb(222 231 243 / 0.42), rgb(246 248 252 / 0.68));
+    backdrop-filter: blur(3px);
+  }
+  .ui-dialog-surface {
+    background: radial-gradient(ellipse at 100% 0%, rgb(255 237 213 / 0.38), transparent 48%), #fff;
+    border-color: rgb(255 255 255 / 0.95);
+    box-shadow: 0 0 0 1px rgb(203 213 225 / 0.48), 0 28px 80px -28px rgb(42 61 91 / 0.28), 0 8px 24px -12px rgb(42 61 91 / 0.12);
+  }
+  .ui-dialog-icon {
+    display: grid;
+    width: 3rem;
+    height: 3rem;
+    place-items: center;
+    border: 1px solid rgb(251 191 136 / 0.38);
+    border-radius: 1rem;
+    color: var(--color-institusi-600);
+    background: linear-gradient(145deg, #fffaf4, #fff0df);
+    box-shadow: inset 0 1px 0 #fff, 0 4px 12px -6px rgb(234 123 38 / 0.28);
+  }
+  .ui-dialog-icon[data-tone='danger'] {
+    color: #e11d48;
+    border-color: #ffe4e6;
+    background: linear-gradient(145deg, #fff, #fff1f2);
+    box-shadow: inset 0 1px 0 #fff;
+  }
+
   /* ── Animasi komponen admin (dropdown, sheet, dialog) ──────────────────
      Keadaan buka/tutup dari atribut data-state Radix. */
   @keyframes ui-pudar-masuk {
@@ -530,16 +592,22 @@
       transform: translateX(-100%);
     }
   }
+  @keyframes ui-geser-kanan-masuk {
+    from { transform: translateX(100%); }
+  }
+  @keyframes ui-geser-kanan-keluar {
+    to { transform: translateX(100%); }
+  }
   @keyframes ui-dialog-masuk {
     from {
       opacity: 0;
-      transform: translate(-50%, -48%) scale(0.97);
+      transform: translateY(8px) scale(0.985);
     }
   }
   @keyframes ui-dialog-keluar {
     to {
       opacity: 0;
-      transform: translate(-50%, -48%) scale(0.97);
+      transform: translateY(4px) scale(0.99);
     }
   }
   .ui-overlay[data-state='open'] {
@@ -559,6 +627,12 @@
   }
   .ui-sheet-kiri[data-state='closed'] {
     animation: ui-geser-kiri-keluar 200ms ease-in;
+  }
+  .ui-sheet-kanan[data-state='open'] {
+    animation: ui-geser-kanan-masuk 280ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .ui-sheet-kanan[data-state='closed'] {
+    animation: ui-geser-kanan-keluar 200ms ease-in;
   }
   .ui-dialog[data-state='open'] {
     animation: ui-dialog-masuk 200ms cubic-bezier(0.23, 1, 0.32, 1);
@@ -697,7 +771,16 @@
      pun (mis. 125%), tidak sebagian tampak tipis dan sebagian tebal. */
   .butir-jenis {
     position: relative;
+    /* Ikon tiap butir meletup bergiliran (560ms, lalu +70ms). Ditulis di CSS,
+       bukan atribut style, karena CSP memblokir atribut style hasil SSR. */
+    --tunda-ikon: 560ms;
   }
+  .butir-jenis:nth-child(2) { --tunda-ikon: 630ms; }
+  .butir-jenis:nth-child(3) { --tunda-ikon: 700ms; }
+  .butir-jenis:nth-child(4) { --tunda-ikon: 770ms; }
+  .butir-jenis:nth-child(5) { --tunda-ikon: 840ms; }
+  .butir-jenis:nth-child(6) { --tunda-ikon: 910ms; }
+  .butir-jenis:nth-child(n + 7) { --tunda-ikon: 980ms; }
   .butir-jenis::before,
   .butir-jenis::after {
     content: '';
@@ -771,8 +854,17 @@
       opacity 220ms ease,
       transform 360ms cubic-bezier(0.23, 1, 0.32, 1);
   }
-  .tile-jenis .ikon-jenis {
+  .ikon-jenis-masuk {
+    --tunda-ikon: 560ms;
+  }
+  /* Animasi masuk berada pada pembungkus, supaya gerak sorot ikon tidak
+     memutar ulang kemunculan dari opacity 0 saat penunjuk berpindah. */
+  .masuk-ikon-jenis,
+  .ikon-jenis-masuk {
     animation: ikon-meletup 700ms cubic-bezier(0.34, 1.56, 0.64, 1) var(--tunda-ikon, 0ms) backwards;
+  }
+  .tile-jenis .ikon-jenis,
+  .ikon-jenis-masuk {
     transition:
       transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1),
       box-shadow 300ms ease;
@@ -1137,12 +1229,11 @@
     }
   }
 
-  /* Hero halaman detail produk hukum: sekeluarga dengan hero beranda. Untuk
-     memakai foto kampus, isi --gambar-hero-dokumen di :root, mis.
-     --gambar-hero-dokumen: url('/gambar/hero-dokumen.jpg');
-     lapisan biru di atasnya menjaga teks putih tetap terbaca. */
+  /* Foto detail dimuat responsif oleh next/image. Lapisan warna tetap sama. */
   .hero-dokumen {
-    --gambar-hero-dokumen: url('/gambar/gedung-ith.webp');
+    background: #13315c;
+  }
+  .hero-dokumen-lapisan {
     background:
       radial-gradient(40% 70% at 90% 10%, rgb(92 181 49 / 0.16), transparent 70%),
       linear-gradient(
@@ -1150,9 +1241,7 @@
         rgb(11 27 54 / 0.95) 0%,
         rgb(15 40 78 / 0.88) 50%,
         rgb(19 56 104 / 0.74) 100%
-      ),
-      var(--gambar-hero-dokumen, none) 62% 40% / cover no-repeat,
-      #13315c;
+      );
   }
 
   /* Garis aksen oranye di bawah navbar: tipis, penuh sampai tepi, dengan
@@ -1198,6 +1287,50 @@
   .footer-institusi {
     background:
       radial-gradient(50% 140% at 100% 0%, rgb(43 112 192 / 0.18), transparent 60%), #0f213b;
+  }
+
+  .buka-footer-tombol {
+    transition: background-color 220ms ease, color 220ms ease, transform 180ms ease;
+  }
+  .buka-footer-tombol:hover,
+  .buka-footer[data-buka='true'] > .buka-footer-tombol {
+    background-color: rgb(255 255 255 / 0.055);
+    color: #fff;
+  }
+  .buka-footer-tombol:active {
+    transform: scale(0.985);
+  }
+  .buka-footer-isi {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    visibility: hidden;
+    transition: grid-template-rows 360ms cubic-bezier(0.22, 1, 0.36, 1), opacity 240ms ease, visibility 0s linear 360ms;
+  }
+  .buka-footer[data-buka='true'] > .buka-footer-isi {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 0s;
+  }
+  .buka-footer-dalam {
+    transform: translateY(-5px);
+    transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .buka-footer[data-buka='true'] .buka-footer-dalam {
+    transform: translateY(0);
+  }
+  .buka-footer-ikon {
+    transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1), color 220ms ease;
+  }
+  .buka-footer[data-buka='true'] .buka-footer-ikon {
+    transform: rotate(180deg);
+    color: var(--color-institusi-400);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .buka-footer-isi {
+      transition-delay: 0s;
+    }
   }
 
   /* Kartu satu dokumen di daftar Produk Hukum. Sorot cukup menebalkan garis
@@ -1288,5 +1421,202 @@ main:has(.beranda, .latar-rak) + footer {
   a[href^='http']::after {
     content: ' (' attr(href) ')';
     font-size: 0.75rem;
+  }
+}
+
+/* ── Panel admin ─────────────────────────────────────────────────────────────
+   Ruang kerja yang tenang untuk dipakai berjam-jam: kanvas hangat lembut
+   (bukan putih silau atau abu dingin), kartu putih bergaris tipis, oranye ITH
+   hanya untuk aksi utama dan penanda aktif, biru tinta untuk teks. Warna status
+   konsisten (lihat Badge di components/ui.tsx): hijau = selesai/aktif,
+   kuning = menunggu, merah = perlu tindakan, biru = disetujui/publik,
+   ungu = internal, abu = draf/nonaktif. Aturan dasar sengaja di lapisan base
+   agar kelas utilitas pada halaman tetap dapat menimpanya. */
+@layer base {
+  /* Tailwind v4 memakai currentColor sebagai warna garis bawaan; di panel,
+     garis tanpa warna eksplisit (mis. divide-y, border-b tabel) dibuat tipis
+     dan senada dengan kanvas. */
+  .panel-admin,
+  .panel-admin *,
+  .panel-admin ::before,
+  .panel-admin ::after {
+    border-color: var(--color-sekat);
+  }
+  .panel-admin {
+    color: var(--color-slate-800);
+    font-feature-settings: 'tnum' 0;
+  }
+  .panel-admin table thead th {
+    padding-block: 0.625rem;
+    padding-inline-end: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-slate-500);
+    white-space: nowrap;
+  }
+  .panel-admin table tbody td {
+    padding-block: 0.8125rem;
+    padding-inline-end: 1rem;
+    vertical-align: middle;
+  }
+  .panel-admin table tbody tr {
+    transition: background-color 150ms ease;
+  }
+  @media (hover: hover) {
+    .panel-admin table tbody tr:hover {
+      background-color: #faf9f6;
+    }
+  }
+  .gulir-sidebar {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(23 35 64 / 0.14) transparent;
+  }
+  /* Panel biru tua bergradasi di halaman masuk pengelola. */
+  .sidebar-admin {
+    background:
+      radial-gradient(120% 60% at 0% 0%, rgb(43 112 192 / 0.16), transparent 60%),
+      linear-gradient(180deg, #16244a 0%, #111c38 100%);
+  }
+}
+
+@layer components {
+  /* Kerangka pemuatan: kilau pelan, tidak berkedip. */
+  @keyframes kilau-kerangka {
+    from {
+      background-position: 150% 0;
+    }
+    to {
+      background-position: -50% 0;
+    }
+  }
+  .kerangka {
+    border-radius: 0.375rem;
+    background: linear-gradient(90deg, #eeebe5 0%, #f7f5f1 40%, #eeebe5 80%) 0 0 / 200% 100%;
+    animation: kilau-kerangka 1.6s ease-in-out infinite;
+  }
+
+  /* Isi halaman panel muncul halus saat dibuka. */
+  @keyframes isi-panel-masuk {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+  .isi-panel {
+    animation: isi-panel-masuk 320ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+
+  /* Sidebar menyempit/melebar dengan mulus; label memudar lebih dulu. */
+  .sidebar-panel {
+    transition: width 240ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .sidebar-panel .label-nav {
+    transition: opacity 160ms ease;
+  }
+  .sidebar-panel[data-ciut='true'] .label-nav {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Bilah kemajuan tipis di atas daftar saat memuat ulang tanpa mengosongkan isi. */
+  @keyframes bilah-muat {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(250%);
+    }
+  }
+  .bilah-muat {
+    position: relative;
+    overflow: hidden;
+  }
+  .bilah-muat::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    width: 40%;
+    border-radius: inherit;
+    background: var(--color-institusi-500);
+    animation: bilah-muat 1.1s ease-in-out infinite;
+  }
+}
+
+/* Panel desktop tetap setinggi viewport; hanya area isi dan menu yang bergulir.
+   Jangan mengunci body: portal publik dan panel seluler tetap memakai gulir normal. */
+@media (min-width: 1024px) {
+  .ruang-kerja-panel {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .ruang-kerja-panel .area-isi-panel {
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(23 35 64 / 0.25) transparent;
+    scroll-padding-block: 1.5rem;
+  }
+}
+
+/* Penyempurnaan ringan beranda: pertahankan susunan, warna, dan identitas awal. */
+.beranda-disempurnakan .kartu-angkat {
+  border-radius: 1rem;
+  box-shadow: 0 2px 8px -6px rgb(23 35 64 / 0.16);
+  transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+}
+.beranda-disempurnakan .isi-bertahap {
+  border-radius: 1rem;
+}
+.beranda-disempurnakan .isi-bertahap h3 {
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+.beranda-disempurnakan .kartu-angkat:focus-within {
+  border-color: var(--color-institusi-300);
+  box-shadow: 0 4px 16px -10px rgb(23 35 64 / 0.2);
+}
+.beranda-disempurnakan .tile-jenis:focus-visible {
+  outline: 2px solid var(--color-institusi-600);
+  outline-offset: 2px;
+}
+.beranda-disempurnakan .panel-sop p { line-height: 1.65; }
+.beranda-disempurnakan .panel-format { border-radius: 1rem; }
+.beranda-disempurnakan .isi-bertahap a[aria-label] {
+  min-height: 2.75rem;
+}
+.beranda-disempurnakan .isi-bertahap > p {
+  line-height: 1.6;
+}
+.beranda-disempurnakan .isi-bertahap h3 a:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.beranda-disempurnakan .panel-sop h3,
+.beranda-disempurnakan .panel-format h2 {
+  text-wrap: balance;
+}
+.footer-institusi a:focus-visible {
+  outline: 2px solid var(--color-institusi-400);
+  outline-offset: 3px;
+  border-radius: 0.25rem;
+}
+@media (pointer: coarse) {
+  .beranda-disempurnakan .tile-jenis:active {
+    background-color: var(--color-institusi-50);
+  }
+}
+@media (max-width: 767px) {
+  .beranda-disempurnakan .panel-format > .ikut-muncul:last-child > a {
+    width: 100%;
+  }
+}
+@media (hover: hover) {
+  .beranda-disempurnakan .kartu-angkat:hover {
+    transform: translateY(-3px);
+    border-color: #d4d9e1;
+    box-shadow: 0 12px 24px -18px rgb(23 35 64 / 0.3);
   }
 }

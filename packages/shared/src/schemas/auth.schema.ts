@@ -44,9 +44,14 @@ export const skemaPenggunaSesi = z.strictObject({
 /** DOSEN_STAF + MENUNGGU_VERIFIKASI has no Internal access; AKTIF is required.
  * Session/role presence is not authorization; enforcement belongs to the backend. */
 export type PenggunaAktif = z.infer<typeof skemaPenggunaSesi>;
+
+/** Format email tersensor pada proyeksi akun lain; sesi sendiri memakai email asli. */
+export const skemaSurelTersensor = z.string().max(258).regex(/^[^\s@*]?\*{3}@[^\s@*]+$/);
+export const skemaPenggunaSesiTampil = skemaPenggunaSesi;
+export type PenggunaSesiTampil = z.infer<typeof skemaPenggunaSesiTampil>;
 export const skemaAuthMe = z.discriminatedUnion('terautentikasi', [
   z.strictObject({ terautentikasi: z.literal(false) }),
-  z.strictObject({ terautentikasi: z.literal(true), pengguna: skemaPenggunaSesi }),
+  z.strictObject({ terautentikasi: z.literal(true), pengguna: skemaPenggunaSesiTampil }),
 ]);
 export const skemaTanggapanAuthMe = skemaTanggapan(skemaAuthMe);
 export type AuthMe = z.infer<typeof skemaAuthMe>;
@@ -59,11 +64,11 @@ export const skemaAuthMeHttp = z.discriminatedUnion('terautentikasi', [
   }),
   z.strictObject({
     terautentikasi: z.literal(true),
-    pengguna: skemaPenggunaSesi,
+    pengguna: skemaPenggunaSesiTampil,
     csrfToken: z.string(),
   }),
 ]);
-/** Login password lokal: hanya untuk akun Admin/Superadmin yang sudah membuat password. */
+/** Login email/password memakai endpoint terpisah untuk setiap kelompok peran. */
 export const skemaLoginPassword = z.strictObject({
   email: z.string().trim().toLowerCase().pipe(skemaSurel),
   password: z.string().min(1, 'Password wajib diisi').max(128),
@@ -75,6 +80,16 @@ export const skemaPasswordBaru = z
   .max(128, 'Password maksimal 128 karakter')
   .regex(/[A-Za-z]/, 'Password harus memuat huruf')
   .regex(/[0-9]/, 'Password harus memuat angka');
+/** Pendaftaran email biasa: identitas diisi pengguna, otoritas ditentukan server. */
+export const skemaDaftarEmail = skemaLengkapiRegistrasi.safeExtend({
+  nama: teksWajib(200, 'Nama lengkap'),
+  email: z.string().trim().toLowerCase().pipe(skemaSurel),
+  password: skemaPasswordBaru,
+  konfirmasiPassword: z.string().max(128),
+}).refine(v => v.password === v.konfirmasiPassword, {
+  path: ['konfirmasiPassword'], message: 'Konfirmasi password tidak sama',
+});
+export type MuatanDaftarEmail = z.infer<typeof skemaDaftarEmail>;
 /**
  * Ganti (atau buat pertama kali) password. Password saat ini wajib bila akun
  * sudah punya password; backend memeriksanya, tidak cukup di sini.

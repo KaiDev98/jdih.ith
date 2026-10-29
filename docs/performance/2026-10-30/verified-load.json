@@ -1,0 +1,332 @@
+{
+  "label": "release-verified",
+  "date": "2026-10-29T18:26:34.880Z",
+  "machine": {
+    "platform": "win32",
+    "cpu": "13th Gen Intel(R) Core(TM) i7-13620H",
+    "logicalCPUs": 16,
+    "memoryGiB": 7.796928405761719
+  },
+  "fixture": {
+    "documents": 10000,
+    "accounts": 100,
+    "fileBytes": 1049199,
+    "files": 10000,
+    "mysqlVersion": "8.4.11",
+    "fileId": "4"
+  },
+  "notes": [
+    "Local production build and compiled API on the same Windows host as the load generator.",
+    "Self-signed TLS trusted only by the disposable harness.",
+    "10,000 unique file paths use hard-linked identical 1 MiB content; this is a warm storage test.",
+    "Measurements do not prove capacity on a different VPS or real WAN."
+  ],
+  "results": [
+    {
+      "name": "public-web",
+      "users": 10,
+      "thinkMs": 300,
+      "seconds": 20.68,
+      "requests": 300,
+      "rps": 14.506769825918763,
+      "failures": 0,
+      "failureRate": 0,
+      "statuses": {
+        "200": 300
+      },
+      "failureReasons": {},
+      "latencyMs": {
+        "p50": 364.39390000000003,
+        "p95": 605.3580000000002,
+        "p99": 739.0239000000001,
+        "max": 824.1257
+      },
+      "ttfbP95Ms": 599.2248,
+      "bytes": 5279174,
+      "api": {
+        "samples": 21,
+        "peakRssMiB": 106.94140625,
+        "peakCpuPct": 10.802775024777008,
+        "peakEventLoopP99Ms": 78.315519
+      },
+      "web": {
+        "samples": 20,
+        "peakRssMiB": 357.60546875,
+        "peakCpuPct": 58.64592863677951,
+        "peakEventLoopP99Ms": 319.029247
+      }
+    },
+    {
+      "name": "public-api",
+      "users": 25,
+      "thinkMs": 300,
+      "seconds": 20.237,
+      "requests": 1106,
+      "rps": 54.65236942234521,
+      "failures": 0,
+      "failureRate": 0,
+      "statuses": {
+        "200": 1106
+      },
+      "failureReasons": {},
+      "latencyMs": {
+        "p50": 132.2525999999998,
+        "p95": 246.30029999999897,
+        "p99": 370.03519999999844,
+        "max": 426.55059999999867
+      },
+      "ttfbP95Ms": 243.29479999999967,
+      "bytes": 528043,
+      "api": {
+        "samples": 20,
+        "peakRssMiB": 157.48828125,
+        "peakCpuPct": 26.25863770977295,
+        "peakEventLoopP99Ms": 74.907647
+      },
+      "web": {
+        "samples": 20,
+        "peakRssMiB": 359.0234375,
+        "peakCpuPct": 10.95617529880478,
+        "peakEventLoopP99Ms": 192.544767
+      }
+    },
+    {
+      "name": "authenticated-panel",
+      "users": 20,
+      "thinkMs": 500,
+      "seconds": 20.468,
+      "requests": 667,
+      "rps": 32.587453586085594,
+      "failures": 0,
+      "failureRate": 0,
+      "statuses": {
+        "200": 667
+      },
+      "failureReasons": {},
+      "latencyMs": {
+        "p50": 96.56129999999393,
+        "p95": 196.63999999999942,
+        "p99": 257.6863999999987,
+        "max": 297.78830000000016
+      },
+      "ttfbP95Ms": 194.58780000000115,
+      "bytes": 295482,
+      "api": {
+        "samples": 21,
+        "peakRssMiB": 163.39453125,
+        "peakCpuPct": 37.0919881305638,
+        "peakEventLoopP99Ms": 88.866815
+      },
+      "web": {
+        "samples": 20,
+        "peakRssMiB": 359.0234375,
+        "peakCpuPct": 1.5873015873015872,
+        "peakEventLoopP99Ms": 127.270911
+      }
+    },
+    {
+      "name": "authenticated-staff",
+      "users": 25,
+      "thinkMs": 500,
+      "seconds": 20.748,
+      "requests": 736,
+      "rps": 35.473298631193366,
+      "failures": 0,
+      "failureRate": 0,
+      "statuses": {
+        "200": 736
+      },
+      "failureReasons": {},
+      "latencyMs": {
+        "p50": 143.87730000000738,
+        "p95": 349.12080000000424,
+        "p99": 411.59739999999874,
+        "max": 570.3039999999892
+      },
+      "ttfbP95Ms": 348.5859999999957,
+      "bytes": 372077,
+      "api": {
+        "samples": 20,
+        "peakRssMiB": 211.66015625,
+        "peakCpuPct": 28.1,
+        "peakEventLoopP99Ms": 113.836031
+      },
+      "web": {
+        "samples": 21,
+        "peakRssMiB": 359.0234375,
+        "peakCpuPct": 0,
+        "peakEventLoopP99Ms": 241.696767
+      }
+    },
+    {
+      "name": "file-stream",
+      "users": 8,
+      "thinkMs": 500,
+      "seconds": 15.525,
+      "requests": 204,
+      "rps": 13.140096618357488,
+      "failures": 0,
+      "failureRate": 0,
+      "statuses": {
+        "200": 204
+      },
+      "failureReasons": {},
+      "latencyMs": {
+        "p50": 105.84210000000894,
+        "p95": 175.2546000000002,
+        "p99": 198.65200000000186,
+        "max": 200.11789999999746
+      },
+      "ttfbP95Ms": 84.5176000000065,
+      "bytes": 214036596,
+      "api": {
+        "samples": 16,
+        "peakRssMiB": 224.234375,
+        "peakCpuPct": 37.15415019762846,
+        "peakEventLoopP99Ms": 120.061951
+      },
+      "web": {
+        "samples": 15,
+        "peakRssMiB": 359.0234375,
+        "peakCpuPct": 1.4940239043824701,
+        "peakEventLoopP99Ms": 120.061951
+      }
+    },
+    {
+      "name": "file-range",
+      "users": 8,
+      "thinkMs": 500,
+      "seconds": 15.434,
+      "requests": 232,
+      "rps": 15.03174808863548,
+      "failures": 0,
+      "failureRate": 0,
+      "statuses": {
+        "206": 232
+      },
+      "failureReasons": {},
+      "latencyMs": {
+        "p50": 16.41240000000107,
+        "p95": 47.22599999999511,
+        "p99": 67.05070000000705,
+        "max": 67.69980000000214
+      },
+      "ttfbP95Ms": 46.00220000000263,
+      "bytes": 15204352,
+      "api": {
+        "samples": 15,
+        "peakRssMiB": 213.7734375,
+        "peakCpuPct": 18.625498007968126,
+        "peakEventLoopP99Ms": 68.878335
+      },
+      "web": {
+        "samples": 16,
+        "peakRssMiB": 359.0234375,
+        "peakCpuPct": 20.059288537549406,
+        "peakEventLoopP99Ms": 108.003327
+      }
+    },
+    {
+      "name": "burst-web",
+      "users": 50,
+      "thinkMs": 500,
+      "seconds": 21.2,
+      "requests": 450,
+      "rps": 21.22641509433962,
+      "failures": 0,
+      "failureRate": 0,
+      "statuses": {
+        "200": 450
+      },
+      "failureReasons": {},
+      "latencyMs": {
+        "p50": 1735.0423999999912,
+        "p95": 2604.1610999999975,
+        "p99": 2628.9025999999867,
+        "max": 2649.6724000000104
+      },
+      "ttfbP95Ms": 2423.372199999998,
+      "bytes": 7918599,
+      "api": {
+        "samples": 21,
+        "peakRssMiB": 216.63671875,
+        "peakCpuPct": 27.98804780876494,
+        "peakEventLoopP99Ms": 115.867647
+      },
+      "web": {
+        "samples": 18,
+        "peakRssMiB": 434.28125,
+        "peakCpuPct": 74.21543681085666,
+        "peakEventLoopP99Ms": 787.480575
+      }
+    },
+    {
+      "name": "recovery-web",
+      "users": 5,
+      "thinkMs": 700,
+      "seconds": 15.877,
+      "requests": 89,
+      "rps": 5.605592996157965,
+      "failures": 0,
+      "failureRate": 0,
+      "statuses": {
+        "200": 89
+      },
+      "failureReasons": {},
+      "latencyMs": {
+        "p50": 138.81450000000768,
+        "p95": 422.6152000000002,
+        "p99": 505.4668000000238,
+        "max": 505.4668000000238
+      },
+      "ttfbP95Ms": 402.7954000000027,
+      "bytes": 1566286,
+      "api": {
+        "samples": 16,
+        "peakRssMiB": 216.65625,
+        "peakCpuPct": 3.146509341199607,
+        "peakEventLoopP99Ms": 67.895295
+      },
+      "web": {
+        "samples": 15,
+        "peakRssMiB": 435.86328125,
+        "peakCpuPct": 28.258801141769744,
+        "peakEventLoopP99Ms": 125.108223
+      }
+    },
+    {
+      "name": "soak-api",
+      "users": 15,
+      "thinkMs": 700,
+      "seconds": 120.63,
+      "requests": 2168,
+      "rps": 17.972312028516953,
+      "failures": 0,
+      "failureRate": 0,
+      "statuses": {
+        "200": 2168
+      },
+      "failureReasons": {},
+      "latencyMs": {
+        "p50": 115.44140000001062,
+        "p95": 209.06589999998687,
+        "p99": 238.23620000001392,
+        "max": 284.8742000000202
+      },
+      "ttfbP95Ms": 207.5525000000198,
+      "bytes": 1034681,
+      "api": {
+        "samples": 120,
+        "peakRssMiB": 218.12890625,
+        "peakCpuPct": 23.054187192118228,
+        "peakEventLoopP99Ms": 141.033471
+      },
+      "web": {
+        "samples": 119,
+        "peakRssMiB": 436.53125,
+        "peakCpuPct": 18.460019743336623,
+        "peakEventLoopP99Ms": 218.759167
+      }
+    }
+  ]
+}

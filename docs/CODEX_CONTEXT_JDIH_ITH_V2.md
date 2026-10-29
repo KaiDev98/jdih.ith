@@ -1,8 +1,248 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
 **Dokumen ini adalah konteks lengkap yang harus dipahami Codex sebelum mengerjakan project.**  
+Polesan akhir 2026-10-30: logo JDIH ITH dipusatkan pada semua halaman login
+(di panel kiri pada desktop, di viewport pada ponsel). Bayangan panel jenis
+produk hukum di beranda ponsel tidak boleh terpotong menjadi garis horizontal.
+Pertahankan warna dan geometri latar login ketika keyboard terbuka.
+
+Revisi koleksi terbaru 2026-10-29 menggantikan kesamaan kartu dan pencarian pada
+Format Persuratan/SOP Permohonan SK: format memakai galeri map berkas tiga kolom
+desktop pada portal. Revisi setelahnya: SOP juga memakai tiga kolom desktop,
+dua kolom tablet dan satu kolom ponsel, dengan kartu beraksen biru, ikon dokumen
+bertanda tangan dan status hukum. Hapus angka urut dekoratif agar tidak dianggap
+langkah pengajuan; nomor dokumen resmi dan tahun tetap ditampilkan. Tidak ada
+bilah pencarian pada kedua halaman maupun panel pengelolaannya; pagination dan
+filter status format tetap tersedia. Pemilihan SOP lama menggunakan dropdown
+berhalaman di bagian yang dapat dibuka. Semua Dokumen pada Admin/Superadmin
+memakai layar desktop tetap dengan daftar bergulir di dalam dan dropdown koleksi
+Produk Hukum, SOP, Format Persuratan, serta SOP Permohonan SK khusus Superadmin.
+Filter kelompok hukum/SOP diterapkan sebelum total/pagination SQL; template
+memakai sumber data tersendiri, bukan versi dokumen hukum. Batas kepemilikan,
+otorisasi, cakupan terverifikasi dan alur penerbitan tidak berubah.
+
+Revisi lanjutan 2026-10-29: Format Persuratan dan SOP Permohonan SK memakai
+kartu ringkas, tiga kolom desktop, pencarian server dan pagination 12 item.
+Panel SOP dipadatkan dan dipaginasi. SOP Permohonan SK menerima akses PUBLIK
+atau INTERNAL (Dosen/Staf aktif), tetap khusus Superadmin untuk pengelolaannya.
+Hanya SOP Permohonan SK disetujui sekaligus diterbitkan: tinjauan dan konfirmasi
+dampak serta izin approve/publish wajib; dua event APPROVE/PUBLISH, audit,
+supersede dan perpindahan current pointer tersimpan dalam satu transaksi.
+Kegagalan penerbitan membatalkan persetujuan. Dokumen biasa tetap memisahkan
+DISETUJUI dan TERBIT. Daftar SOP publik meneruskan sesi, private/no-store, dan
+menghitung hasil setelah filter akses. Login desktop menyatukan kedua sisi
+dalam satu bingkai; daftar Pengguna menampilkan unit Superadmin sebagai
+"Superadmin" tanpa mengubah unit/identitas yang tersimpan atau otorisasinya.
+
+Revisi terakhir tampilan autentikasi 2026-10-29 menggantikan tampilan polos terpusat
+dan usulan foto kampus: desktop memakai komposisi simbol dokumen/pasal dan
+tipografi kontras di sisi kiri, serta formulir login/daftar di kanan. User tidak
+menghendaki foto ITH pada autentikasi. Berlaku untuk Dosen/Staf, Admin, Superadmin
+dan pendaftaran. Gunakan palet ITH, copy sesuai peran, dan animasi masuk singkat;
+warna ilustrasi contoh user bukan referensi warna. Ponsel/landscape pendek
+memprioritaskan formulir, dengan adaptasi keyboard dan tanpa gulir halaman.
+Metode autentikasi, URL, verifikasi, dan batas kewenangan tidak berubah.
+Polesan lanjutan: ilustrasi arsip berlapis memakai penanda buku untuk Dosen/Staf,
+pena untuk Admin, dan perisai centang untuk Superadmin. Aksen tiap jalur, judul
+serif/sans, kartu formulir dan tab peran diperkaya tanpa foto atau data rekaan.
+Revisi berikutnya memperlebar bingkai desktop maksimal 1680 × 900 px dan
+formulir maksimal 520 px. Login ponsel memakai masthead biru tua yang menyambung
+dengan kartu formulir dan ikon tab peran; layar pendek tetap dipadatkan.
+Revisi identitas autentikasi: halaman login tidak menampilkan tombol kembali;
+logo resmi ITH berada dalam bingkai putih dengan wordmark JDIH ITH dan subjudul
+ringkas. Logo tetap menaut ke beranda. Pendaftaran mempertahankan tombol kembali.
+Pilihan unit pendaftaran memakai menu Radix beranimasi, daftar bergulir,
+keyboard/typeahead/Escape dan reduced motion. Integrasi formulir mempertahankan
+validasi, fokus galat serta unit master/usulan tanpa mengirim keduanya sekaligus.
+Dropdown koleksi Semua Dokumen memakai menu Radix dengan pilihan radio,
+animasi buka/tutup singkat dan sorotan fokus biru lembut tanpa garis oranye.
+Escape, pengembalian fokus dan reduced motion tetap didukung.
+Penyempurnaan ini juga
+menyelaraskan tab dengan garis penanda aktif dan transisi fokus yang singkat.
+Pendaftaran mempunyai navigasi Masuk/Daftar dan panduan kiri yang mengikuti
+langkah formulir sebenarnya; ringkasan konfirmasi menampilkan nama, email dan
+unit kerja tanpa password. Jalur login serta aturan pendaftaran tetap sama.
+
+Penyempurnaan akun dan tampilan 2026-10-26 (instruksi terbaru): halaman `/masuk`,
+`/daftar`, `/masuk/admin`, dan `/masuk/superadmin` memakai layout autentikasi
+mandiri tanpa navbar/footer publik. Revisi terbaru menghapus foto kampus dari
+halaman autentikasi: gunakan latar polos terang dan kartu formulir di tengah,
+dengan identitas logo ITH yang ringkas.
+Revisi lanjutan: seluruh halaman autentikasi terkunci pada viewport tanpa gulir
+halaman. Formulir daftar mempunyai tiga langkah (identitas, unit kerja, keamanan),
+mempertahankan data saat kembali, validasi Zod per langkah dan konfirmasi sebelum
+mengirim. Layout menyesuaikan tinggi visual viewport ketika keyboard dibuka;
+informasi sekunder disederhanakan pada layar pendek tanpa memotong isian/tombol.
+Perbaikan keyboard ponsel: simpan tinggi layar sebelum mengetik karena beberapa
+browser mengecilkan layout dan visual viewport bersamaan. Header identitas
+tetap terpisah; formulir dapat bergulir di dalam saat ruang menyempit.
+Revisi terakhir tampilan keyboard: gunakan warna, tinggi/bentuk latar, bingkai
+kartu, logo, tab dan jarak formulir yang sama persis dengan sebelum mengetik.
+Simpan tampilan sebelum viewport berubah dan gunakan kembali ketika keyboard
+terbuka; jangan membuat varian visual khusus keyboard. Hanya ruang gulir kartu
+yang menyesuaikan agar isian aktif tetap terlihat.
+Isian aktif dijaga terlihat, ukuran teks input ponsel minimal 16px, dan layout
+kembali normal setelah keyboard ditutup. Pembesaran/rotasi bukan keyboard.
+Tidak ada perubahan jalur login, aturan domain, peran awal maupun verifikasi akun.
+Daftar Pengguna Dosen/Staf kembali menampilkan kolom Unit; nama, email, peran
+dan status tetap tersedia. Superadmin berada paling atas, lalu Admin pelihat,
+diurutkan sebelum pagination API serta pada tabel/kartu UI. Pengguna Superadmin
+menampilkan pintasan Verifikasi akun Dosen/Staf; persetujuan/penolakan tetap
+memerlukan Superadmin aktif dengan izin terkait, konfirmasi dan audit.
+API antrean menyelaraskan nama `unitManual` untuk usulan unit. Tidak tersedia
+pendaftaran mandiri maupun tombol pembuatan Admin/Superadmin pada daftar Pengguna.
+Format Persuratan panel memakai daftar yang dapat dicari, filter semua/aktif/arsip
+dan editor unggah responsif. Pencarian/filter tetap tersedia untuk akses baca;
+upload/arsip tetap memerlukan `templates.manage`. Hero Produk Hukum seluler
+tidak memakai garis/lapisan dekoratif maupun tepi kotak jumlah dokumen.
+
+Revisi autentikasi 2026-10-26 menggantikan aturan Google-only di bawah:
+`/daftar` menerima nama, email/password ITH maupun pribadi, dan unit master/usulan.
+Server menetapkan DOSEN_STAF + MENUNGGU_VERIFIKASI; hanya Superadmin yang
+menyetujui akses internal. `/masuk` menyediakan email/password dan Google;
+Google hanya email dan klaim hd tepat ith.ac.id, tanpa wildcard. Akun pending
+dapat masuk untuk melihat status/profil dan dokumen publik. Akun lokal tidak
+ditautkan ke Google hanya dari kesamaan email. Admin/Superadmin tetap memakai
+jalur password masing-masing. Hash memakai scrypt dan sesi HttpOnly, semua
+registrasi/keputusan diaudit. Kolom yang sudah ada mendukung alur ini sehingga
+tidak memerlukan perubahan struktur database. Daftar Dosen/Staf hanya
+Nama/Email/Peran/Status; unit tetap dipakai saat verifikasi. Filter Tahun dan
+Kategori pada Produk Hukum diletakkan sebelum Jenis Produk Hukum.
+Nonce dokumen dipasang pada startup klien sebelum hydration agar style scroll-lock
+Radix pada popup publik (pendaftaran/keluar) memenuhi CSP, seperti popup panel.
+
+Polesan portal 2026-10-26 mempertahankan hero foto kampus, logo, palet, jenis
+huruf, susunan regulasi, SOP dan footer. Gaya tambahan dibatasi `.portal-publik`:
+navigasi aktif, fokus keyboard, aksen kartu dan daftar format, animasi masuk
+singkat, serta isi yang tetap terlihat tanpa skrip animasi. Hasil pencarian
+ponsel/tablet memakai gulir halaman; desktop tetap memakai panel. Pemuatan
+otomatis berganti root saat breakpoint berubah dan mempunyai tombol lanjutan
+sebagai alternatif. Area sentuh dan ukuran teks input perangkat sentuh diperiksa,
+termasuk panel dan login. Tidak ada perubahan kebijakan akses atau publikasi.
+
+Penyempurnaan pengalaman akun 2026-10-25: Upload Dokumen berada sebelum Draf dan
+Pengajuan dalam menu kedua panel. Login Admin, Superadmin dan Dosen/Staf memakai
+kerangka visual bersama; metode autentikasi yang sudah tersedia tetap berlaku.
+Dosen/Staf memakai navigasi serta halaman portal publik yang sama, dengan menu
+profil akun terautentikasi, identitas/unit/status, dan konfirmasi keluar. Halaman
+Pengguna dipisahkan menjadi kelompok Admin (termasuk Superadmin) dan Dosen/Staf;
+antrean pendaftaran berada pada kelompok Dosen/Staf. Pemisahan ini hanya tampilan,
+bukan pemberian peran atau perubahan kewenangan. Animasi singkat menghormati
+`prefers-reduced-motion` dan tidak memerlukan dependency tambahan.
+
+Revisi input dan workflow 2026-10-25 menggantikan aturan terkait di bawah:
+- Semua unit/kategori tetap terlihat pada formulir unggah dan ubah draf Admin.
+  Pilihan di luar unit akun atau nonaktif dinonaktifkan; backend mengirim
+  `bolehPilih` boolean dan tetap memeriksa kategori/unit saat menyimpan/mengajukan.
+- Admin hanya dapat menargetkan dokumen miliknya beserta versi TERBIT aktif
+  miliknya pada relasi MENGUBAH/MENCABUT. API pencarian target terpisah dan POST
+  relasi memeriksa kedua pemilik; target milik akun lain tetap 404. Pengajuan
+  memeriksa ulang relasi lama sebelum masuk antrean. Superadmin boleh lintas pemilik.
+- Superadmin dapat menyetujui DRAF/REVISI dokumen dan versi miliknya langsung ke
+  DISETUJUI. Tombolnya Setujui dan Ubah draf; tidak memakai SUBMIT/antrean.
+  Ini pengecualian eksplisit atas larangan persetujuan versi sendiri. Metadata,
+  kategori, tepat satu file utama valid, konfirmasi, izin dan audit tetap wajib.
+  Draf Admin tetap DIAJUKAN dan hanya Superadmin yang dapat memverifikasinya.
+  Persetujuan tidak langsung menerbitkan atau mengganti versi publik.
+- Terapkan `database/v2/patch-020-superadmin-persetujuan-langsung.sql` pada DB V2
+  sebelum menggunakan persetujuan langsung. Patch hanya memperluas CHECK
+  transisi APPROVE dan mencatat audit; riwayat serta data dokumen dipertahankan.
+
+Penyempurnaan panel 2026-10-25: Admin dan Superadmin menggunakan layout ringkas
+dengan area kerja maksimum 1600px, sidebar 240px yang tetap dapat diciutkan, dan
+header desktop 56px. Dashboard memanfaatkan kolom horizontal; detail menempatkan
+pratinjau file lebih awal serta ringkasan/riwayat di samping pada desktop.
+Riwayat dan tabel panjang mempunyai gulir terbatas; formulir tetap responsif,
+target sentuh minimal 44px pada perangkat sentuh. Tindakan hapus permanen berada
+dalam bagian Tindakan lanjutan, dengan izin dan konfirmasi yang sama. Animasi
+tombol ringan, tidak menambah dependency, dan menghormati reduced motion.
+
+Perbaikan navigasi panel 2026-10-25: detail dari antrean memakai
+`/{admin|superadmin}/dokumen/verifikasi/:id?versionId=...`; detail dari Draf dan
+Pengajuan memakai `/dokumen/pengajuan/:id?versionId=...` pada namespace peran.
+Menu aktif, breadcrumb, tombol kembali dan riwayat versi mempertahankan daftar
+asal. Notifikasi SUBMIT membuka detail antrean, RETURN membuka detail pengajuan,
+APPROVE membuka detail terverifikasi, selalu pada versi notifikasi. Tautan
+notifikasi memuat halaman langsung agar pembukaan ulang mengambil data terbaru.
+Semua Dokumen tetap hanya DISETUJUI/TERBIT/DITARIK; otorisasi API tidak berubah.
+
+Revisi pengajuan 2026-10-23 menggantikan ketentuan lama yang bertentangan di bawah:
+
+- Semua Dokumen hanya versi terverifikasi (DISETUJUI/TERBIT/DITARIK). DRAF/REVISI/
+  DIAJUKAN tersedia pada Draf dan Pengajuan; antrean verifikasi hanya DIAJUKAN.
+- Sebelum SUBMIT/APPROVE, judul, deskripsi, nomor, tahun, PIC, tanggal penetapan,
+  akses dan kategori harus lengkap; tepat satu file UTAMA harus tersedia dan valid.
+  Lampiran digabung dalam file utama. Unggahan tambahan ditolak di backend dengan
+  penguncian versi; berkas historis tidak dihapus. Kategori dan unit Admin diperiksa ulang saat submit.
+- Superadmin meninjau file belum terbit melalui endpoint panel dengan pemeriksaan
+  sesi/izin pada setiap preview/download. API publik tetap hanya versi TERBIT aktif.
+- Dialog panel memakai permukaan putih beraksen halus, latar terang transparan,
+  animasi pendek dan portal Radix agar tidak terpotong area gulir. Konfirmasi,
+  fokus keyboard, pencegahan klik ganda serta loading/success/error tetap wajib.
+- Notifikasi Superadmin hanya pengajuan SUBMIT terbaru per versi yang masih
+  DIAJUKAN, tanpa kategori Disetujui/Perlu perbaikan. Setelah keputusan, pengajuan
+  hilang dari inbox Superadmin. RETURN dengan alasan dikirim ke Admin; setelah
+  perbaikan dan SUBMIT ulang, ID workflow baru menjadi pengajuan baru, termasuk
+  bila notifikasi pengajuan sebelumnya sudah dihapus. Admin hanya menerima
+  APPROVE/RETURN miliknya. Penolakan pengajuan tetap pengembalian untuk REVISI.
+- Catatan alasan APPROVE opsional; RETURN wajib alasan. RETURN tetap REVISI agar bisa diajukan
+  ulang; alasan dan riwayat keputusan terlihat pada detail Admin. Riwayat workflow
+  yang tersimpan atomik menjadi notifikasi persisten: keputusan untuk pemilik,
+  pengajuan baru untuk Superadmin. Panel memperbarui notifikasi tiap 30 detik saat terlihat.
+- Notifikasi dapat dihapus satu per satu atau sekaligus, dengan konfirmasi dan
+  feedback. Tabel `notifikasi_dihapus` menyimpan preferensi per akun; riwayat
+  workflow, dokumen dan audit tetap utuh. Hapus semua memakai batas ID snapshot
+  sehingga notifikasi yang tiba setelah konfirmasi dibuka tetap masuk. Patch-019
+  wajib diterapkan sebelum menjalankan backend terbaru.
+- Klarifikasi terakhir 2026-10-23: SOP Permohonan SK hanya untuk Superadmin.
+  Admin tidak melihat menu, pintasan, hasil pencarian, daftar, antrean atau notifikasi
+  terkait; akses halaman/API lewat ID juga ditolak. Admin tetap dapat menginput SOP biasa
+  menurut kategori unit. SOP khusus yang terbit tetap tersedia di portal publik.
+- Antrean verifikasi Admin dapat membaca pengajuan lintas pembuat selain SOP Permohonan SK;
+  daftar/draf tetap milik sendiri. Verifikasi hanya Superadmin. Antrean dimuat ulang saat
+  tab difokuskan, setelah workflow berubah, setiap 30 detik, atau lewat tombol Segarkan.
+- Login uji memakai frontend development (`npm run dev`), bukan build produksi;
+  setelah login, backend mengarahkan langsung ke panel sesuai peran.
+- Nama kategori/unit Komisi Etik menjadi Komisi Etik Kemahasiswaan; Lab menjadi
+  Laboratorium. Patch-018 mengganti nama tanpa mengubah kode, ID atau referensi.
+
 Bahasa utama project: Bahasa Indonesia.  
 Tanggal baseline V2: 2026-10-03. Revisi requirement Phase 1: 2026-10-04.
+Klarifikasi lanjutan 2026-10-20: Admin dapat membuka halaman global untuk membaca informasi.
+Tombol dan formulir perubahan dinonaktifkan, bukan navigasi. Panel Admin berada
+di /admin, Superadmin di /superadmin. Namespace API tetap /api/v1/admin. Daftar
+kategori informasi terpisah dari pilihan input yang tetap dibatasi unit akun.
+
+Pengecualian Audit (2026-10-21): hanya Superadmin aktif dengan `audit.read` yang
+dapat membuka Audit. Admin tidak melihat menu, hasil pencarian cepat atau aktivitas
+audit di dashboard, dan akses halaman/API langsung ditolak meskipun ada izin
+langsung `audit.read`. Revisi terbaru 2026-10-23: dashboard semua peran tidak
+menampilkan maupun mengambil ringkasan/aktivitas audit. Menu dan halaman Audit
+khusus Superadmin tetap tersedia. Halaman Audit memakai tabel ringkas di desktop serta area gulir dengan tinggi
+terbatas. Filter, pagination dan waktu WITA tetap tersedia.
+
+Layout panel desktop (2026-10-21): Admin dan Superadmin memakai kerangka setinggi
+viewport mulai lebar 1024px. Header tetap terlihat; sidebar dan area isi mempunyai
+gulir sendiri. Konten panjang tidak memanjangkan body halaman. Pergantian halaman
+mengembalikan area isi ke atas. Panel seluler dan portal publik tetap bergulir normal.
+
+Privasi panel, revisi 2026-10-21: Admin melihat email akun sendiri secara lengkap
+pada menu, profil, respons sesi HTTP, serta baris akun sendiri di daftar/detail.
+Email akun lain tetap disensor (contoh `a***@ith.ac.id`) oleh backend dan UI;
+pengecualian pemilik dicocokkan berdasarkan ID akun sesi dan ID target, bukan email.
+Superadmin menerima semua email lengkap dari endpoint panel. Email asli tetap
+disimpan dan digunakan pada principal internal/login. Identitas Dosen/Staf pada
+alur akun sendiri dan email kontak kantor yang memang dipublikasikan tetap berlaku.
+
+Revisi hak akses terbaru: 2026-10-20. Instruksi user terbaru pada sesi ini
+menggantikan aturan lama yang memberi Admin kewenangan verifikasi dan pengelolaan
+global: Admin hanya memasukkan/mengubah dokumen miliknya; Superadmin memverifikasi
+semua dokumen dan mengelola SOP Permohonan SK serta pengaturan global.
+
+Pengecualian Format Persuratan terbaru: semua Admin dan Superadmin dapat mengelola
+seluruh template lintas pembuat/unit (membuat, mengunggah dan mengaktifkan versi
+baru, mengarsipkan). Izin `templates.manage` diberikan pada role Admin; akun aktif,
+konfirmasi, dan audit tetap diwajibkan. Fitur global lain mengikuti batas semula.
 
 > Catatan struktur: snapshot awal di bawah berasal dari sebelum implementasi dan refactor repository. Path aplikasi pada dokumen ini dinormalisasi ke layout terkini: NestJS di `backend/`, Next.js di `frontend/`, dan shared contracts tetap di `packages/shared/`.
 
@@ -22,7 +262,7 @@ Tujuan utamanya bukan sekadar tempat menyimpan PDF. Sistem harus menjadi portal 
 - status hukum dan relasi antarproduk hukum;
 - akses Publik/Internal/Rahasia;
 - login Dosen/Staf ITH;
-- verifikasi akun Dosen/Staf oleh Admin;
+- verifikasi akun Dosen/Staf oleh Superadmin;
 - versioning dokumen;
 - pengelolaan Format Persuratan;
 - audit aktivitas;
@@ -262,36 +502,31 @@ Important:
 
 Admin account is pre-provisioned.
 
-Can:
-- create/edit product law drafts;
-- upload main PDF and attachments;
-- choose access level;
-- manage categories/tags/relations;
-- submit document versions;
-- create new revisions;
-- manage letter templates;
-- verify/reject Dosen/Staf registrations;
-- manage units/master data;
-- manage explicit Secret grants;
-- view dashboard/audit according to permission.
+Can only:
+- create documents and versions;
+- edit/upload files and metadata for documents/versions they created;
+- select categories mapped to their own unit;
+- submit their own versions for verification;
+- view their own documents and the administrative dashboard.
+- manage all letter templates, including templates created by other accounts.
 
-Admin may also have verifier permission.
+Admin cannot verify, approve, return, publish, withdraw, delete another user's
+document, manage users, manage master data, or manage
+SOP Permohonan SK. Admin may open other global information pages in read-only mode;
+only write controls are disabled. Verification queues may be read without granting
+verification rights. SOP Permohonan SK is exclusively available in the Superadmin
+panel: hide its Admin menu, shortcuts and command search entries, deny direct Admin
+page/API access and exclude its documents from Admin lists and queues. Published
+SOP remains accessible through the public portal.
+Letter templates are an explicit exception to global read-only access: all Admin
+accounts with `templates.manage` may create, replace versions, activate and archive
+any template. The law-document ownership and verification rules do not apply to
+this template management exception.
 
 ## 6.4 Admin Verifikator
 
-This is not necessarily a separate role.  
-Preferred model: Admin + verification permission.
-
-Can:
-- review submitted versions;
-- return for revision;
-- approve;
-- publish;
-- withdraw;
-- confirm legal relation impact.
-
-Critical:
-- may **not approve a version they created**.
+This role is superseded by the latest requirement. Verification is reserved for
+Superadmin; a direct per-user permission must not grant verification to Admin.
 
 ## 6.5 Superadmin
 
@@ -299,7 +534,9 @@ Pre-provisioned and controlled by developers/operations.
 
 Can:
 - administrative full access;
-- verifier functions;
+- verify every submitted document version, return it for revision, approve it,
+  publish it, and withdraw it;
+- manage SOP Permohonan SK;
 - system/master administration;
 - secret document administration.
 
@@ -366,25 +603,26 @@ role = DOSEN_STAF
 status = MENUNGGU_VERIFIKASI
     |
     v
-Admin review
+    Superadmin review
     |
     +-- approve -> AKTIF
     |
     +-- reject -> DITOLAK
 ```
 
-## 7.4 Why Admin approval exists
+## 7.4 Why Superadmin approval exists
 
 Domain validation alone is not considered sufficient.
 
-The user explicitly wants Admin verification to reduce the risk of bogus or inappropriate accounts.
+The user explicitly requires verification to be performed by Superadmin. Admin
+accounts are limited to input of their own documents and cannot manage accounts.
 
 ## 7.5 Unit manual
 
 If staff unit is not found in master:
 - user can type manual unit name;
 - it is not immediately treated as canonical unit;
-- Admin review:
+- Superadmin review:
   - map to existing unit, or
   - create the missing unit in master;
 - only then finalize `unit_kerja_id`.
@@ -418,7 +656,8 @@ DOSEN_STAF
 PENGUNJUNG (virtual / anonymous)
 ```
 
-Admin verifier = Admin with verification permission.
+Document verifier = Superadmin. Admin permissions are limited to input and
+submission of the Admin's own documents; ownership is enforced by the backend.
 
 RBAC should support:
 - role permissions;
@@ -505,8 +744,8 @@ Active Dosen/Staf:
 Unauthorized direct access:
 - prefer 404 so existence is not disclosed.
 
-Admin/Superadmin:
-- can manage according to admin permissions.
+Superadmin:
+- can manage according to Superadmin permissions.
 
 Secret view/download:
 - audit.
@@ -520,7 +759,7 @@ However it is **not part of V1 final flow** because:
 - a request button would reveal that a secret document exists.
 
 V1:
-- Admin explicitly grants a user access.
+- Superadmin explicitly grants a user access.
 
 Future:
 - access request can be reconsidered if there is a safe mechanism that does not leak secret resource existence.
@@ -557,7 +796,7 @@ Berlaku sama untuk seluruh lima jenis Produk Hukum, setelah otorisasi:
 Di bawah enam metadata ini, tampilkan dokumen utama dan lampiran milik current
 published version; setiap file yang diizinkan memiliki Preview dan Download.
 PUBLIK dapat dibuka anonim; INTERNAL hanya Dosen/Staf AKTIF tanpa pembatasan unit;
-RAHASIA hanya Admin/Superadmin sesuai permission atau pengguna AKTIF dengan explicit
+RAHASIA hanya Superadmin sesuai permission atau pengguna AKTIF dengan explicit
 grant valid. Search anonim INTERNAL tetap judul + badge saja, tanpa detail/file;
 RAHASIA tidak pernah muncul di public search. Otorisasi dicek ulang pada preview/download.
 
@@ -572,7 +811,9 @@ SOP remains one document type.
 
 Do not create separate document types for each SOP area.
 
-SOP categories should be dynamic master data.
+SOP categories remain dynamic master data managed by Superadmin. Admin may select
+only categories mapped to the unit on that Admin account; this is checked in the
+form and again by the backend on every create/update.
 
 Initial examples:
 
@@ -584,7 +825,22 @@ Initial examples:
 - BMN
 - Kepegawaian
 - Keuangan
-- LPPM
+- LPPM-PM (kode tetap `SOP-LPPM` agar referensi lama tetap tersambung)
+- Bagian Hukum
+- SPI
+- Komisi Etik
+- Lab
+- Senat
+
+Kategori SOP dan unit kerja memakai daftar yang sama. Pembaruan 2026-10-21
+mengganti nama LPPM menjadi LPPM-PM serta menambahkan Lab dan Senat pada keduanya.
+Revisi berikutnya menghapus Komisi Kemahasiswaan (entri baru yang belum dipakai)
+melalui patch-017 setelah patch-016. Komisi Etik serta Akademik & Kemahasiswaan
+tetap dipertahankan. Penghapusan dicatat dalam audit dan tidak mengubah ID lain.
+
+Header halaman Produk Hukum memakai lambang jenis dengan ikon dan warna yang
+selaras dengan menu/kartu, animasi gores cincin serta simbol saat jenis berganti,
+dan efek sorot ringan. Lambang tetap tampil di ponsel; reduced motion dihormati.
 
 Example:
 
@@ -924,8 +1180,10 @@ Dosen/Staf active:
 - RAHASIA only explicit granted documents.
 
 Admin:
-- admin endpoint;
-- can filter workflow states according to permission.
+- admin endpoint scoped to documents the Admin created;
+- may filter workflow states for those own documents.
+
+Superadmin can review all documents and all workflow states.
 
 ---
 
@@ -934,11 +1192,11 @@ Admin:
 This is a separate module from Product Law.
 
 Concept:
-- Admin creates letter template outside the system.
+- Superadmin creates a letter template outside the system.
 - Usually `.docx`.
-- Admin uploads the file.
+- Superadmin uploads the file.
 - Users download it.
-- When format changes, Admin uploads a new version.
+- When format changes, Superadmin uploads a new version.
 - Old version is archived, not destroyed.
 
 V1 access levels for letter templates only:
@@ -2011,7 +2269,7 @@ Core flows were structurally checked:
 
 **BR-002** `@mahasiswa.ith.ac.id` does not receive staff/internal access.
 
-**BR-003** New staff account is `MENUNGGU_VERIFIKASI` until Admin approves.
+**BR-003** New staff account is `MENUNGGU_VERIFIKASI` until Superadmin approves.
 
 **BR-004** Unit manual must be resolved to canonical unit before activation.
 
@@ -2067,6 +2325,16 @@ Core flows were structurally checked:
 
 **BR-030** Sensitive/write activity is auditable.
 
+**BR-031** Admin can create, edit, upload, and submit only documents and versions they created.
+
+**BR-032** Admin can assign only categories mapped to the Admin account's unit.
+
+**BR-033** Only Superadmin can verify, return, approve, publish, or withdraw a document.
+
+**BR-034** Only Superadmin can manage SOP Permohonan SK, templates, accounts, categories,
+units, and other global settings. Admin may open those pages to read information;
+write controls are disabled. Panel paths are `/admin` and `/superadmin` by role.
+
 ---
 
 # 41. Recommended Implementation Order
@@ -2103,7 +2371,7 @@ Recommended:
 - Google auth;
 - sessions;
 - pending registration;
-- admin approve/reject;
+- Superadmin approve/reject;
 - unit manual resolution.
 
 ## Phase 4 — RBAC / Security

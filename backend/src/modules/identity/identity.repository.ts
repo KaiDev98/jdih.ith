@@ -100,9 +100,9 @@ export class IdentityRepository {
     );
   }
   /** Ada akun (termasuk yang sudah dihapus) dengan email ini? Email unik di tabel. */
-  async emailTerpakai(db: Connection, email: string) {
+  async emailTerpakai(db: Connection, email: string, lock = true) {
     return (
-      (await this.rows(db, 'SELECT id FROM pengguna WHERE email=? FOR UPDATE', [email])).length > 0
+      (await this.rows(db, 'SELECT id FROM pengguna WHERE email=?' + (lock ? ' FOR UPDATE' : ''), [email])).length > 0
     );
   }
   /** Akun Admin baru buatan Superadmin: langsung AKTIF, tanpa Google, dengan unit dan password awal. */
@@ -211,6 +211,11 @@ export class IdentityRepository {
     );
   }
 
+  insertStaffPassword(db: Connection, values: (string | number | Buffer | null)[]) {
+    return this.write(db,
+      "INSERT INTO pengguna(email,nama,password_hash,password_diubah_at,unit_kerja_id,unit_manual,status) VALUES(?,?,?,UTC_TIMESTAMP(6),?,?,'MENUNGGU_VERIFIKASI')", values);
+  }
+
   assignStaffRole(db: Connection, values: (string | number | Buffer | null)[]) {
     return this.write(
       db,
@@ -259,7 +264,7 @@ export class IdentityRepository {
     );
   }
 
-  /** Semua akun yang belum dihapus beserta perannya, terbaru di atas. */
+  /** Urutkan sebelum pagination: Superadmin, akun pelihat, lalu akun terbaru. */
   accountList(db: Connection, values: string[]) {
     return this.rows<
       RowDataPacket & {
@@ -282,7 +287,7 @@ export class IdentityRepository {
        LEFT JOIN unit_kerja k ON k.id=u.unit_kerja_id
        WHERE u.deleted_at IS NULL
        GROUP BY u.id,u.nama,u.email,u.status,k.nama,u.created_at
-       ORDER BY u.created_at DESC,u.id DESC
+       ORDER BY MAX(r.kode='SUPERADMIN') DESC,(u.id=?) DESC,u.created_at DESC,u.id DESC
        LIMIT ? OFFSET ?`,
       values,
     );
@@ -311,9 +316,9 @@ export class IdentityRepository {
   }
 
   pendingList(db: Connection, values: (string | number | Buffer | null)[] = []) {
-    return this.rows<RowDataPacket>(
+    return this.rows<RowDataPacket & { email: string }>(
       db,
-      "SELECT CAST(id AS CHAR) id,nama,email,unit_manual,CAST(unit_kerja_id AS CHAR) unitKerjaId,status FROM pengguna WHERE status='MENUNGGU_VERIFIKASI' AND deleted_at IS NULL ORDER BY id LIMIT ? OFFSET ?",
+      "SELECT CAST(id AS CHAR) id,nama,email,unit_manual AS unitManual,CAST(unit_kerja_id AS CHAR) unitKerjaId,status FROM pengguna WHERE status='MENUNGGU_VERIFIKASI' AND deleted_at IS NULL ORDER BY id LIMIT ? OFFSET ?",
       values,
     );
   }

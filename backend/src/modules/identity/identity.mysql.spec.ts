@@ -95,9 +95,9 @@ describe.skipIf(!enabled)('MySQL 8.4 identity/security integration', () => {
     );
     return { id, unitId, sub: `sub-${suffix}`, email: `${suffix}@ith.ac.id`, nama: `User ${suffix}` };
   }
-  async function addAdmin() {
-    const user = await addUser('ADMIN');
-    // Admin masuk lewat jalur password Admin, bukan Google.
+  async function addAdmin(role: 'ADMIN' | 'SUPERADMIN' = 'SUPERADMIN') {
+    const user = await addUser(role);
+    // Pengelola masuk lewat jalur password, bukan Google.
     await repo.write(pool, 'UPDATE pengguna SET password_hash=? WHERE id=?', [
       await hashPassword('AdminUji12345'),
       user.id,
@@ -106,6 +106,7 @@ describe.skipIf(!enabled)('MySQL 8.4 identity/security integration', () => {
       { email: user.email, password: 'AdminUji12345' },
       '127.0.0.1',
       'mysql-test',
+      role === 'SUPERADMIN' ? 'superadmin' : 'admin',
     );
     return { ...user, token: result.token };
   }
@@ -124,9 +125,9 @@ describe.skipIf(!enabled)('MySQL 8.4 identity/security integration', () => {
     const row = (await repo.user(pool, id))!;
     return repo.principal(pool, row);
   }
-  it('schema and seed are present and verifier is ADMIN plus permission, not a role', async () => {
+  it('schema and seed are present; account verification belongs to Superadmin', async () => {
     const [tables] = await pool.query<RowDataPacket[]>('SHOW TABLES');
-    expect(tables).toHaveLength(25);
+    expect(tables).toHaveLength(27);
     const [verifier] = await repo.rows<RowDataPacket & { total: number }>(
       pool,
       "SELECT COUNT(*) total FROM peran WHERE kode='VERIFIER'",
@@ -134,9 +135,51 @@ describe.skipIf(!enabled)('MySQL 8.4 identity/security integration', () => {
     expect(Number(verifier!.total)).toBe(0);
     const admin = await addAdmin();
     const principal = await dbUser(admin.id);
-    expect(principal.peran).toEqual(['ADMIN']);
+    expect(principal.peran).toEqual(['SUPERADMIN']);
     expect(principal.izin).toContain('users.approve');
     expect(principal.izin).toContain('users.reject');
+    const ordinary = await addAdmin('ADMIN');
+    expect((await dbUser(ordinary.id)).izin).not.toContain('users.approve');
+    const pending = await register({ unitKerjaId: ordinary.unitId });
+    await expect(identity.decision(ordinary.token, pending.id, 'approve', { unitKerjaId: ordinary.unitId })).rejects.toThrow();
+  });
+
+  it('email pribadi dapat mendaftar/masuk; Internal baru tersedia setelah persetujuan Superadmin dan hilang saat dinonaktifkan', async () => {
+    const suffix = unique(), email = `registration-${suffix}@gmail.com`;
+    const password = 'PasswordUji123';
+    const created = await identity.registerWithPassword({ nama: 'Dosen Email Pribadi', email, password, konfirmasiPassword: password, unitManual: 'Unit usulan' }, '127.0.0.1', 'mysql-test');
+    expect(created.result.status).toBe('MENUNGGU_VERIFIKASI');
+    const pending = (await identity.authenticate(created.token)).user;
+    expect(pending.peran).toEqual(['DOSEN_STAF']);
+    const resource = { id: 'internal-fixture', tingkatAkses: 'internal' as const, published: true, current: true, deleted: false };
+    expect(() => policy.assertRead(resource, pending)).toThrow();
+    await expect(identity.loginPassword({ email, password }, 'ip', 'ua', 'staff')).resolves.toHaveProperty('token');
+    await expect(identity.loginPassword({ email, password }, 'ip', 'ua', 'admin')).rejects.toThrow();
+    const row = await repo.user(pool, created.result.id);
+    expect(row?.google_sub).toBeNull();
+    expect(row?.password_hash).toMatch(/^scrypt\$/);
+    const verifier = await addAdmin();
+    await identity.decision(verifier.token, created.result.id, 'approve', { unitKerjaId: verifier.unitId });
+    const active = (await identity.authenticate(created.token)).user;
+    expect(active.status).toBe('AKTIF');
+    expect(() => policy.assertRead(resource, active)).not.toThrow();
+    await identity.decision(verifier.token, created.result.id, 'status', { status: 'NONAKTIF', alasan: 'Uji pencabutan akses' });
+    await expect(identity.authenticate(created.token)).rejects.toThrow();
+    await expect(identity.loginPassword({ email, password }, 'ip', 'ua', 'staff')).rejects.toThrow();
+  });
+
+  it('pendaftaran serentak tidak memberi duplikasi email atau hak pengelola', async () => {
+    const suffix = unique();
+    const data = { nama: 'Pendaftar Paralel', email: `${suffix}@example.com`, password: 'PasswordUji123', konfirmasiPassword: 'PasswordUji123', unitManual: 'Unit lain' };
+    const same = await Promise.allSettled([identity.registerWithPassword(data, 'ip', 'ua'), identity.registerWithPassword(data, 'ip', 'ua')]);
+    expect(same.filter(r => r.status === 'fulfilled')).toHaveLength(1);
+    expect(same.filter(r => r.status === 'rejected')).toHaveLength(1);
+    const different = await Promise.all(Array.from({ length: 4 }, (_, i) => identity.registerWithPassword({ ...data, email: `${suffix}-${i}@example.com` }, 'ip', 'ua')));
+    for (const registration of different) {
+      const principal = (await identity.authenticate(registration.token)).user;
+      expect(principal.status).toBe('MENUNGGU_VERIFIKASI');
+      expect(principal.peran).toEqual(['DOSEN_STAF']);
+    }
   });
 
   it('creates pending DOSEN_STAF registered against an existing unit and stores only token hash', async () => {
@@ -230,12 +273,12 @@ describe.skipIf(!enabled)('MySQL 8.4 identity/security integration', () => {
     async (status) => {
       const user = await addUser('DOSEN_STAF', status);
       const principal = await dbUser(user.id);
-      await expect(
+      expect(() =>
         policy.assertRead(
           { id: 'test-internal', tingkatAkses: 'internal', published: true, current: true, deleted: false },
           principal,
         ),
-      ).rejects.toThrow();
+      ).toThrow();
     },
   );
 

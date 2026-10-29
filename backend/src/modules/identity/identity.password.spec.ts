@@ -69,6 +69,19 @@ describe('hash password', () => {
 });
 
 describe('IdentityService.loginPassword', () => {
+  it.each(['AKTIF', 'MENUNGGU_VERIFIKASI'])('email pribadi Dosen/Staf berstatus %s dapat masuk melalui jalur staff', async status => {
+    const { service, row } = await siapkan({ peran: ['DOSEN_STAF'], status });
+    row.email = 'staff@gmail.com';
+    await expect(service.loginPassword({ email: 'STAFF@gmail.com', password: PASSWORD }, 'ip', 'ua', 'staff')).resolves.toHaveProperty('token');
+  });
+  it.each([{ peran: ['ADMIN'] }, { peran: ['SUPERADMIN'] }, { peran: ['DOSEN_STAF', 'ADMIN'] }])('jalur staff menolak peran $peran walaupun password benar', async ({ peran }) => {
+    const { service } = await siapkan({ peran });
+    await expect(service.loginPassword({ email: 'admin@ith.ac.id', password: PASSWORD }, 'ip', 'ua', 'staff')).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+  it.each(['NONAKTIF', 'DITOLAK'])('jalur staff menolak status %s', async status => {
+    const { service } = await siapkan({ peran: ['DOSEN_STAF'], status });
+    await expect(service.loginPassword({ email: 'admin@ith.ac.id', password: PASSWORD }, 'ip', 'ua', 'staff')).rejects.toBeInstanceOf(UnauthorizedException);
+  });
   it('admin dengan password benar mendapat sesi', async () => {
     const { service, writes } = await siapkan();
     const sesi = await service.loginPassword(

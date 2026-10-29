@@ -1,4 +1,5 @@
-import { Controller, Get, Query, Req } from '@nestjs/common';
+import { Controller, Get, Query, Req, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import { Publik, type PermintaanBerpengguna } from '../../../common/decorators/otorisasi.decorator.js';
 import { IdentityService } from '../../identity/identity.service.js';
 import { cookie, SESSION_COOKIE } from '../../identity/identity.guard.js';
@@ -10,18 +11,20 @@ export class SearchController {
 
   private async actor(req: PermintaanBerpengguna) {
     const token = cookie(req, SESSION_COOKIE);
-    return token ? (await this.identity.authenticate(token)).user : undefined;
+    return this.identity.optionalUser(token);
   }
 
   @Get('search/documents')
   @Publik()
-  async searchDocuments(@Query() query: unknown, @Req() req: PermintaanBerpengguna) {
+  async searchDocuments(@Query() query: unknown, @Req() req: PermintaanBerpengguna, @Res({ passthrough: true }) res: Response) {
+    res.setHeader('Cache-Control', 'private, no-store'); res.vary('Cookie');
     return this.search.search(query, await this.actor(req));
   }
 
   @Get('search/documents/facets')
   @Publik()
-  async facets(@Query() query: unknown, @Req() req: PermintaanBerpengguna) {
+  async facets(@Query() query: unknown, @Req() req: PermintaanBerpengguna, @Res({ passthrough: true }) res: Response) {
+    res.setHeader('Cache-Control', 'private, no-store'); res.vary('Cookie');
     return this.search.facets(query, await this.actor(req));
   }
 
@@ -41,5 +44,12 @@ export class SearchController {
   @Publik()
   latest() {
     return this.search.latestPublic();
+  }
+
+  @Get('documents/permohonan-sk')
+  @Publik()
+  async permohonanSk(@Query() query: unknown, @Req() req: PermintaanBerpengguna, @Res({ passthrough: true }) res: Response) {
+    res.setHeader('Cache-Control', 'private, no-store'); res.vary('Cookie');
+    return this.search.permohonanSk(query, await this.actor(req));
   }
 }

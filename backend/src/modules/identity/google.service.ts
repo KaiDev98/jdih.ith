@@ -28,7 +28,7 @@ export async function verifyGoogleToken(
 }
 /**
  * Klaim token Google yang sah. `domain` membatasi email (dan klaim `hd` Google
- * Workspace); `*` menerima akun Google apa pun yang emailnya terverifikasi.
+ * Workspace). Pembatasan tidak dapat dilewati dengan konfigurasi wildcard.
  */
 export function verifiedClaims(
   p: JWTPayload,
@@ -38,8 +38,8 @@ export function verifiedClaims(
 ): GoogleIdentity {
   const email = z.email().max(254).safeParse(p.email);
   const domainCocok =
-    domain === '*' ||
-    (email.success && email.data.split('@')[1]?.toLowerCase() === domain && p.hd === domain);
+    domain === 'ith.ac.id' &&
+    email.success && email.data.split('@')[1]?.toLowerCase() === 'ith.ac.id' && p.hd === 'ith.ac.id';
   if (
     !['https://accounts.google.com', 'accounts.google.com'].includes(String(p.iss)) ||
     p.aud !== clientId ||
@@ -99,7 +99,7 @@ export class GoogleService {
       redirect_uri: cfg.redirectUri,
       response_type: 'code',
       scope: 'openid email profile',
-      ...(cfg.domainDiizinkan === '*' ? {} : { hd: cfg.domainDiizinkan }),
+      hd: 'ith.ac.id',
       state: flow.state,
       nonce: flow.nonce,
       code_challenge: hashToken(flow.verifier).toString('base64url'),

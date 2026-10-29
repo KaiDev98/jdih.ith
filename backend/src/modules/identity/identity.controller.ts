@@ -25,6 +25,7 @@ import {
 } from '@jdih/shared';
 import {
   Izin,
+  IzinSalahSatu,
   Publik,
   type PermintaanBerpengguna,
 } from '../../common/decorators/otorisasi.decorator.js';
@@ -98,7 +99,7 @@ export class IdentityController {
     if (peran !== 'SUPERADMIN' && peran !== 'ADMIN') throw new NotFoundException();
     const session = await this.identity.loginUji(peran, req.ip ?? '', req.get('user-agent') ?? '');
     this.setSession(res, session);
-    res.redirect(`${this.config.get('identitas.origin', { infer: true })}/akun`);
+    res.redirect(`${this.config.get('identitas.origin', { infer: true })}/${peran === 'SUPERADMIN' ? 'superadmin' : 'admin'}`);
   }
   @Get('google/callback')
   @Throttle(BATAS_LOGIN)
@@ -138,7 +139,7 @@ export class IdentityController {
       registration = cookie(req, REGISTRATION_COOKIE);
     const key = this.config.get('identitas.key', { infer: true });
     if (token) {
-      const { user } = await this.identity.authenticate(token);
+      const user = await this.identity.penggunaSesiTampil(token);
       return skemaAuthMeHttp.parse({
         terautentikasi: true,
         pengguna: user,
@@ -182,6 +183,29 @@ export class IdentityController {
     return {
       csrfToken: csrfToken(session.token, this.config.get('identitas.key', { infer: true })),
     };
+  }
+  @Post('register/email')
+  @Throttle(BATAS_LOGIN)
+  @Publik()
+  @TanpaCsrf()
+  async registerEmail(@Body() input: unknown, @Req() req: PermintaanBerpengguna, @Res({ passthrough: true }) res: Response) {
+    this.privateResponse(res);
+    const session = await this.identity.registerWithPassword(input, req.ip ?? '', req.get('user-agent') ?? '');
+    this.setSession(res, session);
+    res.clearCookie(REGISTRATION_COOKIE, this.options());
+    res.clearCookie(FLOW_COOKIE, this.options());
+    return session.result;
+  }
+  @Post('login/staff')
+  @Throttle(BATAS_LOGIN)
+  @Publik()
+  @TanpaCsrf()
+  async loginStaff(@Body() input: unknown, @Req() req: PermintaanBerpengguna, @Res({ passthrough: true }) res: Response) {
+    this.privateResponse(res);
+    const session = await this.identity.loginPassword(input, req.ip ?? '', req.get('user-agent') ?? '', 'staff');
+    this.setSession(res, session);
+    res.clearCookie(REGISTRATION_COOKIE, this.options());
+    return { masuk: true };
   }
   /** Login email + password khusus Admin (bukan Superadmin, bukan Dosen/Staf). */
   @Post('login')
@@ -258,16 +282,16 @@ export class IdentityController {
 export class AccountsController {
   constructor(private readonly identity: IdentityService) {}
   @Get()
-  @Izin('users.read')
-  list(@Query() input: unknown) {
+  @IzinSalahSatu('users.read', 'documents.read_admin')
+  list(@Query() input: unknown, @Req() req: PermintaanBerpengguna) {
     const q = skemaHalaman.parse(input);
-    return this.identity.pending(q.halaman, q.perHalaman);
+    return this.identity.pending(q.halaman, q.perHalaman, req.pengguna!);
   }
   @Get('accounts')
-  @Izin('users.read')
-  accounts(@Query() input: unknown) {
+  @IzinSalahSatu('users.read', 'documents.read_admin')
+  accounts(@Query() input: unknown, @Req() req: PermintaanBerpengguna) {
     const q = skemaHalaman.parse(input);
-    return this.identity.accounts(q.halaman, q.perHalaman);
+    return this.identity.accounts(q.halaman, q.perHalaman, req.pengguna!);
   }
   /** Superadmin membuat akun Admin (peran diperiksa di layanan). */
   @Post('admins')
@@ -290,9 +314,9 @@ export class AccountsController {
     );
   }
   @Get(':id')
-  @Izin('users.read')
-  detail(@Param() input: unknown) {
-    return this.identity.pendingDetail(skemaParamId.parse(input).id);
+  @IzinSalahSatu('users.read', 'documents.read_admin')
+  detail(@Param() input: unknown, @Req() req: PermintaanBerpengguna) {
+    return this.identity.pendingDetail(skemaParamId.parse(input).id, req.pengguna!);
   }
   @Post(':id/approve')
   @Izin('users.approve')

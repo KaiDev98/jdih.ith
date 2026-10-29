@@ -5,7 +5,7 @@
   "description": "Portal JDIH — Institut Teknologi Bacharuddin Jusuf Habibie (ITH) Parepare",
   "license": "UNLICENSED",
   "engines": {
-    "node": ">=20.9.0",
+    "node": "^24.22.2 || ^26.13.0",
     "npm": ">=10.0.0"
   },
   "workspaces": [
@@ -29,6 +29,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "npm run test --workspaces --if-present",
+    "test:proxy": "node --test scripts/performance/proxy-request.test.mjs",
     "db:import": "node scripts/db-import.mjs",
     "db:reset": "node scripts/db-import.mjs --drop",
     "db:pull": "node scripts/db-pull.mjs",
@@ -38,6 +39,11 @@
     "setup": "node scripts/setup-env.mjs && npm run build:shared",
     "setup:env": "node scripts/setup-env.mjs",
     "gen:permissions": "node scripts/gen-permissions.mjs"
+  },
+  "overrides": {
+    "@esbuild-kit/core-utils": {
+      "esbuild": "^0.25.12"
+    }
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

@@ -1,0 +1,69 @@
+name: Release checks
+
+on:
+  push:
+    branches: [nesta]
+  pull_request:
+    branches: [nesta]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    services:
+      mysql:
+        image: mysql:8.4.11
+        env:
+          MYSQL_ROOT_PASSWORD: ci-only-disposable-password
+          MYSQL_ROOT_HOST: '%'
+        ports:
+          - 3309:3306
+        options: >-
+          --health-cmd="mysqladmin ping --host=127.0.0.1 --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_LOGIN_UJI: 'false'
+      API_INTERNAL_URL: http://127.0.0.1:3001
+      NEXT_PUBLIC_SITE_URL: https://jdih.ith.ac.id
+      IDENTITY_TEST_ENV: ${{ github.workspace }}/test-results/ci-mysql-test.env
+      NOTIFICATIONS_MYSQL_ENV: ${{ github.workspace }}/test-results/ci-mysql-test.env
+      DOCUMENT_POLICY_MYSQL_ENV: ${{ github.workspace }}/test-results/ci-mysql-policy.env
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node scripts/check-release-files.mjs
+      - run: npm audit --audit-level=low
+      - run: npm run build:shared
+      - name: Prepare disposable MySQL databases
+        env:
+          MYSQL_PWD: ci-only-disposable-password
+        run: |
+          mkdir -p test-results
+          printf 'DB_HOST=127.0.0.1\nDB_PORT=3309\nDB_USER=root\nDB_PASSWORD=%s\nDB_NAME=jdih_ith_v2_test\n' "$MYSQL_PWD" > "$IDENTITY_TEST_ENV"
+          printf 'DB_HOST=127.0.0.1\nDB_PORT=3309\nDB_USER=root\nDB_PASSWORD=%s\nDB_NAME=jdih_ith_v2_dev\n' "$MYSQL_PWD" > "$DOCUMENT_POLICY_MYSQL_ENV"
+          mysql --protocol=TCP --host=127.0.0.1 --port=3309 --user=root -e 'CREATE DATABASE jdih_ith_v2_test; CREATE DATABASE jdih_ith_v2_dev;'
+          node backend/scripts/prepare-identity-test-db.mjs "$IDENTITY_TEST_ENV"
+          mysql --protocol=TCP --host=127.0.0.1 --port=3309 --user=root < database/v2/schema.sql
+          mysql --protocol=TCP --host=127.0.0.1 --port=3309 --user=root < database/v2/seed.sql
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run test:proxy
+      - run: npm run build

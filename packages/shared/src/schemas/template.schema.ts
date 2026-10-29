@@ -6,7 +6,10 @@ import {
   skemaNomorVersi,
   teksWajib,
   skemaTanggapanHalaman,
+  skemaHalaman,
+  skemaKataKunci,
 } from './common.schema.js';
+export const skemaCariTemplate = skemaHalaman.extend({ q: skemaKataKunci.optional() });
 export const skemaBuatTemplate = z.strictObject({
   slug: skemaSlug,
   nama: teksWajib(200, 'Nama'),

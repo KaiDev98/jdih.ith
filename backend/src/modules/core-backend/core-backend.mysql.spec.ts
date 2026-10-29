@@ -74,6 +74,7 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
   let files: DocumentFilesService;
   let search: SearchService;
   let templates: LetterTemplatesService;
+  let defaultCategoryId: string;
   const uid = () => randomUUID().replaceAll('-', '');
   beforeAll(async () => {
     const env = parseEnv(readFileSync(resolve(process.env.IDENTITY_TEST_ENV!), 'utf8'));
@@ -125,6 +126,8 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     );
     actor = await addAdmin();
     second = await addAdmin();
+    const [categories] = await pool.query<RowDataPacket[]>('SELECT CAST(id AS CHAR) id FROM kategori WHERE aktif=1 ORDER BY id LIMIT 1');
+    defaultCategoryId = String(categories[0]!.id);
   }, 15000);
   afterAll(async () => {
     await pool?.end();
@@ -188,7 +191,7 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
       kodeDokumen: `T-${suffix}`,
       slug: `test-${suffix}`,
       jenisDokumenId: String(types[0]!.id),
-      versi: { judul: `Dokumen ${suffix}`, tingkatAkses: level },
+      versi: ready(`Dokumen ${suffix}`, level),
     });
   }
   const ready = (judul: string, level: 'publik' | 'internal' = 'publik') => ({
@@ -198,13 +201,11 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     tahun: 2026,
     pic: 'Unit Hukum',
     tanggalPenetapan: '2026-01-02',
+    deskripsi: 'Dokumen pengujian alur verifikasi',
+    kategoriId: [defaultCategoryId],
   });
   async function approve(versionId: string) {
-    await service.transition(actor, versionId, 'SUBMIT');
-    await expect(service.transition(actor, versionId, 'APPROVE')).rejects.toBeInstanceOf(
-      ForbiddenException,
-    );
-    return service.transition(second, versionId, 'APPROVE');
+    return service.transition(actor, versionId, 'APPROVE', 'Draf Superadmin telah diperiksa dan sesuai');
   }
   async function publish(versionId: string) {
     const impact = await service.impact(actor, versionId);
@@ -216,14 +217,21 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
       },
     });
   }
+  async function publishedDoc() {
+    const d = await doc();
+    await addFileMetadata(d.versionId, 'UTAMA');
+    await approve(d.versionId);
+    await publish(d.versionId);
+    return d;
+  }
   async function addFileMetadata(versionId: string, kind: 'UTAMA' | 'LAMPIRAN') {
     const suffix = uid();
     const content = Buffer.from('%PDF-1.7\nmetadata-only test\n%%EOF\n');
     const staged = await storage.stage(Readable.from([content]));
     await storage.finalize(staged);
     await pool.execute(
-      'INSERT INTO dokumen_berkas(dokumen_versi_id,jenis_berkas,storage_key,nama_asli,mime_type,size_bytes,checksum) VALUES(?,?,?,?,?,?,?)',
-      [versionId, kind, staged.storageKey, `${suffix}.pdf`, 'application/pdf', staged.byte, staged.checksum],
+      'INSERT INTO dokumen_berkas(dokumen_versi_id,uploaded_by,jenis_berkas,storage_key,nama_asli,mime_type,size_bytes,checksum) VALUES(?,?,?,?,?,?,?,?)',
+      [versionId, actor.id, kind, staged.storageKey, `${suffix}.pdf`, 'application/pdf', staged.byte, staged.checksum],
     );
   }
   async function incomingFile(name: string, bytes: Buffer) {
@@ -238,11 +246,12 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
 
   it('serves authorized admin document and verifier lists, active DOSEN_STAF lookup, redacted audit, and public masters', async () => {
     const d = await doc();
-    const createdList = await service.adminDocuments(actor, { halaman: '1', perHalaman: '50' });
+    const createdList = await service.adminDocuments(actor, { halaman: '1', perHalaman: '50', cakupan: 'PENGAJUAN' });
     expect(createdList.data).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: d.id, versionId: d.versionId, statusWorkflow: 'DRAF' }),
     ]));
-    await service.transition(actor, d.versionId, 'SUBMIT');
+    await addFileMetadata(d.versionId, 'UTAMA');
+    await service.transition(second, d.versionId, 'SUBMIT');
     const queue = await service.adminDocuments(actor, { halaman: '1', perHalaman: '50' }, true);
     expect(queue.data).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: d.id, versionId: d.versionId, statusWorkflow: 'DIAJUKAN' }),
@@ -267,11 +276,11 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     const first = await doc();
     const v1 = first.versionId;
     await service.updateVersion(actor, v1, ready('Versi satu'));
-    await approve(v1);
     await addFileMetadata(v1, 'UTAMA');
+    await approve(v1);
     await publish(v1);
-    const target = await doc();
-    const repealTarget = await doc();
+    const target = await publishedDoc();
+    const repealTarget = await publishedDoc();
     const revision = await service.newVersion(actor, first.id, ready('Versi dua'));
     expect(revision.nomorVersi).toBe(2);
     const [pointerBefore] = await pool.query<RowDataPacket[]>(
@@ -287,8 +296,8 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
       targetDocumentId: repealTarget.id,
       jenisRelasi: 'MENCABUT',
     });
-    await approve(revision.id);
     await addFileMetadata(revision.id, 'UTAMA');
+    await approve(revision.id);
     const impact = await service.impact(actor, revision.id);
     expect(impact.dampak).toEqual(
       expect.arrayContaining([
@@ -369,19 +378,19 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
   it('serializes concurrent duplicate submit, approve, and publish actions', async () => {
     const d = await doc();
     await service.updateVersion(actor, d.versionId, ready('Concurrent workflow'));
+    await addFileMetadata(d.versionId, 'UTAMA');
 
     const submits = await Promise.allSettled([
-      service.transition(actor, d.versionId, 'SUBMIT'),
-      service.transition(actor, d.versionId, 'SUBMIT'),
+      service.transition(second, d.versionId, 'SUBMIT'),
+      service.transition(second, d.versionId, 'SUBMIT'),
     ]);
     expect(submits.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
 
     const approvals = await Promise.allSettled([
-      service.transition(second, d.versionId, 'APPROVE'),
-      service.transition(second, d.versionId, 'APPROVE'),
+      service.transition(second, d.versionId, 'APPROVE', 'Sesuai'),
+      service.transition(second, d.versionId, 'APPROVE', 'Sesuai'),
     ]);
     expect(approvals.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
-    await addFileMetadata(d.versionId, 'UTAMA');
 
     const impact = await service.impact(second, d.versionId);
     const command = {
@@ -406,8 +415,8 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
   it('allocates concurrent revisions uniquely and serializes publish against withdrawal', async () => {
     const d = await doc();
     await service.updateVersion(actor, d.versionId, ready('Concurrent version one'));
-    await approve(d.versionId);
     await addFileMetadata(d.versionId, 'UTAMA');
+    await approve(d.versionId);
     await publish(d.versionId);
 
     const revisions = await Promise.all([
@@ -417,8 +426,8 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     expect(revisions.map((revision) => revision.nomorVersi).sort()).toEqual([2, 3]);
 
     const next = revisions[0];
-    await approve(next.id);
     await addFileMetadata(next.id, 'UTAMA');
+    await approve(next.id);
     const impact = await service.impact(second, next.id);
     const command = {
       konfirmasi: {
@@ -450,7 +459,7 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
   });
 
   it('serializes competing legal impact publications using fresh target status', async () => {
-    const target = await doc();
+    const target = await publishedDoc();
     const makeProposal = async (jenisRelasi: 'MENGUBAH' | 'MENCABUT') => {
       const source = await doc();
       await service.updateVersion(actor, source.versionId, ready(`Concurrent ${jenisRelasi}`));
@@ -458,8 +467,8 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
         targetDocumentId: target.id,
         jenisRelasi,
       });
-      await approve(source.versionId);
       await addFileMetadata(source.versionId, 'UTAMA');
+      await approve(source.versionId);
       const impact = await service.impact(second, source.versionId);
       return {
         id: source.versionId,
@@ -495,16 +504,15 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     expect(Number(history[0]?.total)).toBe(1);
   });
 
-  it('requires UTAMA metadata to publish and rejects attachment-only versions', async () => {
+  it('requires exactly one UTAMA before submission and rejects attachment-only versions', async () => {
     const d = await doc();
     await service.updateVersion(actor, d.versionId, ready('Metadata readiness'));
-    await approve(d.versionId);
-
-    await expect(publish(d.versionId)).rejects.toThrow('Metadata file UTAMA wajib tersedia');
+    await expect(service.transition(actor, d.versionId, 'APPROVE')).rejects.toThrow('tepat satu file');
     await addFileMetadata(d.versionId, 'LAMPIRAN');
-    await expect(publish(d.versionId)).rejects.toThrow('Metadata file UTAMA wajib tersedia');
-
+    await expect(service.transition(actor, d.versionId, 'APPROVE')).rejects.toThrow('tepat satu file');
+    await pool.execute('DELETE FROM dokumen_berkas WHERE dokumen_versi_id=?', [d.versionId]);
     await addFileMetadata(d.versionId, 'UTAMA');
+    await approve(d.versionId);
     await expect(publish(d.versionId)).resolves.toMatchObject({
       id: d.versionId,
       statusWorkflow: 'TERBIT',
@@ -512,13 +520,26 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     });
   });
 
-  it('uploads one UTAMA and multiple PDF LAMPIRAN, then rechecks access for each file request', async () => {
+  it('allows concurrent first uploads to different versions and serializes duplicate uploads to one version', async () => {
+    const documents = await Promise.all(Array.from({ length: 4 }, () => doc()));
+    const pdf = Buffer.from('%PDF-1.7\nparallel upload test\n%%EOF\n');
+    const uploaded = await Promise.all(documents.map(async d => files.upload(actor, d.versionId,
+      await incomingFile('parallel.pdf', pdf), { jenisBerkas: 'UTAMA' })));
+    expect(new Set(uploaded.map(f => f.id)).size).toBe(4);
+    const duplicate = await doc();
+    const results = await Promise.allSettled(Array.from({ length: 4 }, async () => files.upload(actor,
+      duplicate.versionId, await incomingFile('duplicate.pdf', pdf), { jenisBerkas: 'UTAMA' })));
+    expect(results.filter(r => r.status === 'fulfilled')).toHaveLength(1);
+    expect(results.filter(r => r.status === 'rejected')).toHaveLength(3);
+    expect(await files.listForVersion(actor, duplicate.versionId)).toHaveLength(1);
+  });
+
+  it('uploads one UTAMA, refuses additional files, and rechecks access for each file request', async () => {
     const publicDoc = await doc('publik');
     await service.updateVersion(actor, publicDoc.versionId, ready('File access public'));
     const pdf = Buffer.from('%PDF-1.7\nfile integration fixture\n%%EOF\n');
     const main = await files.upload(actor, publicDoc.versionId, await incomingFile('main.pdf', pdf), { jenisBerkas: 'UTAMA' });
-    await files.upload(actor, publicDoc.versionId, await incomingFile('appendix-a.pdf', pdf), { jenisBerkas: 'LAMPIRAN', urutan: 1 });
-    await files.upload(actor, publicDoc.versionId, await incomingFile('appendix-b.pdf', pdf), { jenisBerkas: 'LAMPIRAN', urutan: 2 });
+    await expect(files.upload(actor, publicDoc.versionId, await incomingFile('appendix-a.pdf', pdf), { jenisBerkas: 'LAMPIRAN', urutan: 1 })).rejects.toThrow('satu file');
     await expect(files.upload(actor, publicDoc.versionId, await incomingFile('duplicate.pdf', pdf), { jenisBerkas: 'UTAMA' })).rejects.toThrow();
     await expect(files.upload(actor, publicDoc.versionId, await incomingFile('fake.pdf', Buffer.from('not PDF bytes')), { jenisBerkas: 'LAMPIRAN' })).rejects.toThrow();
     await approve(publicDoc.versionId);
@@ -537,7 +558,7 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     const anonymousDetail = await service.publicDetail(fileSlug);
     expect(anonymousDetail).toMatchObject({
       berkasUtama: { id: main.id, jenisBerkas: 'UTAMA', kemampuan: { preview: true, download: true } },
-      lampiran: expect.arrayContaining([expect.objectContaining({ jenisBerkas: 'LAMPIRAN' })]),
+      lampiran: [],
     });
     // Anonymous visitors are not told about access levels at all.
     expect(anonymousDetail).not.toHaveProperty('tingkatAkses');
@@ -560,8 +581,8 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
   it('blocks publish when a main-file storage object is missing or its checksum no longer matches', async () => {
     const d = await doc();
     await service.updateVersion(actor, d.versionId, ready('Missing storage object'));
-    await approve(d.versionId);
     await addFileMetadata(d.versionId, 'UTAMA');
+    await approve(d.versionId);
     const [row] = await pool.query<RowDataPacket[]>(
       'SELECT storage_key FROM dokumen_berkas WHERE dokumen_versi_id=? AND jenis_berkas=\'UTAMA\'', [d.versionId],
     );
@@ -578,8 +599,8 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
 
     const tampered = await doc();
     await service.updateVersion(actor, tampered.versionId, ready('Checksum mismatch'));
-    await approve(tampered.versionId);
     await addFileMetadata(tampered.versionId, 'UTAMA');
+    await approve(tampered.versionId);
     await pool.execute('UPDATE dokumen_berkas SET checksum=? WHERE dokumen_versi_id=? AND jenis_berkas=\'UTAMA\'', [Buffer.alloc(32), tampered.versionId]);
     await expect(publish(tampered.versionId)).rejects.toThrow('File UTAMA tidak tersedia atau checksum berubah');
   });
@@ -758,5 +779,38 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
         versi: ready('Spoof'),
       }),
     ).rejects.toThrow();
+  });
+
+  it.each(['publik', 'internal'] as const)('SOP Permohonan SK %s terbit saat disetujui, mempertahankan versi dan akses', async (level) => {
+    const marker = uid();
+    const [types] = await pool.query<RowDataPacket[]>("SELECT id FROM jenis_dokumen WHERE kode='SOP' AND aktif=1 LIMIT 1");
+    const d = await service.createDocument(actor, { kodeDokumen: marker, slug: `sop-${marker}`, jenisDokumenId: String(types[0]!.id), peruntukan: 'PERMOHONAN_SK', versi: ready(`SOP SK ${marker}`, level) });
+    await addFileMetadata(d.versionId, 'UTAMA');
+    await expect(approve(d.versionId)).rejects.toThrow(/konfirmasi/i);
+    const preview = await service.impact(actor, d.versionId);
+    const konfirmasi = { tokenKonfirmasi: preview.tokenKonfirmasi, dampak: preview.dampak as never, disetujui: true as const };
+    await expect(service.transition(actor, d.versionId, 'APPROVE', undefined, konfirmasi)).resolves.toMatchObject({ statusWorkflow: 'TERBIT' });
+    const staff = await addStaff();
+    const pending = await addPendingStaff();
+    expect((await search.permohonanSk({ q: marker }, staff)).data).toHaveLength(1);
+    expect((await search.permohonanSk({ q: marker })).data).toHaveLength(level === 'publik' ? 1 : 0);
+    expect((await search.permohonanSk({ q: marker }, pending)).data).toHaveLength(level === 'publik' ? 1 : 0);
+    const revision = await service.newVersion(actor, d.id, ready(`SOP SK ${marker} revisi`, level));
+    await addFileMetadata(revision.id, 'UTAMA');
+    const [before] = await pool.query<RowDataPacket[]>('SELECT current_published_version_id FROM dokumen WHERE id=?', [d.id]);
+    expect(String(before[0]!.current_published_version_id)).toBe(d.versionId);
+    const next = await service.impact(actor, revision.id);
+    const fail = vi.spyOn(files, 'assertPublishReady').mockRejectedValueOnce(new Error('Simulasi storage gagal'));
+    await expect(service.transition(actor, revision.id, 'APPROVE', undefined, { tokenKonfirmasi: next.tokenKonfirmasi, dampak: next.dampak as never, disetujui: true })).rejects.toThrow('Simulasi storage gagal');
+    fail.mockRestore();
+    const [rolledBack] = await pool.query<RowDataPacket[]>('SELECT status_workflow FROM dokumen_versi WHERE id=?', [revision.id]);
+    expect(rolledBack[0]!.status_workflow).toBe('DRAF');
+    const [current] = await pool.query<RowDataPacket[]>('SELECT current_published_version_id FROM dokumen WHERE id=?', [d.id]);
+    expect(String(current[0]!.current_published_version_id)).toBe(d.versionId);
+    await service.transition(actor, revision.id, 'APPROVE', undefined, { tokenKonfirmasi: next.tokenKonfirmasi, dampak: next.dampak as never, disetujui: true });
+    const [history] = await pool.query<RowDataPacket[]>('SELECT superseded_at FROM dokumen_versi WHERE id=?', [d.versionId]);
+    expect(history[0]!.superseded_at).not.toBeNull();
+    const [events] = await pool.query<RowDataPacket[]>('SELECT action FROM dokumen_workflow WHERE dokumen_versi_id=? ORDER BY id', [revision.id]);
+    expect(events.map(row => String(row.action))).toEqual(['CREATE', 'APPROVE', 'PUBLISH']);
   });
 });

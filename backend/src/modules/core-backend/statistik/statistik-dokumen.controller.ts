@@ -35,7 +35,7 @@ export class StatistikDokumenController {
   ) {
     res.setHeader('Cache-Control', 'no-store');
     const token = cookie(req, SESSION_COOKIE);
-    const actor = token ? (await this.identity.authenticate(token)).user : undefined;
+    const actor = await this.identity.optionalUser(token);
     const id = await this.statistik.dokumenTerbaca(slug, actor);
     if (!bukanManusia(req.get('user-agent')))
       await this.statistik.catatSekali(

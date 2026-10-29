@@ -19,7 +19,8 @@ import { cookie, SESSION_COOKIE } from '../../identity/identity.guard.js';
 import { DocumentFilesService } from './document-files.service.js';
 import { DownloadRateLimitService } from '../download-rate-limit.service.js';
 import { UploadInterceptor } from '../storage/upload.interceptor.js';
-import { contentDisposition } from './file-headers.js';
+import { bisaDipratinjau } from '../storage/file-validation.js';
+import { requestedRange, streamFileResponse } from './byte-range.js';
 import { ConfigService } from '@nestjs/config';
 import type { KonfigurasiApp } from '../../../config/configuration.js';
 import { StatistikDokumenService } from '../statistik/statistik-dokumen.service.js';
@@ -33,6 +34,19 @@ export class AdminDocumentFilesController {
   @Izin('documents.read_admin')
   list(@Param('versionId') versionId: string, @Aktor() actor: PenggunaAktif) {
     return this.files.listForVersion(actor, versionId);
+  }
+
+  @Get(':versionId/files/:fileId')
+  @Izin('documents.read_admin')
+  async review(@Param('versionId') versionId: string, @Param('fileId') fileId: string,
+    @Query('mode') mode: string | undefined, @Aktor() actor: PenggunaAktif,
+    @Req() req: PermintaanBerpengguna, @Res() res: Response) {
+    const authorized = await this.files.authorizeVersion(actor, versionId, fileId);
+    const range = requestedRange(req.get('range'), req.get('if-range'), Number(authorized.size_bytes), res);
+    if (range === false) return;
+    const file = range ? await this.files.openAuthorized(authorized, range) : await this.files.openAuthorized(authorized);
+    const disposition = mode === 'inline' && bisaDipratinjau(file.mimeType) ? 'inline' : 'attachment';
+    streamFileResponse(file, res, disposition, range);
   }
 
   @Delete(':versionId/files/:fileId')
@@ -84,29 +98,25 @@ export class PublicDocumentFilesController {
     @Res() res: Response,
   ) {
     const token = cookie(req, SESSION_COOKIE);
-    const actor = token ? (await this.identity.authenticate(token)).user : undefined;
+    const actor = await this.identity.optionalUser(token);
     // Resolve and authorize before rate accounting so unauthorized Secret
     // probes retain the same not-found semantics as missing resources.
     const authorized = await this.files.authorizeCurrent(slug, fileId, actor);
-    const disposition = mode === 'inline' ? 'inline' : 'attachment';
+    // Hanya PDF yang ditampilkan langsung; jenis lain (DOCX, XLSX, PPTX) selalu diunduh.
+    const disposition = mode === 'inline' && bisaDipratinjau(authorized.mime_type) ? 'inline' : 'attachment';
     this.downloadLimits.consume(
       { penggunaId: actor?.id, ip: req.ip },
       disposition === 'inline' ? 'pratinjau' : 'unduh',
     );
-    const file = await this.files.openAuthorized(authorized);
+    const range = requestedRange(req.get('range'), req.get('if-range'), Number(authorized.size_bytes), res);
+    if (range === false) return;
+    const file = range ? await this.files.openAuthorized(authorized, range) : await this.files.openAuthorized(authorized);
     // Unduhan (bukan pratinjau) menambah jumlah orang yang mengunduh; kegagalan
     // pencatatan tidak boleh menggagalkan unduhan.
     if (disposition === 'attachment' && !bukanManusia(req.get('user-agent')))
       await this.statistik
         .catatSekali(req, res, authorized.dokumen_id, 'unduh', this.config.get('identitas.secure', { infer: true }))
         .catch(() => undefined);
-    res.status(200);
-    res.setHeader('Content-Type', file.mimeType);
-    res.setHeader('Content-Length', String(file.size));
-    res.setHeader('Content-Disposition', contentDisposition(file.originalName, disposition));
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Cache-Control', 'private, no-store');
-    file.stream.on('error', () => res.destroy());
-    file.stream.pipe(res);
+    streamFileResponse(file, res, disposition, range);
   }
 }

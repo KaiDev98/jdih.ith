@@ -18,12 +18,12 @@ export const KATALOG_PERAN: readonly MetaPeran[] = [
   {
     kode: PERAN.SUPERADMIN,
     nama: 'Superadmin',
-    deskripsi: 'Akun operations; tidak dapat dibuat atau dipromosikan melalui aplikasi.',
+    deskripsi: 'Akun operations; memverifikasi semua file dan mengelola pengaturan portal.',
   },
   {
     kode: PERAN.ADMIN,
     nama: 'Admin',
-    deskripsi: 'Pengelola sesuai permission; verifikator memakai permission tambahan.',
+    deskripsi: 'Menginput dokumen miliknya sendiri, mengajukannya untuk verifikasi Superadmin, dan mengelola seluruh Format Persuratan.',
   },
   {
     kode: PERAN.DOSEN_STAF,

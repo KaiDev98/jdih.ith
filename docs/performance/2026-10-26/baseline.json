@@ -1,0 +1,130 @@
+{
+  "label": "baseline",
+  "date": "2026-10-26T03:18:04.428Z",
+  "machine": {
+    "platform": "win32",
+    "cpu": "13th Gen Intel(R) Core(TM) i7-13620H",
+    "logicalCPUs": 16,
+    "memoryGiB": 7.796928405761719
+  },
+  "fixture": {
+    "marker": "86cfdb2b-a2c0-4dd9-af72-5e1468b1074a",
+    "documents": 10000,
+    "accounts": 100,
+    "fileBytes": 1048613,
+    "files": 10000,
+    "mysqlVersion": "8.4.11"
+  },
+  "notes": [
+    "Local production build and compiled API on the same Windows host as the load generator.",
+    "Self-signed TLS trusted only by the disposable harness.",
+    "10,000 unique file paths use hard-linked identical 1 MiB content; this is a warm storage test.",
+    "Measurements do not prove capacity on a different VPS or real WAN."
+  ],
+  "results": [
+    {
+      "name": "public-web",
+      "users": 10,
+      "thinkMs": 300,
+      "seconds": 20.06,
+      "requests": 440,
+      "rps": 21.93419740777667,
+      "failures": 74,
+      "failureRate": 0.16818181818181818,
+      "statuses": {
+        "200": 440
+      },
+      "failureReasons": {
+        "/:200:homepage_missing_documents": 74
+      },
+      "latencyMs": {
+        "p50": 141.47540000000026,
+        "p95": 190.7719000000002,
+        "p99": 339.47200000000004,
+        "max": 341.3284
+      },
+      "ttfbP95Ms": 181.5911000000001,
+      "bytes": 7062094,
+      "api": {
+        "samples": 19,
+        "peakRssMiB": 104.6875,
+        "peakCpuPct": 7.790927021696253,
+        "peakEventLoopP99Ms": 46.956543
+      },
+      "web": {
+        "samples": 20,
+        "peakRssMiB": 372.83984375,
+        "peakCpuPct": 21.769383697813122,
+        "peakEventLoopP99Ms": 82.182143
+      }
+    },
+    {
+      "name": "public-api",
+      "users": 25,
+      "thinkMs": 300,
+      "seconds": 20.349,
+      "requests": 1420,
+      "rps": 69.78229888446607,
+      "failures": 0,
+      "failureRate": 0,
+      "statuses": {
+        "200": 1420
+      },
+      "failureReasons": {},
+      "latencyMs": {
+        "p50": 44.58559999999852,
+        "p95": 94.35740000000078,
+        "p99": 129.67859999999928,
+        "max": 162.7905000000028
+      },
+      "ttfbP95Ms": 94.25590000000011,
+      "bytes": 676156,
+      "api": {
+        "samples": 21,
+        "peakRssMiB": 137.72265625,
+        "peakCpuPct": 10.770750988142293,
+        "peakEventLoopP99Ms": 64.159743
+      },
+      "web": {
+        "samples": 20,
+        "peakRssMiB": 351.37109375,
+        "peakCpuPct": 6.126482213438735,
+        "peakEventLoopP99Ms": 66.781183
+      }
+    },
+    {
+      "name": "authenticated-panel",
+      "users": 20,
+      "thinkMs": 500,
+      "seconds": 20.357,
+      "requests": 760,
+      "rps": 37.333595323475954,
+      "failures": 0,
+      "failureRate": 0,
+      "statuses": {
+        "200": 760
+      },
+      "failureReasons": {},
+      "latencyMs": {
+        "p50": 22.85399999999936,
+        "p95": 57.76629999999568,
+        "p99": 73.40200000000186,
+        "max": 90.70580000000336
+      },
+      "ttfbP95Ms": 57.10570000000007,
+      "bytes": 337038,
+      "api": {
+        "samples": 20,
+        "peakRssMiB": 193.04296875,
+        "peakCpuPct": 10.95617529880478,
+        "peakEventLoopP99Ms": 58.327039
+      },
+      "web": {
+        "samples": 21,
+        "peakRssMiB": 350.265625,
+        "peakCpuPct": 1.5984015984015985,
+        "peakEventLoopP99Ms": 58.261503
+      }
+    }
+  ]
+}

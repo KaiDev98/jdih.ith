@@ -24,7 +24,7 @@ function siapkan({ ada = true, jumlah = 2 } = {}) {
   const audit = { recordDomain: vi.fn(() => Promise.resolve()) };
   return { service: new KontakService(repo as never, audit as never), writes, audit };
 }
-const admin = { id: '7', status: 'AKTIF', peran: ['ADMIN'], izin: ['contact.manage'] };
+const admin = { id: '7', status: 'AKTIF', peran: ['SUPERADMIN'], izin: ['contact.manage'] };
 const staf = { id: '9', status: 'AKTIF', peran: ['DOSEN_STAF'], izin: [] };
 
 describe('KontakService', () => {

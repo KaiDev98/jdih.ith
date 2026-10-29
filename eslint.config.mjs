@@ -12,6 +12,7 @@ export default tseslint.config(
       '**/dist/**',
       '**/.next/**',
       '**/coverage/**',
+      'test-results/**',
       '**/*.tsbuildinfo',
       'backend/src/database/generated/**',
       // frontend memakai eslint.config.mjs sendiri, karena eslint-config-next
@@ -82,9 +83,12 @@ export default tseslint.config(
 
   {
     name: 'jdih/skrip-dan-konfigurasi',
-    files: ['**/*.{mjs,cjs,js}', '**/*.config.{ts,mts}', 'scripts/**/*'],
+    files: ['**/*.{mjs,cjs,js}', '**/*.config.{ts,mts}', 'scripts/**/*', 'backend/scripts/**/*'],
     languageOptions: {
       globals: { ...globals.node },
+      // Skrip backend (.mts) tidak termasuk tsconfig mana pun; tanpa ini
+      // project service gagal mem-parse berkasnya.
+      parserOptions: { projectService: false },
     },
     rules: {
       // Aturan yang memerlukan informasi tipe dimatikan di sini. Berkas

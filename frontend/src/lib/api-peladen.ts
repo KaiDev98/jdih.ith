@@ -31,7 +31,7 @@ async function tajukKuki(): Promise<string> {
 
 /** Seperti `ambilApi`, dengan kuki permintaan masuk diteruskan. */
 export async function ambilDariPeladen<T>(jalur: string, opsi: OpsiPermintaan = {}): Promise<T> {
-  return ambilApi<T>(jalur, { ...opsi, kuki: await tajukKuki() });
+  return ambilApi<T>(jalur, { ...opsi, cache: 'no-store', next: undefined, kuki: await tajukKuki() });
 }
 
 /** Seperti `ambilApiBerdaftar`, dengan kuki permintaan masuk diteruskan. */
@@ -39,7 +39,7 @@ export async function ambilBerdaftarDariPeladen<T>(
   jalur: string,
   opsi: OpsiPermintaan = {},
 ): Promise<HasilBerdaftar<T>> {
-  return ambilApiBerdaftar<T>(jalur, { ...opsi, kuki: await tajukKuki() });
+  return ambilApiBerdaftar<T>(jalur, { ...opsi, cache: 'no-store', next: undefined, kuki: await tajukKuki() });
 }
 
 /**

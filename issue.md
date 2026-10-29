@@ -35,13 +35,22 @@ Belum ada migration runner. Database V2 yang sudah berjalan perlu menjalankan, b
 Database baru cukup memakai `schema.sql` dan `seed.sql` terbaru. Keduanya sudah memuat
 perubahan ini: 24 tabel, 25 izin.
 
+**Terbaru (16 Oktober 2026): `patch-012-sop-permohonan-sk.sql` WAJIB dijalankan** sebelum
+memakai kode terbaru. Patch menambah kolom `dokumen.peruntukan` (SOP Permohonan SK punya
+menu sendiri di panel); tanpa kolom ini daftar dan detail dokumen admin gagal dimuat. Patch
+aman dijalankan ulang dan otomatis menandai SOP lama berjudul "Permohonan SK".
+
 ## Perlu keputusan
 
-### 5. Jenis berkas unggahan
-- Kebutuhan: hampir semua jenis berkas, terutama DOCX dan PDF.
-- Saat ini backend hanya menerima **PDF** untuk dokumen dan **DOCX** untuk Format Persuratan.
-- Perlu: daftar ekstensi/MIME yang diizinkan beserta batas ukurannya. Validasi isi berkas
-  (magic bytes) perlu ditambah per jenis.
+### 5. Jenis berkas unggahan — sebagian selesai (16 Oktober 2026)
+- Produk Hukum (utama & lampiran) dan Format Persuratan kini menerima **PDF, DOCX, XLSX,
+  PPTX**. Jenis dikenali dari isi berkas, ekstensi wajib cocok, berkas bermakro
+  (`vbaProject.bin`) dan format Office lama (.doc/.xls/.ppt) ditolak
+  (`backend/src/modules/core-backend/storage/file-validation.ts`).
+- Hanya PDF yang dipratinjau di halaman publik; jenis lain selalu dikirim sebagai unduhan,
+  walau diminta `?mode=inline`.
+- Masih perlu keputusan: apakah jenis lain (gambar, ODT, dll.) dibutuhkan, dan batas ukuran
+  per jenis (saat ini satu batas `ukuranMaksimumBita` untuk semua).
 
 ### 6. Siapa yang boleh hapus permanen dan ubah status hukum
 - Saat ini **Admin dan Superadmin** memiliki `documents.delete` dan `legal.correct_status`.
@@ -60,14 +69,14 @@ perubahan ini: 24 tabel, 25 izin.
 
 ## Belum dikerjakan
 
-### 9. Preview dokumen di halaman detail publik
-- Diminta: dokumen bisa dipratinjau sebelum diunduh.
-- Backend sudah mendukung `?mode=inline` pada rute berkas. Frontend belum menampilkan
-  pratinjau (misalnya `<iframe>` untuk PDF).
+### 9. Preview dokumen di halaman detail publik — selesai
+- PDF dipratinjau langsung di halaman detail (`pratinjau-dokumen.tsx`); berkas non-PDF
+  menampilkan ajakan mengunduh.
 
-### 10. Daftar dokumen admin hanya menampilkan dokumen terbit
-- Draf hanya bisa dibuka bila ID-nya sudah diketahui (lihat pesan di `admin-document-detail.tsx`).
-- Perlu daftar draf/antrean milik penginput.
+### 10. Daftar dokumen admin — selesai
+- Daftar admin memuat semua versi (draf, diajukan, revisi, disetujui, terbit, ditarik) dengan
+  nomor versi. Versi lama yang sudah digantikan revisinya berlabel **Diganti versi baru**
+  (bukan "Terbit") dan punya filter sendiri.
 
 ## Perubahan aturan yang perlu disinkronkan ke dokumen
 

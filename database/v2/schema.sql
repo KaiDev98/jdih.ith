@@ -1,7 +1,7 @@
 -- JDIH ITH V2 / Phase 1: proposal physical schema. MySQL 8.4 LTS.
 -- LOCAL DEVELOPMENT ONLY. Fixed target matches compose.v2.yaml.
 -- No DROP, no legacy import, no Drizzle binding. Run once on an EMPTY V2 database.
--- All FK use RESTRICT: never cascade deletion through versions/history/audit.
+-- History FK use RESTRICT; only disposable per-account notification preferences cascade.
 -- UTC DATETIME(6); constraints complement, not replace, future service authorization.
 SET NAMES utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 SET time_zone = '+00:00';
@@ -25,11 +25,11 @@ CREATE TABLE unit_kerja (
 
 CREATE TABLE pengguna (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  google_sub VARCHAR(255) CHARACTER SET ascii COLLATE ascii_bin NULL COMMENT 'NULL hanya untuk pre-provisioning; bind setelah verifikasi Google',
+  google_sub VARCHAR(255) CHARACTER SET ascii COLLATE ascii_bin NULL COMMENT 'NULL untuk akun email/password; Google memakai sub terverifikasi',
   email VARCHAR(254) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   nama VARCHAR(200) NOT NULL,
   avatar_url VARCHAR(2048) NULL,
-  password_hash VARCHAR(255) CHARACTER SET ascii COLLATE ascii_bin NULL COMMENT 'scrypt; hanya Admin/Superadmin, opsional di samping login Google',
+  password_hash VARCHAR(255) CHARACTER SET ascii COLLATE ascii_bin NULL COMMENT 'scrypt; login email/password semua peran, opsional pada akun Google',
   password_diubah_at DATETIME(6) NULL,
   unit_kerja_id BIGINT UNSIGNED NULL,
   unit_manual VARCHAR(200) NULL,
@@ -167,6 +167,7 @@ CREATE TABLE dokumen (
   kode_dokumen VARCHAR(64) NOT NULL,
   slug VARCHAR(191) NOT NULL,
   jenis_dokumen_id BIGINT UNSIGNED NOT NULL,
+  peruntukan ENUM('PERMOHONAN_SK') NULL COMMENT 'Peruntukan khusus di portal; NULL = dokumen biasa',
   status_hukum ENUM('BERLAKU','DIUBAH','DICABUT') NOT NULL DEFAULT 'BERLAKU',
   current_published_version_id BIGINT UNSIGNED NULL,
   created_by BIGINT UNSIGNED NOT NULL,
@@ -176,6 +177,7 @@ CREATE TABLE dokumen (
   UNIQUE KEY uq_dokumen_kode (kode_dokumen),
   UNIQUE KEY uq_dokumen_slug (slug),
   KEY idx_dokumen_jenis (jenis_dokumen_id, deleted_at),
+  KEY idx_dokumen_peruntukan (peruntukan, deleted_at),
   KEY idx_dokumen_hukum (status_hukum, deleted_at),
   KEY idx_dokumen_current (current_published_version_id, id),
   KEY idx_dokumen_author (created_by),
@@ -256,6 +258,7 @@ CREATE TABLE dokumen_versi_tag (
 CREATE TABLE dokumen_berkas (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   dokumen_versi_id BIGINT UNSIGNED NOT NULL,
+  uploaded_by BIGINT UNSIGNED NOT NULL COMMENT 'Akun yang mengunggah berkas; Admin hanya boleh mengganti berkas miliknya sendiri',
   jenis_berkas ENUM('UTAMA','LAMPIRAN') NOT NULL,
   judul VARCHAR(255) NULL,
   storage_key VARCHAR(512) COLLATE utf8mb4_bin NOT NULL,
@@ -269,8 +272,10 @@ CREATE TABLE dokumen_berkas (
   UNIQUE KEY uq_berkas_storage (storage_key),
   UNIQUE KEY uq_berkas_main (dokumen_versi_id, main_slot),
   KEY idx_berkas_order (dokumen_versi_id, urutan, id),
+  KEY idx_berkas_uploader (uploaded_by, id),
   CONSTRAINT ck_berkas_size CHECK (size_bytes > 0),
-  CONSTRAINT fk_berkas_version FOREIGN KEY (dokumen_versi_id) REFERENCES dokumen_versi (id) ON DELETE RESTRICT ON UPDATE RESTRICT
+  CONSTRAINT fk_berkas_version FOREIGN KEY (dokumen_versi_id) REFERENCES dokumen_versi (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_berkas_uploader FOREIGN KEY (uploaded_by) REFERENCES pengguna (id) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB;
 
 CREATE TABLE dokumen_relasi (
@@ -331,13 +336,24 @@ CREATE TABLE dokumen_workflow (
     (status_asal IS NOT NULL AND (
       (action = 'SUBMIT' AND status_asal IN ('DRAF','REVISI') AND status_tujuan = 'DIAJUKAN') OR
       (action = 'RETURN' AND status_asal = 'DIAJUKAN' AND status_tujuan = 'REVISI') OR
-      (action = 'APPROVE' AND status_asal = 'DIAJUKAN' AND status_tujuan = 'DISETUJUI') OR
+      (action = 'APPROVE' AND status_asal IN ('DRAF','REVISI','DIAJUKAN') AND status_tujuan = 'DISETUJUI') OR
       (action = 'PUBLISH' AND status_asal = 'DISETUJUI' AND status_tujuan = 'TERBIT') OR
       (action = 'WITHDRAW' AND status_asal = 'TERBIT' AND status_tujuan = 'DITARIK')
     ))
   ),
   CONSTRAINT fk_workflow_version FOREIGN KEY (dokumen_versi_id) REFERENCES dokumen_versi (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT fk_workflow_actor FOREIGN KEY (actor_id) REFERENCES pengguna (id) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE=InnoDB;
+
+-- Hanya preferensi per akun; menghapus notifikasi tidak menghapus riwayat workflow.
+CREATE TABLE notifikasi_dihapus (
+  pengguna_id BIGINT UNSIGNED NOT NULL,
+  workflow_id BIGINT UNSIGNED NOT NULL,
+  dihapus_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (pengguna_id, workflow_id),
+  KEY idx_notifikasi_workflow (workflow_id),
+  CONSTRAINT fk_notifikasi_pengguna FOREIGN KEY (pengguna_id) REFERENCES pengguna (id) ON DELETE CASCADE ON UPDATE RESTRICT,
+  CONSTRAINT fk_notifikasi_workflow FOREIGN KEY (workflow_id) REFERENCES dokumen_workflow (id) ON DELETE CASCADE ON UPDATE RESTRICT
 ) ENGINE=InnoDB;
 
 CREATE TABLE dokumen_status_hukum_riwayat (

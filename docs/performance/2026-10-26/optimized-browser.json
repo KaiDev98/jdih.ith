@@ -1,0 +1,62 @@
+{
+  "label": "optimized",
+  "profile": "Chromium mobile 390x844, 4x CPU slowdown, 100ms RTT, 1.6 Mbps download, cold HTTP cache",
+  "results": [
+    {
+      "path": "/",
+      "cls": 0,
+      "lcpMs": 3604,
+      "longTasks": 5,
+      "longTaskMs": 2651,
+      "ttfbMs": 225.90000000596046,
+      "fcpMs": 3184,
+      "domContentLoadedMs": 3710.5,
+      "transferredBytes": 533402,
+      "scriptBytes": 305956,
+      "heroBytes": 49372,
+      "pdfRequests": 0,
+      "requests": 20,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "path": "/produk-hukum",
+      "cls": 0,
+      "lcpMs": 2204,
+      "longTasks": 6,
+      "longTaskMs": 2435,
+      "ttfbMs": 65,
+      "fcpMs": 2080,
+      "domContentLoadedMs": 1007.2999999970198,
+      "transferredBytes": 531363,
+      "scriptBytes": 311074,
+      "heroBytes": 49372,
+      "pdfRequests": 0,
+      "requests": 21,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "path": "/produk-hukum/load-1",
+      "cls": 0,
+      "lcpMs": 2828,
+      "longTasks": 6,
+      "longTaskMs": 2658,
+      "ttfbMs": 60.80000000447035,
+      "fcpMs": 1908,
+      "domContentLoadedMs": 863.9000000059605,
+      "transferredBytes": 529615,
+      "scriptBytes": 308721,
+      "heroBytes": 49372,
+      "pdfRequests": 0,
+      "requests": 20,
+      "overflow": false,
+      "nativePdfUnsupported": true,
+      "errors": []
+    }
+  ],
+  "notes": [
+    "Synthetic local lab metrics; not field Core Web Vitals or INP.",
+    "Mobile network/CPU emulated on shared Windows test host."
+  ]
+}

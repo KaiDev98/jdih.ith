@@ -1,10 +1,8 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import type { PenggunaAktif } from '@jdih/shared';
-import { skemaUbahStatusHukum } from '@jdih/shared';
-import { cekIzin } from '../../identity/security.js';
+import { cekIzin, cekSuperadmin } from '../../identity/security.js';
 import { AuditService } from '../../identity/audit.service.js';
-import { utc } from '../../identity/identity.repository.js';
 import { CoreBackendRepository } from '../core-backend.repository.js';
 import { StorageService } from '../storage/storage.service.js';
 
@@ -19,8 +17,9 @@ interface BarisDokumen extends RowDataPacket {
 const tempat = (ids: readonly string[]) => (ids.length ? ids.map(() => '?').join(',') : 'NULL');
 
 /**
- * Tindakan Admin di luar alur workflow: mengubah status hukum (Berlaku/Diubah/
- * Dicabut) secara langsung, dan menghapus dokumen secara permanen.
+ * Tindakan Admin di luar alur workflow: menghapus dokumen secara permanen.
+ * Status hukum (Diubah/Dicabut) tidak diubah langsung; ia berubah otomatis saat
+ * dokumen pengubah/pencabutnya terbit (lihat CoreBackendService.publish).
  */
 @Injectable()
 export class DokumenAdminService {
@@ -43,56 +42,6 @@ export class DokumenAdminService {
     return row;
   }
 
-  async ubahStatusHukum(actor: PenggunaAktif, id: string, raw: unknown) {
-    cekIzin(actor, ['legal.correct_status']);
-    const { statusHukum, alasan } = skemaUbahStatusHukum.parse(raw);
-    return this.repo.transaction(async (db) => {
-      const d = await this.kunci(db, id);
-      if (d.status_hukum === statusHukum) {
-        // Status tidak berubah: hanya alasannya yang dilengkapi/diperbarui. Baris
-        // ini (asal = tujuan, tanpa sumber) ditulis langsung pada dokumen ini,
-        // sehingga selalu boleh dibaca siapa pun yang boleh membuka dokumennya.
-        if (!alasan) return { id, statusHukum };
-        await this.repo.write(
-          db,
-          'INSERT INTO dokumen_status_hukum_riwayat(dokumen_id,status_asal,status_tujuan,source_version_id,alasan,actor_id,confirmed_at) VALUES(?,?,?,NULL,?,?,?)',
-          [id, statusHukum, statusHukum, alasan, actor.id, utc()],
-        );
-        await this.audit.recordDomain(
-          {
-            module: 'legal-relations',
-            action: 'UPDATE_STATUS_REASON',
-            entityType: 'dokumen',
-            entityId: id,
-            actorId: actor.id,
-            after: { statusHukum, alasan },
-          },
-          db,
-        );
-        return { id, statusHukum };
-      }
-      await this.repo.write(db, 'UPDATE dokumen SET status_hukum=? WHERE id=?', [statusHukum, id]);
-      await this.repo.write(
-        db,
-        'INSERT INTO dokumen_status_hukum_riwayat(dokumen_id,status_asal,status_tujuan,source_version_id,alasan,actor_id,confirmed_at) VALUES(?,?,?,NULL,?,?,?)',
-        [id, d.status_hukum, statusHukum, alasan ?? null, actor.id, utc()],
-      );
-      await this.audit.recordDomain(
-        {
-          module: 'legal-relations',
-          action: 'CORRECT_STATUS',
-          entityType: 'dokumen',
-          entityId: id,
-          actorId: actor.id,
-          before: { statusHukum: d.status_hukum },
-          after: { statusHukum, alasan: alasan ?? null },
-        },
-        db,
-      );
-      return { id, statusHukum };
-    });
-  }
-
   /**
    * Menghapus dokumen beserta seluruh versi, berkas, riwayat workflow, relasi,
    * dan grant Rahasia. Relasi dari dokumen lain yang menunjuk dokumen ini ikut
@@ -100,6 +49,7 @@ export class DokumenAdminService {
    * tanpa tautan sumber. Jejak penghapusan tersimpan di audit_log.
    */
   async hapusPermanen(actor: PenggunaAktif, id: string) {
+    cekSuperadmin(actor);
     cekIzin(actor, ['documents.delete']);
     const kunciBerkas = await this.repo.transaction(async (db) => {
       const d = await this.kunci(db, id);

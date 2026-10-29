@@ -28,7 +28,18 @@ Templates, dan frontend tersedia. Physical schema V2 berada di
 [`docs/FINAL_ACCEPTANCE_V2.md`](docs/FINAL_ACCEPTANCE_V2.md) untuk bukti validasi
 terbaru dan [`docs/DEPLOYMENT_V2.md`](docs/DEPLOYMENT_V2.md) untuk persiapan
 operasional. Phase 6 belum berarti production sudah deploy/go-live accepted:
-Google live OIDC masih pending dan CSP acceptance wajib sebelum go-live.
+Google live OIDC pada domain deployment tetap perlu diuji dengan kredensial institusi.
+
+Rilis memakai Node LTS **24.22.2** (`.nvmrc`). Jalankan `npm ci --ignore-scripts`,
+`npm run setup`, lalu isi konfigurasi V2; setup tidak menimpa berkas yang sudah
+ada. `npm run doctor` membaca `.env.v2.local` dan
+`backend/.env.identity.local`, tanpa menampilkan rahasia. Untuk server publik,
+ikuti [panduan deployment V2](docs/DEPLOYMENT_V2.md), termasuk URL publik pada
+saat build, provisioning akun, patch database dan backup berkas privat.
+Workflow GitHub `Release checks` memeriksa instalasi, kredensial/artefak privat,
+audit npm, lint, tipe, seluruh tes termasuk MySQL terisolasi, dan build produksi.
+Lihat [audit rilis 30 Oktober 2026](docs/RELEASE_AUDIT_2026-10-30.md) untuk hasil,
+temuan yang diperbaiki, serta hal yang harus diverifikasi pada server deployment.
 
 ## Catatan foundation sebelumnya — referensi historis
 
