@@ -50,6 +50,7 @@ document_collections_ui:
   collection_dropdown_style: "Radix radio menu; brief open/close animation; soft blue focus; keyboard and reduced motion"
 
 auth:
+  login_brand_alignment: "desktop >=1024px left-aligned; mobile/tablet centered"
   login_audience_separation: "staff /masuk has no role tabs; admin/superadmin login pages have only two adjacent manager tabs; registration remains staff-only /daftar"
   standalone_auth_pages: ["/masuk", "/daftar", "/masuk/admin", "/masuk/superadmin"]
   auth_public_navbar_footer: false

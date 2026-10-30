@@ -1,6 +1,12 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
 **Dokumen ini adalah konteks lengkap yang harus dipahami Codex sebelum mengerjakan project.**  
+Revisi posisi logo login terakhir 2026-10-30: pada desktop (lebar minimal
+1024px), logo/wordmark JDIH ITH rata kiri; pada layout dua sisi sejajar dengan
+teks panel kiri. Ponsel/tablet tetap di tengah. Ini menggantikan aturan logo
+desktop terpusat sebelumnya. Belum ada pemulihan password Dosen/Staf; jangan
+menampilkan tombol lupa password yang tidak memiliki alur backend.
+
 Revisi pemisahan login terakhir 2026-10-30: `/masuk` khusus Dosen/Staf, langsung
 ke formulir tanpa pemilih peran atau tautan login pengelola. Pendaftaran tetap
 `/daftar`. `/masuk/admin` dan `/masuk/superadmin` hanya mempunyai dua tab sejajar

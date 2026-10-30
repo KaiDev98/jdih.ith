@@ -1055,6 +1055,11 @@
 }
 
 /* Desktop: ilustrasi arsip dan tipografi di kiri, kartu formulir di kanan. */
+@media (min-width: 1024px) {
+  .surface[data-mode='login'] .topbar {
+    justify-content: flex-start;
+  }
+}
 @media (min-width: 1024px) and (min-height: 700px) {
   .surface {
     align-items: center;
@@ -1082,6 +1087,7 @@
     max-width: none;
   }
   .surface[data-mode='login']:not([data-keyboard='true']) .topbar {
+    left: clamp(32px, 3.3vw, 64px);
     right: auto;
     width: calc(48% - 64px);
   }

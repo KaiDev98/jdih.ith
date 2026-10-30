@@ -4,6 +4,10 @@ This file tells Codex how to move from the current foundation to the agreed V2 w
 
 ## Revisi tampilan autentikasi 2026-10-29
 
+Posisi logo login 2026-10-30: desktop rata kiri, sejajar teks panel kiri pada
+layout dua sisi; ponsel/tablet tetap tengah. Periksa juga desktop pendek serta
+keyboard ponsel. Pemeriksaan fitur: pemulihan password Dosen/Staf belum tersedia.
+
 Pemisahan login terakhir 2026-10-30: Dosen/Staf langsung ke formulir pada `/masuk`,
 tanpa pemilih pengelola. Admin/Superadmin saling menaut lewat dua tab pada URL
 masing-masing. Uji tautan, jalur request sesuai peran, pendaftaran, viewport
