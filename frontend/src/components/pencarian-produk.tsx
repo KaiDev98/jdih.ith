@@ -304,14 +304,9 @@ export function PencarianProduk({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- kunci merangkum filter dan sesi
   }, [siap, kunci, halaman, ulangLanjut]);
 
-  // Jumlah per jenis mengikuti penyaring lain, tetapi tidak penyaring jenis itu sendiri.
-  const kunciFaset = JSON.stringify([
-    filter.q,
-    filter.tahun,
-    filter.kategoriId,
-    filter.statusHukum,
-    session.state,
-  ]);
+  // Mengganti jenis melepas kategori: hitung pilihan jenis tanpa kategori aktif.
+  // Jenis terpilih memakai total hasil aktual agar kategori tetap tercermin.
+  const kunciFaset = JSON.stringify([filter.q, filter.tahun, filter.statusHukum, session.state]);
   useEffect(() => {
     if (!siap) return;
     let aktif = true;
@@ -320,7 +315,6 @@ export function PencarianProduk({
       kueri: {
         q: filter.q,
         tahun: filter.tahun,
-        kategoriId: filter.kategoriId,
         statusHukum: filter.statusHukum,
       },
     })
@@ -574,11 +568,14 @@ export function PencarianProduk({
                 <ul className="grid gap-0.5">
                   {[{ id: '', nama: 'Semua jenis' } as Master, ...jenis].map((j) => {
                     const dipilih = filter.jenisDokumenId === j.id;
-                    const jumlah = !faset
-                      ? undefined
-                      : j.id
-                        ? (jumlahJenis.get(j.id) ?? 0)
-                        : faset.total;
+                    const jumlah =
+                      dipilih && !memuat && hasil.meta
+                        ? hasil.meta.totalButir
+                        : !faset
+                          ? undefined
+                          : j.id
+                            ? (jumlahJenis.get(j.id) ?? 0)
+                            : faset.total;
                     const kosong = jumlah === 0 && !dipilih;
                     const { titik } = tampilanJenis(j.kode, j.nama);
                     return (
@@ -586,7 +583,12 @@ export function PencarianProduk({
                         <button
                           type="button"
                           aria-pressed={dipilih}
-                          onClick={() => ubah({ jenisDokumenId: j.id })}
+                          onClick={() =>
+                            ubah({
+                              jenisDokumenId: j.id,
+                              ...(j.id !== filter.jenisDokumenId ? { kategoriId: '' } : {}),
+                            })
+                          }
                           className={cn(
                             'portal-filter-option flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
                             dipilih

@@ -31,6 +31,7 @@ public_home:
   profile_scope: "Tentang ITH"
 
 document_collections_ui:
+  type_filter_switch: "clear category on a different type; preserve keyword/year/status; alternative type counts ignore category; active type count reflects actual results"
   regular_sop_scope: "peruntukan IS NULL; exclude PERMOHONAN_SK from general search, facets, years and home counts/latest; separate dedicated collection"
   format_public_layout: "folder cards; four desktop columns, up to three visible rows; bounded scrolling with incremental 12-item requests"
   sop_request_public_layout: "four desktop columns, up to three visible rows; two tablet columns, one mobile column; bounded scrolling and fully linked signature cards"

@@ -37,6 +37,22 @@ kedua koleksi melalui endpoint masing-masing.
 
 ## Perilaku koleksi
 
+Koreksi lanjutan penyaring jenis: navigasi SOP per unit membawa kategori yang
+sebelumnya ikut menolkan hitungan jenis lain dan tetap terbawa ketika jenis
+diganti lewat panel. Hitungan pilihan jenis kini mengabaikan kategori; jenis
+aktif tetap memakai total hasil aktual. Mengganti jenis melepas kategori dan
+mempertahankan kata kunci/tahun/status. Memilih ulang jenis aktif tidak menghapus
+kategori. Ini hanya perubahan penyaring frontend, bukan perluasan akses API.
+
+Tes regresi baru gagal pada kode sebelumnya dan lulus setelah koreksi; seluruh
+13 tes komponen pencarian dan seluruh 230 tes frontend lulus. Enam skenario
+browser dengan data lokal nyata (lebar 1440 dan 390) membuka menu SOP → Jurusan
+Sains yang kosong, kemudian
+memilih Peraturan Rektor (1), SK Rektor (2), atau Semua Jenis (6). Semua skenario
+mempertahankan hitungan jenis lain dan menghapus kategori pada pergantian jenis.
+Keenam skenario juga lulus pada hasil build produksi, dengan typecheck dan lint
+tanpa galat.
+
 - Format Persuratan dan SOP Permohonan SK memakai empat kolom desktop, dua
   kolom tablet, satu kolom ponsel, dan maksimal tiga baris terlihat di desktop.
 - Area daftar bergulir sendiri, termasuk Produk Hukum di ponsel. Pemuatan

@@ -4,7 +4,7 @@ import { skemaHasilCariAnonim } from '@jdih/shared';
 import { PencarianProduk } from './pencarian-produk';
 
 const sesi = vi.hoisted(() => ({ nilai: { state: 'anonymous' } as Record<string, unknown> }));
-const api = vi.hoisted(() => ({ hasil: [] as unknown[] }));
+const api = vi.hoisted(() => ({ hasil: [] as unknown[], sopKosong: false }));
 const navigasi = vi.hoisted(() => ({ search: null as string | null }));
 vi.mock('next/navigation', () => ({
   useSearchParams: () => (navigasi.search === null ? null : new URLSearchParams(navigasi.search)),
@@ -15,7 +15,7 @@ vi.mock('@/lib/api-client', () => ({
   GalatApi: class GalatApi extends Error {
     status = 400;
   },
-  ambilApi: vi.fn(async (path: string) =>
+  ambilApi: vi.fn(async (path: string, opsi?: { kueri?: Record<string, unknown> }) =>
     path.endsWith('jenis_dokumen')
       ? [
           { id: '7', kode: 'PERREK', nama: 'Peraturan Rektor' },
@@ -28,27 +28,37 @@ vi.mock('@/lib/api-client', () => ({
           ]
         : path.endsWith('/facets')
           ? {
-              total: 3,
-              perJenis: [
-                { jenisDokumenId: '7', jumlah: 2 },
-                { jenisDokumenId: '5', jumlah: 1 },
-              ],
+              total: api.sopKosong ? (opsi?.kueri?.kategoriId ? 0 : 1) : 3,
+              perJenis: api.sopKosong
+                ? opsi?.kueri?.kategoriId
+                  ? []
+                  : [{ jenisDokumenId: '7', jumlah: 1 }]
+                : [
+                    { jenisDokumenId: '7', jumlah: 2 },
+                    { jenisDokumenId: '5', jumlah: 1 },
+                  ],
             }
           : path.endsWith('/years')
             ? [2026, 2025]
             : [],
   ),
-  ambilApiBerdaftar: vi.fn(async () => ({
-    data: api.hasil,
-    meta: {
-      halaman: 1,
-      perHalaman: 20,
-      totalButir: api.hasil.length,
-      totalHalaman: 1,
-      adaSebelumnya: false,
-      adaBerikutnya: false,
-    },
-  })),
+  ambilApiBerdaftar: vi.fn(async (_path: string, opsi?: { kueri?: Record<string, unknown> }) => {
+    const data =
+      api.sopKosong && (opsi?.kueri?.jenisDokumenId === '5' || opsi?.kueri?.kategoriId)
+        ? []
+        : api.hasil;
+    return {
+      data,
+      meta: {
+        halaman: 1,
+        perHalaman: 20,
+        totalButir: data.length,
+        totalHalaman: 1,
+        adaSebelumnya: false,
+        adaBerikutnya: false,
+      },
+    };
+  }),
 }));
 
 const ringkasan = {
@@ -66,6 +76,7 @@ const ringkasan = {
 beforeEach(() => {
   sesi.nilai = { state: 'anonymous' };
   api.hasil = [];
+  api.sopKosong = false;
   navigasi.search = null;
 });
 afterEach(() => {
@@ -93,6 +104,69 @@ describe('kontrak pencarian untuk pengunjung anonim', () => {
 });
 
 describe('tampilan hasil pencarian', () => {
+  it('jumlah jenis aktif mengikuti kategori tanpa menutup pilihan jenis lain', async () => {
+    const { ambilApiBerdaftar } = await import('@/lib/api-client');
+    navigasi.search = 'jenis=SOP&kategori=SOP-SAINS';
+    render(<PencarianProduk initialJenisKode="SOP" initialKategoriKode="SOP-SAINS" />);
+    await screen.findByText('Tidak ada dokumen yang cocok');
+    const sop = screen.getByRole('button', { name: /^SOP\s*0$/ });
+    expect(sop).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /Peraturan Rektor\s*2/ })).toBeEnabled();
+    fireEvent.click(sop);
+    expect(vi.mocked(ambilApiBerdaftar).mock.calls.at(-1)?.[1]?.kueri).toMatchObject({
+      jenisDokumenId: '5',
+      kategoriId: '1',
+    });
+    expect(
+      screen.getByRole('button', { name: 'Hapus penyaring Jurusan Sains' }),
+    ).toBeInTheDocument();
+  });
+  it('SOP unit kosong tidak menolkan jenis lain dan kategori dilepas saat berganti jenis', async () => {
+    const { ambilApi, ambilApiBerdaftar } = await import('@/lib/api-client');
+    api.sopKosong = true;
+    api.hasil = [{ ...ringkasan, tipe: 'Peraturan Rektor', judul: 'Peraturan Akademik' }];
+    navigasi.search = 'jenis=SOP&kategori=SOP-SAINS&tahun=2026&statusHukum=BERLAKU';
+    render(
+      <PencarianProduk
+        initialJenisKode="SOP"
+        initialKategoriKode="SOP-SAINS"
+        initialYear="2026"
+        initialStatus="BERLAKU"
+      />,
+    );
+    await screen.findByText('Tidak ada dokumen yang cocok');
+    expect(screen.getByRole('button', { name: /^SOP\s*0$/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    const peraturan = await screen.findByRole('button', { name: /Peraturan Rektor\s*1/ });
+    expect(
+      vi
+        .mocked(ambilApi)
+        .mock.calls.filter(([path]) => path.endsWith('/facets'))
+        .at(-1)?.[1]?.kueri,
+    ).not.toHaveProperty('kategoriId');
+    fireEvent.click(peraturan);
+    await screen.findByRole('link', { name: 'Peraturan Akademik' });
+    expect(vi.mocked(ambilApiBerdaftar).mock.calls.at(-1)?.[1]?.kueri).toMatchObject({
+      jenisDokumenId: '7',
+      kategoriId: '',
+      tahun: '2026',
+      statusHukum: 'BERLAKU',
+    });
+    expect(
+      screen.queryByRole('button', { name: 'Hapus penyaring Jurusan Sains' }),
+    ).not.toBeInTheDocument();
+    expect(window.location.search).not.toContain('kategori=');
+    fireEvent.click(screen.getByRole('button', { name: /Semua jenis\s*1/ }));
+    await waitFor(() =>
+      expect(vi.mocked(ambilApiBerdaftar).mock.calls.at(-1)?.[1]?.kueri).toMatchObject({
+        jenisDokumenId: '',
+        kategoriId: '',
+      }),
+    );
+    expect(screen.getByRole('link', { name: 'Peraturan Akademik' })).toBeInTheDocument();
+  });
   it('menempatkan Tahun dan Kategori sebelum Jenis produk hukum sesuai urutan baca dan keyboard', async () => {
     render(<PencarianProduk />);
     await screen.findByRole('button', { name: /Peraturan Rektor\s*2/ });

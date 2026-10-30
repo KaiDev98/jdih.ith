@@ -1,6 +1,12 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
 **Dokumen ini adalah konteks lengkap yang harus dipahami Codex sebelum mengerjakan project.**  
+Perbaikan penyaring 2026-10-30: pilihan unit pada navigasi SOP membatasi hasil
+jenis yang sedang dipilih saja. Saat mengganti jenis lewat panel, kategori
+dilepas; kata kunci, tahun dan status tetap berlaku. Hitungan pilihan jenis
+mengabaikan kategori, sedangkan jenis aktif memakai total hasil aktual. SOP
+unit kosong tidak boleh menolkan hitungan atau menghalangi jenis lain.
+
 Pemisahan koleksi SOP 2026-10-30: SOP biasa pada Produk Hukum dan SOP Permohonan
 SK merupakan dua koleksi berbeda. Pencarian/daftar umum, faset, pilihan tahun,
 hitungan jenis/kategori dan dokumen terbaru beranda hanya memakai dokumen dengan

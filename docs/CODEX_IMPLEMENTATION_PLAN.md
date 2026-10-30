@@ -4,6 +4,11 @@ This file tells Codex how to move from the current foundation to the agreed V2 w
 
 ## Revisi tampilan autentikasi 2026-10-29
 
+Regresi penyaring 2026-10-30: buka SOP unit kosong dari menu desktop/ponsel;
+jenis lain tetap memiliki hitungan dan menampilkan hasil ketika dipilih.
+Pergantian jenis melepas kategori, mempertahankan kata kunci/tahun/status.
+Memilih ulang jenis aktif mempertahankan kategori dan hitungan aktual.
+
 Klarifikasi koleksi 2026-10-30: SOP biasa terpisah dari SOP Permohonan SK pada
 query portal, termasuk count/faset/tahun/beranda. Uji dengan jenis dasar dan kata
 kunci sama serta akses anonim, pending, staf aktif dan Superadmin. Sitemap tetap
