@@ -403,7 +403,6 @@ export function DaftarDokumenAdmin({
             {semuaDokumen && (
               <PemilihKoleksiDokumen
                 value={koleksi}
-                superadmin={superadmin}
                 onValueChange={(value) =>
                   ganti(() => {
                     setKoleksi(value);

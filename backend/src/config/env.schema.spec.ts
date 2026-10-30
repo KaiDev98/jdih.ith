@@ -20,6 +20,18 @@ const envMinimum = {
 };
 
 describe('validasiEnv', () => {
+  it('accepts authenticated Gmail over TLS and only allows plaintext SMTP on development loopback', () => {
+    const smtp = { ...envMinimum, MAIL_DRIVER: 'smtp', MAIL_HOST: 'smtp.gmail.com', MAIL_PORT: 465, MAIL_USER: 'sender@example.com', MAIL_PASSWORD: 'test-app-password' };
+    expect(validasiEnv(smtp).MAIL_REQUIRE_TLS).toBe(true);
+    expect(() => validasiEnv({ ...smtp, MAIL_REQUIRE_TLS: 'false' })).toThrow(/MAIL_REQUIRE_TLS/);
+    expect(validasiEnv({ ...smtp, MAIL_HOST: '127.0.0.1', MAIL_REQUIRE_TLS: 'false' }).MAIL_REQUIRE_TLS).toBe(false);
+  });
+  it('rejects partial SMTP credentials, invalid port and sender header injection', () => {
+    expect(() => validasiEnv({ ...envMinimum, MAIL_USER: 'sender@example.com' })).toThrow(/MAIL_USER/);
+    expect(() => validasiEnv({ ...envMinimum, MAIL_PORT: 70000 })).toThrow(/MAIL_PORT/);
+    expect(() => validasiEnv({ ...envMinimum, MAIL_FROM_ADDRESS: 'invalid' })).toThrow(/MAIL_FROM_ADDRESS/);
+    expect(() => validasiEnv({ ...envMinimum, MAIL_FROM_NAME: 'Sender\r\nBcc: injected' })).toThrow(/MAIL_FROM_NAME/);
+  });
   it.each(['*', 'gmail.com', 'mahasiswa.ith.ac.id'])('menolak domain Google %s', domain => {
     expect(() => validasiEnv({ ...envMinimum, GOOGLE_DOMAIN_DIIZINKAN: domain })).toThrow(/GOOGLE_DOMAIN_DIIZINKAN/);
   });

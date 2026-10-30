@@ -18,7 +18,9 @@ export type SecurityAction =
   | 'DELETE_ACCOUNT'
   | 'PASSWORD_CHANGE'
   | 'CREATE_ADMIN'
-  | 'RESET_PASSWORD';
+  | 'RESET_PASSWORD'
+  | 'PASSWORD_RESET_REQUEST'
+  | 'STAFF_PASSWORD_RESET';
 export interface SecurityAudit {
   action: SecurityAction;
   actorId: string | null;
@@ -79,6 +81,10 @@ export class AuditService {
         'targetId',
         'reason',
         'jumlahDihapus',
+        'kodeDokumen',
+        'jumlahVersi',
+        'jumlahBerkas',
+        'relasiMasukDihapus',
         'sampaiId',
         'jalur',
       ];

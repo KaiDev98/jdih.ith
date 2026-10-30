@@ -149,8 +149,8 @@ describe.skipIf(!process.env.NOTIFICATIONS_MYSQL_ENV)('notifikasi MySQL dengan r
     expect(logs).toHaveLength(1);
     expect(logs[0]?.after_json).toEqual({ jumlahDihapus: 1 });
   });
-  it('menolak dokumen pengguna lain/SOP khusus, tanpa menghapus notifikasi pemilik sebenarnya', async () => {
-    for (const id of [hiddenEvent, foreignEvent])
+  it('menolak dokumen pengguna lain dan mengizinkan notifikasi SOP Permohonan SK milik sendiri', async () => {
+    for (const id of [foreignEvent])
       await expect(service.dismissNotification(owner, id)).rejects.toBeInstanceOf(
         NotFoundException,
       );
@@ -160,12 +160,14 @@ describe.skipIf(!process.env.NOTIFICATIONS_MYSQL_ENV)('notifikasi MySQL dengan r
       [owner.id],
     );
     expect(rows).toHaveLength(0);
+    expect((await service.notifications(owner)).some((r) => r.id === hiddenEvent)).toBe(true);
+    await expect(service.dismissNotification(owner, hiddenEvent)).resolves.toEqual({ jumlahDihapus: 1 });
   });
   it('hapus semua melewati 30 baris, mempertahankan peristiwa setelah snapshot dan inbox akun lain', async () => {
     expect(await service.notifications(owner)).toHaveLength(30);
     const latest = await event(versionId);
-    await expect(service.clearNotifications(owner, { sampaiId: events.at(-1)! })).resolves.toEqual({
-      jumlahDihapus: 35,
+    await expect(service.clearNotifications(owner, { sampaiId: hiddenEvent })).resolves.toEqual({
+      jumlahDihapus: 36,
     });
     expect((await newService().notifications(owner)).map((r) => r.id)).toEqual([latest]);
     expect((await service.notifications(other)).some((r) => r.id === foreignEvent)).toBe(true);

@@ -80,10 +80,12 @@ function setup(overrides: Record<string, unknown> = {}) {
 }
 
 describe('pengajuan dan hasil verifikasi dokumen', () => {
-  it('Admin tidak dapat mengajukan dokumen khusus SOP Permohonan SK', async () => {
+  it('Admin mengajukan SOP Permohonan SK untuk verifikasi Superadmin', async () => {
     const { core, repo } = setup({ peruntukan: 'PERMOHONAN_SK' });
-    await expect(core.transition(admin, '50', 'SUBMIT')).rejects.toBeInstanceOf(NotFoundException);
-    expect(repo.write).not.toHaveBeenCalled();
+    await expect(core.transition(admin, '50', 'SUBMIT')).resolves.toMatchObject({ statusWorkflow: 'DIAJUKAN' });
+    expect(repo.write).toHaveBeenCalledWith(expect.anything(), expect.stringContaining('INSERT INTO dokumen_workflow'), ['50', 'DRAF', 'DIAJUKAN', 'SUBMIT', null, '11']);
+    await expect(core.transition(admin, '50', 'APPROVE')).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(core.transition(admin, '50', 'RETURN', 'Perbaiki')).rejects.toBeInstanceOf(ForbiddenException);
   });
   it('SOP milik Admin masuk DIAJUKAN setelah data dan file diperiksa', async () => {
     const { core, files, repo, audit } = setup();

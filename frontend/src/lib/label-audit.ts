@@ -34,6 +34,8 @@ export const LABEL_AKSI: Record<string, string> = {
   DELETE_ACCOUNT: 'menghapus akun',
   CREATE_ADMIN: 'membuat akun Admin',
   RESET_PASSWORD: 'mengatur ulang password Admin',
+  PASSWORD_RESET_REQUEST: 'meminta pemulihan password Dosen/Staf',
+  STAFF_PASSWORD_RESET: 'mengatur ulang password Dosen/Staf',
   PASSWORD_CHANGE: 'mengganti password',
   DOWNLOAD_INTERNAL: 'mengunduh dokumen khusus Dosen/Staf',
   LOGIN_SUCCESS: 'masuk',

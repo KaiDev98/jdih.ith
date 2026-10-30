@@ -9,7 +9,7 @@ const result = spawnSync(git, ['ls-files', '-z'], { encoding: 'utf8', windowsHid
 if (result.status !== 0) throw new Error('Cannot enumerate tracked release files');
 const files = result.stdout.split('\0').filter(Boolean);
 const knownSecrets = new Set();
-for (const path of ['.env.v2.local', 'backend/.env.identity.local', 'frontend/.env']) {
+for (const path of ['.env.v2.local', 'backend/.env.identity.local', 'backend/.env.mail.local', 'frontend/.env']) {
   if (!existsSync(path)) continue;
   for (const [key, value] of Object.entries(parseEnv(readFileSync(path, 'utf8')))) {
     if (/(?:SECRET|PASSWORD|SESSION_KEY|PRIVATE_KEY)$/.test(key) && value.length >= 12)

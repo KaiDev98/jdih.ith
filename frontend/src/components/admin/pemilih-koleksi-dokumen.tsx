@@ -29,13 +29,11 @@ const PILIHAN = [
 export function PemilihKoleksiDokumen({
   value,
   onValueChange,
-  superadmin,
 }: {
   value: KoleksiDokumen;
   onValueChange: (value: KoleksiDokumen) => void;
-  superadmin: boolean;
 }) {
-  const pilihan = PILIHAN.filter((item) => superadmin || item.nilai !== 'PERMOHONAN_SK');
+  const pilihan = PILIHAN;
   const aktif = pilihan.find((item) => item.nilai === value) ?? PILIHAN[0];
   return (
     <DropdownMenu modal={false}>

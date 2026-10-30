@@ -27,7 +27,8 @@ export function AdminSopPermohonanSk() {
   const { pengguna, csrfToken } = useSession();
   const izin = pengguna?.izin ?? [];
   const superadmin = pengguna?.peran.includes('SUPERADMIN') ?? false;
-  const bolehBuat = superadmin && izin.includes('documents.create');
+  const pengelola = pengguna?.status === 'AKTIF' && pengguna.peran.some((role) => role === 'ADMIN' || role === 'SUPERADMIN');
+  const bolehBuat = pengelola && izin.includes('documents.create');
   const bolehUbah = superadmin && izin.includes('documents.edit');
   const [rows, setRows] = useState<readonly BarisDokumen[]>();
   const [error, setError] = useState('');
@@ -36,7 +37,7 @@ export function AdminSopPermohonanSk() {
   const [muatUlang, setMuatUlang] = useState(0);
 
   useEffect(() => {
-    if (!superadmin) return;
+    if (!pengelola) return;
     let berlaku = true;
     ambilApiBerdaftar<BarisDokumen>('/admin/documents', {
       kueri: { halaman, perHalaman: 20, peruntukan: 'PERMOHONAN_SK' },
@@ -53,7 +54,7 @@ export function AdminSopPermohonanSk() {
     return () => {
       berlaku = false;
     };
-  }, [muatUlang, superadmin, halaman]);
+  }, [muatUlang, pengelola, halaman]);
 
   // Aksi "Lepas" berlaku untuk dokumen, jadi cukup di satu baris per dokumen.
   const barisPertama = useMemo(() => {
@@ -74,7 +75,7 @@ export function AdminSopPermohonanSk() {
     setMuatUlang((x) => x + 1);
   }
 
-  if (!superadmin) return null;
+  if (!pengelola) return null;
 
   return (
     <div className="halaman-panel mx-auto w-full">
@@ -113,6 +114,17 @@ export function AdminSopPermohonanSk() {
         <div className="mb-6">
           <StateMessage title="Daftar gagal dimuat" kind="error">
             {error}
+            <button
+              type="button"
+              className="ml-3 min-h-11 font-semibold underline underline-offset-4"
+              onClick={() => {
+                setRows(undefined);
+                setError('');
+                setMuatUlang((value) => value + 1);
+              }}
+            >
+              Coba muat lagi
+            </button>
           </StateMessage>
         </div>
       )}
@@ -124,7 +136,7 @@ export function AdminSopPermohonanSk() {
             <div className="min-w-0 flex-1">
               <h2 className="text-sm font-semibold">SOP Publik dan Dosen/Staf</h2>
               <p className="mt-1 text-xs text-slate-500">
-                Setelah disetujui, SOP langsung terbit sesuai akses yang dipilih.
+                Admin mengajukan draf. Setelah disetujui Superadmin, SOP langsung terbit sesuai akses yang dipilih.
               </p>
             </div>
           </div>
@@ -154,7 +166,7 @@ export function AdminSopPermohonanSk() {
                 <TabelDokumen
                   rows={rows}
                   aksi={(r) =>
-                    barisPertama.has(r.versionId) ? (
+                    superadmin && barisPertama.has(r.versionId) ? (
                       <ConfirmAction
                         disabled={!bolehUbah}
                         label="Lepas"

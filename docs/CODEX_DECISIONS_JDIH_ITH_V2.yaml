@@ -33,7 +33,7 @@ public_home:
   footer_visits: "actual MySQL daily aggregates; browser/day WITA; server cookie and bot filter; no-store SSR; visible-tab refresh and day rollover; shared requests/Web Locks; unavailable state instead of invented zero"
 
 document_collections_ui:
-  collection_body_max_width: "1680px for Format Persuratan, SOP Permohonan SK and regular SOP; independent of hero/footer widths"
+  collection_body_max_width: "1680px for Format Persuratan and SOP Permohonan SK; regular SOP uses the same 1280px frame as Produk Hukum"
   type_filter_switch: "clear category on a different type; preserve keyword/year/status; alternative type counts ignore category; active type count reflects actual results"
   regular_sop_scope: "peruntukan IS NULL; exclude PERMOHONAN_SK from general search, facets, years and home counts/latest; separate dedicated collection"
   format_public_layout: "folder cards; four desktop columns, up to three visible rows; bounded scrolling with incremental 12-item requests"
@@ -46,13 +46,13 @@ document_collections_ui:
   collection_admin_search_bar: false
   all_documents_desktop: "fixed viewport; inner list scrolling; persistent filters and pagination"
   all_documents_collection_dropdown: [PRODUK_HUKUM, SOP, FORMAT, PERMOHONAN_SK]
-  sop_request_admin_role: SUPERADMIN
+  sop_request_admin_role: "ADMIN can upload/submit own; SUPERADMIN verifies and approves/publishes"
   collection_dropdown_style: "Radix radio menu; brief open/close animation; soft blue focus; keyboard and reduced motion"
 
 auth:
   login_brand_alignment: "desktop >=1024px left-aligned; mobile/tablet centered"
   login_audience_separation: "staff /masuk has no role tabs; admin/superadmin login pages have only two adjacent manager tabs; registration remains staff-only /daftar"
-  standalone_auth_pages: ["/masuk", "/daftar", "/masuk/admin", "/masuk/superadmin"]
+  standalone_auth_pages: ["/masuk", "/daftar", "/masuk/admin", "/masuk/superadmin", "/lupa-password", "/atur-ulang-password"]
   auth_public_navbar_footer: false
   auth_visual_style: "2026-10-29 latest: desktop split layout with document/section symbols and contrasting typography on the left, login/registration on the right; no campus photo; compact form on mobile and short landscape; ITH palette"
   auth_page_scroll: false
@@ -70,6 +70,8 @@ auth:
   provider: "email/password + Google OAuth/OIDC"
   google_staff_domain: "@ith.ac.id"
   google_student_domain_denied: "@mahasiswa.ith.ac.id"
+  staff_password_recovery: "SMTP TLS; staff-only; active/pending; generic response; 30-minute one-use token; hash at rest and encrypted outbox; reset revokes sessions without activation"
+  password_recovery_mail_configuration: "private .env.mail.local or server env; Gmail App Password; unavailable UI until configured; never commit credentials"
   local_password_v1: true
   email_password_registration_domains: "any valid email domain"
   google_domain_required: "ith.ac.id"
@@ -102,11 +104,11 @@ admin_document_policy:
   owner_source: "dokumen.created_by + dokumen_versi.created_by"
   can_submit_only_own_versions: true
   can_verify_or_publish: false
-  can_manage_sop_permohonan_sk: false
-  can_view_sop_permohonan_sk_in_panel: false
+  can_manage_sop_permohonan_sk: "own drafts/uploads/submissions only"
+  can_view_sop_permohonan_sk_in_panel: true
   can_view_audit: false
-  sop_permohonan_sk_menu_visible: false
-  verification_queue_read_scope: "all submitted documents except SOP Permohonan SK; Superadmin alone can verify"
+  sop_permohonan_sk_menu_visible: true
+  verification_queue_read_scope: "all submitted documents including SOP Permohonan SK; Superadmin alone can verify"
   category_scope: "categories mapped to the Admin account's unit"
   input_category_visibility: "all categories visible; unauthorized/inactive options disabled; boolean eligibility from server"
   amendment_target_scope: "own document and own active published version; enforce search, relation POST and resubmission"
@@ -410,3 +412,12 @@ deferred_v1:
   - "collaborative drafting"
   - "e-office numbering"
   - "microservices"
+
+upload_deletion:
+  permanent_document_delete_role: SUPERADMIN
+  permission: documents.delete
+  type_filename_confirmation: false
+  simple_confirmation_required: true
+  direct_button_visible: true
+  preserve_master_types_and_portal_pages: true
+  local_purge_is_a_migration: false

@@ -179,7 +179,7 @@ export function AuthSurface({
       if (
         !keyboardOpen &&
         height >= layoutHeight * 0.95 &&
-        appearanceSize !== `${window.innerWidth}:${layoutHeight}`
+        (editing || appearanceSize !== `${window.innerWidth}:${layoutHeight}`)
       )
         rememberAppearance();
       window.cancelAnimationFrame(animationFrame);

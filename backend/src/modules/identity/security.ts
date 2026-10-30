@@ -69,9 +69,9 @@ export function cekPemilikAtauSuperadmin(user: PenggunaAktif, createdBy: unknown
   if (String(createdBy) !== user.id) throw new NotFoundException();
 }
 
-/** SOP Permohonan SK hanya tersedia pada panel Superadmin, termasuk akses lewat ID. */
+/** SOP Permohonan SK dapat diajukan pengelola; keputusan tetap dijaga service workflow. */
 export function cekPeruntukanPanel(user: PenggunaAktif, peruntukan: unknown) {
-  if (peruntukan === 'PERMOHONAN_SK' && !user.peran.includes('SUPERADMIN'))
+  if (peruntukan === 'PERMOHONAN_SK' && !user.peran.some((role) => role === 'ADMIN' || role === 'SUPERADMIN'))
     throw new NotFoundException();
 }
 export interface ResourceDokumen {

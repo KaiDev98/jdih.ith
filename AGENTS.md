@@ -62,6 +62,19 @@ Jangan membangun berdasarkan asumsi legacy berikut:
 - Workflow dokumen tidak memiliki state `ditolak`.
 - Status hukum hanya `berlaku`, `diubah`, `dicabut`.
 
+## REVISI SOP PERMOHONAN SK ? 2026-10-30
+
+Instruksi eksplisit terbaru user menggantikan larangan Admin atas SOP Permohonan
+SK dalam revisi lama di bawah. Admin aktif boleh membuat, mengunggah, memperbaiki
+dan mengajukan SOP Permohonan SK miliknya sesuai unit/kategori. Menu, pintasan,
+halaman, API, detail, berkas dan notifikasi tersedia. Daftar/draf tetap milik
+sendiri; antrean dapat dibaca lintas pembuat. Hanya Superadmin yang memverifikasi,
+mengembalikan, menyetujui dan menerbitkan; SOP khusus langsung terbit ketika
+persetujuan atomik berhasil. Batas kepemilikan, CSRF, audit, validasi dan izin
+keputusan server-side tetap wajib. Pemindahan koleksi SOP lama tetap Superadmin.
+Tombol hapus permanen Superadmin terlihat langsung, tanpa mengetik judul/nama
+file; konfirmasi singkat, loading, feedback dan anti klik ganda tetap berlaku.
+
 ## REVISI AUTENTIKASI — 2026-10-26
 
 - `/masuk` menyediakan email/password untuk Dosen/Staf; `/daftar` menerima

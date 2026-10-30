@@ -135,7 +135,7 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     await pool?.end();
     if (storageRoot) await rm(storageRoot, { recursive: true, force: true });
   });
-  async function addAdmin() {
+  async function addAdmin(role: 'ADMIN' | 'SUPERADMIN' = 'SUPERADMIN') {
     const suffix = uid();
     const [unit] = await pool.execute('INSERT INTO unit_kerja(kode,nama) VALUES(?,?)', [
       suffix,
@@ -148,8 +148,8 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     );
     const id = String((user as any).insertId);
     await pool.execute(
-      "INSERT INTO pengguna_peran(pengguna_id,peran_id) SELECT ?,id FROM peran WHERE kode='SUPERADMIN'",
-      [id],
+      "INSERT INTO pengguna_peran(pengguna_id,peran_id) SELECT ?,id FROM peran WHERE kode=?",
+      [id, role],
     );
     const row = await identities.user(pool, id);
     return identities.principal(pool, row!);
@@ -798,6 +798,45 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
         versi: ready('Spoof'),
       }),
     ).rejects.toThrow();
+  });
+
+  it.each(['publik', 'internal'] as const)('Admin mengunggah SOP SK %s, meminta revisi dan hanya Superadmin yang menerbitkan', async (level) => {
+    const owner = await addAdmin('ADMIN');
+    const other = await addAdmin('ADMIN');
+    const [units] = await pool.query<RowDataPacket[]>('SELECT kode FROM unit_kerja WHERE id=?', [owner.unitKerjaId]);
+    const [category] = await pool.execute('INSERT INTO kategori(kode,nama) VALUES(?,?)', [units[0]!.kode, `Kategori ${uid()}`]);
+    const categoryId = String((category as any).insertId);
+    const [types] = await pool.query<RowDataPacket[]>("SELECT id FROM jenis_dokumen WHERE kode='SOP' AND aktif=1 LIMIT 1");
+    const marker = uid();
+    const payload = { kodeDokumen: marker, slug: `admin-sop-${marker}`, jenisDokumenId: String(types[0]!.id), peruntukan: 'PERMOHONAN_SK', versi: { ...ready(`SOP SK Admin ${marker}`, level), kategoriId: [categoryId] } };
+    await expect(service.createDocument(owner, { ...payload, versi: { ...payload.versi, kategoriId: [defaultCategoryId] } })).rejects.toThrow();
+    const d = await service.createDocument(owner, payload);
+    expect((await service.adminDocuments(owner, { cakupan: 'PENGAJUAN', peruntukan: 'PERMOHONAN_SK', q: marker })).data.map(row => String(row.id))).toEqual([d.id]);
+    expect((await service.adminDocuments(other, { cakupan: 'PENGAJUAN', peruntukan: 'PERMOHONAN_SK', q: marker })).data).toHaveLength(0);
+    const pdf = Buffer.from('%PDF-1.7\nadmin SOP fixture\n%%EOF\n');
+    await expect(files.upload(other, d.versionId, await incomingFile('other.pdf', pdf), { jenisBerkas: 'UTAMA' })).rejects.toThrow();
+    const uploaded = await files.upload(owner, d.versionId, await incomingFile('sop.pdf', pdf), { jenisBerkas: 'UTAMA' });
+    expect(await files.listForVersion(owner, d.versionId)).toEqual(expect.arrayContaining([expect.objectContaining({ id: uploaded.id })]));
+    await expect(service.updateVersion(other, d.versionId, { judul: 'Manipulasi' })).rejects.toThrow();
+    await expect(service.transition(other, d.versionId, 'SUBMIT')).rejects.toThrow();
+    const elevated = { ...owner, izin: [...owner.izin, 'workflow.approve', 'workflow.return', 'workflow.publish'] };
+    await expect(service.transition(elevated, d.versionId, 'APPROVE')).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.publish(elevated, d.versionId, {})).rejects.toBeInstanceOf(ForbiddenException);
+    await service.transition(owner, d.versionId, 'SUBMIT');
+    expect((await search.permohonanSk({ q: marker })).data).toHaveLength(0);
+    expect((await service.notifications(actor)).some(row => row.versionId === d.versionId && row.action === 'SUBMIT')).toBe(true);
+    await service.transition(actor, d.versionId, 'RETURN', 'Perbaiki deskripsi prosedur');
+    expect((await service.notifications(owner)).some(row => row.versionId === d.versionId && row.action === 'RETURN')).toBe(true);
+    await service.updateVersion(owner, d.versionId, { deskripsi: 'Prosedur diperbaiki sesuai catatan Superadmin' });
+    await service.transition(owner, d.versionId, 'SUBMIT');
+    const preview = await service.impact(actor, d.versionId);
+    await expect(service.transition(actor, d.versionId, 'APPROVE', undefined, { tokenKonfirmasi: preview.tokenKonfirmasi, dampak: preview.dampak as never, disetujui: true })).resolves.toMatchObject({ statusWorkflow: 'TERBIT' });
+    expect((await service.notifications(owner)).some(row => row.versionId === d.versionId && row.action === 'APPROVE')).toBe(true);
+    expect((await service.notifications(actor)).some(row => row.versionId === d.versionId)).toBe(false);
+    expect((await search.permohonanSk({ q: marker })).data).toHaveLength(level === 'publik' ? 1 : 0);
+    expect((await search.permohonanSk({ q: marker }, await addStaff())).data).toHaveLength(1);
+    const [events] = await pool.query<RowDataPacket[]>('SELECT action FROM dokumen_workflow WHERE dokumen_versi_id=? ORDER BY id', [d.versionId]);
+    expect(events.map(row => String(row.action))).toEqual(['CREATE', 'SUBMIT', 'RETURN', 'SUBMIT', 'APPROVE', 'PUBLISH']);
   });
 
   it.each(['publik', 'internal'] as const)('SOP Permohonan SK %s terbit saat disetujui, mempertahankan versi dan akses', async (level) => {

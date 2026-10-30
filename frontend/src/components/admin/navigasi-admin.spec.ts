@@ -8,7 +8,7 @@ describe('navigasi admin', () => {
   });
   it('hanya menampilkan menu sesuai izin dan menyembunyikan kelompok kosong', () => {
     const menu = menuUntuk(['dashboard.read', 'documents.read_admin']);
-    expect(menu.map((k) => k.judul)).toEqual(['Umum', 'Dokumen']);
+    expect(menu.map((k) => k.judul)).toEqual(['Umum', 'Dokumen', 'Layanan']);
     expect(menu[1]!.butir.map((b) => b.label)).toEqual(['Semua Dokumen', 'Draf dan Pengajuan', 'Antrean Verifikasi']);
   });
 
@@ -28,11 +28,11 @@ describe('navigasi admin', () => {
     const semua = menu.flatMap((k) => k.butir);
     expect(semua.every((b) => !b.disabled)).toBe(true);
     expect(halamanAdminBolehDibuka('/admin/dokumen/12/ubah', ['ADMIN'])).toBe(true);
-    expect(semua.some((b) => b.label === 'SOP Permohonan SK')).toBe(false);
+    expect(semua.some((b) => b.label === 'SOP Permohonan SK')).toBe(true);
     expect(semua.some((b) => b.label === 'Audit')).toBe(false);
-    expect(halamanAdminBolehDibuka('/admin/sop-permohonan-sk', ['ADMIN'])).toBe(false);
-    expect(halamanAdminBolehDibuka('/admin/sop-permohonan-sk/baru', ['ADMIN'])).toBe(false);
-    expect(halamanAdminBolehDibuka('/superadmin/sop-permohonan-sk', ['ADMIN'])).toBe(false);
+    expect(halamanAdminBolehDibuka('/admin/sop-permohonan-sk', ['ADMIN'])).toBe(true);
+    expect(halamanAdminBolehDibuka('/admin/sop-permohonan-sk/baru', ['ADMIN'])).toBe(true);
+    expect(halamanAdminBolehDibuka('/superadmin/sop-permohonan-sk', ['ADMIN'])).toBe(true);
     expect(halamanAdminBolehDibuka('/admin/dokumen/verifikasi', ['ADMIN'])).toBe(true);
     expect(halamanAdminBolehDibuka('/admin/sop-permohonan-sk', ['SUPERADMIN'])).toBe(true);
     expect(halamanAdminBolehDibuka('/admin/audit', ['ADMIN'])).toBe(false);

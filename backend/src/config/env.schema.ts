@@ -92,11 +92,16 @@ export const skemaEnv = z.object({
   /** 'log' hanya mencetak surel ke log — aman dipakai saat pengembangan. */
   MAIL_DRIVER: z.enum(['log', 'smtp']).default('log'),
   MAIL_HOST: z.string().optional(),
-  MAIL_PORT: z.coerce.number().int().optional(),
+  MAIL_PORT: z.coerce.number().int().min(1).max(65535).optional(),
   MAIL_USER: z.string().optional(),
   MAIL_PASSWORD: z.string().optional(),
-  MAIL_FROM_ADDRESS: z.string().default('jdih@ith.ac.id'),
-  MAIL_FROM_NAME: z.string().default('JDIH ITH Parepare'),
+  MAIL_FROM_ADDRESS: z.email().default('jdih@ith.ac.id'),
+  MAIL_FROM_NAME: z
+    .string()
+    .max(200)
+    .regex(/^[^\r\n]*$/)
+    .default('JDIH ITH Parepare'),
+  MAIL_REQUIRE_TLS: bolean.default(true),
 
   /* ───────────────────────── Pembatasan laju & log ─────────────────────── */
   /** Batas umum per IP, dalam jendela waktu tertentu (detik). */
@@ -204,6 +209,20 @@ export const skemaEnvLengkap = skemaEnv
     message: 'MAIL_DRIVER=smtp memerlukan MAIL_HOST dan MAIL_PORT',
     path: ['MAIL_DRIVER'],
   })
+  .refine((env) => Boolean(env.MAIL_USER) === Boolean(env.MAIL_PASSWORD), {
+    message: 'MAIL_USER dan MAIL_PASSWORD harus diisi berpasangan',
+    path: ['MAIL_USER'],
+  })
+  .refine(
+    (env) =>
+      env.MAIL_REQUIRE_TLS ||
+      (env.NODE_ENV !== 'production' &&
+        ['127.0.0.1', 'localhost', '::1'].includes(env.MAIL_HOST ?? '')),
+    {
+      message: 'SMTP tanpa TLS hanya diizinkan untuk pengujian lokal',
+      path: ['MAIL_REQUIRE_TLS'],
+    },
+  )
   .refine((env) => env.NODE_ENV !== 'production' || !env.SWAGGER_ENABLED, {
     message:
       'SWAGGER_ENABLED harus false di produksi; dokumentasi API terbuka memudahkan ' +

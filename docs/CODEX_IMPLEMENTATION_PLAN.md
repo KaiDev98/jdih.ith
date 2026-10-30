@@ -2,11 +2,37 @@
 
 This file tells Codex how to move from the current foundation to the agreed V2 without losing design intent.
 
+## Revisi terakhir: Admin mengajukan SOP Permohonan SK
+
+Admin dapat membuat/mengunggah/mengajukan SOP Permohonan SK miliknya; kategori
+sesuai unit dan pemeriksaan kepemilikan tetap wajib. Menu, pintasan, pemilih
+koleksi, detail/berkas serta notifikasi harus tersedia. Hanya Superadmin yang
+mengembalikan/menyetujui/menerbitkan. Uji upload nyata, daftar sendiri, penolakan
+manipulasi unit/pemilik, revisi/pengajuan ulang, notifikasi kedua peran dan
+publikasi atomik Publik/Internal. Ini menggantikan pembatasan koleksi khusus
+Superadmin pada instruksi lama di bawah. Tidak mengubah schema/seed.
+
+## Revisi 2026-10-30: pemulihan akun dan penghapusan unggahan
+
+Pemulihan Dosen/Staf memakai shared Zod, token 30 menit sekali pakai, SMTP TLS,
+antrean persisten terenkripsi, pembatasan laju dan audit transaksi. Uji akun
+aktif/pending, pengelola/Google-only/nonaktif, token palsu/kedaluwarsa/terpakai,
+request/reset bersamaan, sesi dicabut, rollback audit dan retry SMTP lokal.
+Pengiriman Gmail nyata perlu konfigurasi privat dan verifikasi operator;
+jangan menampilkan sukses palsu ketika layanan tidak dikonfigurasi.
+
+Hapus dokumen Superadmin: tombol langsung terlihat, tanpa input nama/judul,
+konfirmasi sederhana, CSRF, izin, loading, feedback dan anti klik ganda. Uji
+pembatalan, kegagalan, serta penolakan Admin meskipun memiliki izin langsung.
+Pembersihan data lokal adalah operasi satu kali atas instruksi eksplisit user,
+bukan bagian schema/seed/migrasi. Jenis dokumen dan halaman portal tetap ada.
+SOP biasa kembali mengikuti max-w-7xl/1280px seperti Produk Hukum.
+
 ## Revisi tampilan autentikasi 2026-10-29
 
 Posisi logo login 2026-10-30: desktop rata kiri, sejajar teks panel kiri pada
 layout dua sisi; ponsel/tablet tetap tengah. Periksa juga desktop pendek serta
-keyboard ponsel. Pemeriksaan fitur: pemulihan password Dosen/Staf belum tersedia.
+keyboard ponsel. Pemulihan password kini diimplementasikan sesuai revisi di atas.
 
 Pemisahan login terakhir 2026-10-30: Dosen/Staf langsung ke formulir pada `/masuk`,
 tanpa pemilih pengelola. Admin/Superadmin saling menaut lewat dua tab pada URL

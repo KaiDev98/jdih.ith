@@ -287,13 +287,13 @@ describe('pengajuan dokumen pada panel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Segarkan antrean' }));
     await waitFor(() => expect(state.daftar).toHaveBeenCalledTimes(3));
   });
-  it('form SOP Permohonan SK tidak dapat dibuka Admin meski punya izin membuat dokumen', () => {
+  it('Admin membuka unggahan SOP Permohonan SK dengan jenis SOP dan verifikasi Superadmin', async () => {
+    state.api.mockImplementation((url: string) => Promise.resolve(url.endsWith('/kategori') ? [] : [{ id: '1', kode: 'SOP', nama: 'SOP', aktif: true }]));
     render(<AdminDocumentCreate mode="permohonan-sk" />);
-    expect(
-      screen.getByText('Pengelolaan SOP Permohonan SK hanya untuk Superadmin.'),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Buat draf' })).not.toBeInTheDocument();
-    expect(state.api).not.toHaveBeenCalled();
+    await screen.findByRole('option', { name: 'SOP' });
+    expect(screen.getByRole('heading', { name: 'Unggah SOP Permohonan SK' })).toBeInTheDocument();
+    expect(screen.getByText(/Ajukan draf untuk ditinjau Superadmin/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Buat draf' })).toBeInTheDocument();
   });
   it('pratinjau draf memakai API panel dan membebaskan blob ketika ditutup', async () => {
     const revoke = vi.fn();
@@ -419,7 +419,7 @@ describe('dropdown koleksi Semua Dokumen', () => {
     });
     fireEvent.click(await screen.findByRole('menuitemradio', { name: label }));
   }
-  it('mengirim filter SOP ke API dan menyembunyikan SOP khusus dari Admin', async () => {
+  it('mengirim filter SOP ke API dan menyediakan koleksi SOP Permohonan SK untuk Admin', async () => {
     render(<DaftarDokumenAdmin />);
     await screen.findByText('Belum ada dokumen');
     fireEvent.keyDown(screen.getByRole('button', { name: /^Jenis koleksi:/ }), {
@@ -428,7 +428,7 @@ describe('dropdown koleksi Semua Dokumen', () => {
     await screen.findByRole('menu');
     expect(
       screen.queryByRole('menuitemradio', { name: 'SOP Permohonan SK' }),
-    ).not.toBeInTheDocument();
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('menuitemradio', { name: 'SOP' }));
     await waitFor(() =>
       expect(state.daftar).toHaveBeenLastCalledWith(

@@ -47,15 +47,15 @@ describe('Admin membaca informasi tanpa kewenangan perubahan global', () => {
     await expect(core.documentOptions({ ...admin, unitKerjaId: null }, 'kategori')).resolves.toEqual([]);
   });
 
-  it('antrean Admin membaca pengajuan lintas akun tanpa SOP Permohonan SK; daftar lain tetap milik sendiri', async () => {
+  it('antrean Admin membaca pengajuan termasuk SOP Permohonan SK; daftar lain tetap milik sendiri', async () => {
     const { core, repo } = setup();
     repo.rows.mockResolvedValue([{ total: 0 }]);
     await core.adminDocuments(admin, {}, true);
     expect(repo.rows.mock.calls.every(([, sql]) => !String(sql).includes('d.created_by=?'))).toBe(true);
-    expect(repo.rows.mock.calls.every(([, sql]) => String(sql).includes('d.peruntukan IS NULL'))).toBe(true);
+    expect(repo.rows.mock.calls.every(([, sql]) => !String(sql).includes('d.peruntukan IS NULL'))).toBe(true);
     repo.rows.mockClear();
-    await expect(core.adminDocuments(admin, { peruntukan: 'PERMOHONAN_SK' })).rejects.toBeInstanceOf(NotFoundException);
-    expect(repo.rows).not.toHaveBeenCalled();
+    await core.adminDocuments(admin, { peruntukan: 'PERMOHONAN_SK' });
+    expect(repo.rows.mock.calls.every(([, sql]) => String(sql).includes('d.peruntukan=?') && String(sql).includes('d.created_by=?'))).toBe(true);
     await core.adminDocuments(admin, {});
     expect(repo.rows.mock.calls.every(([, sql]) => String(sql).includes('d.created_by=?'))).toBe(true);
   });
@@ -72,20 +72,15 @@ describe('Admin membaca informasi tanpa kewenangan perubahan global', () => {
     await expect(core.document(superadmin, '5')).resolves.toMatchObject({ document: { id: '5' } });
   });
 
-  it('Admin tidak dapat membuka SOP Permohonan SK lewat ID, relasi, atau berkas', async () => {
+  it('Admin membaca SOP Permohonan SK dan berkasnya; perubahan tetap dibatasi pemilik', async () => {
     const { core, repo, storage, audit } = setup();
     repo.rows.mockResolvedValueOnce([{ id: '5', versionId: '50', peruntukan: 'PERMOHONAN_SK', statusHukum: 'BERLAKU', documentCreatedBy: '11', versionCreatedBy: '11' }]).mockResolvedValue([]);
-    await expect(core.document(admin, '5')).rejects.toBeInstanceOf(NotFoundException);
-    repo.rows.mockResolvedValue([{ peruntukan: 'PERMOHONAN_SK' }]);
-    await expect(core.relations(admin, '50')).rejects.toBeInstanceOf(NotFoundException);
-    repo.rows.mockReset().mockResolvedValue([]);
+    await expect(core.document(admin, '5')).resolves.toMatchObject({ document: { bolehUbah: true, bolehSetujuiLangsung: false } });
     const files = new DocumentFilesService(repo as never, storage as never, audit as never, {} as never, {} as never);
     await files.listForVersion(admin, '50');
-    expect(repo.rows.mock.calls.at(-1)?.[1]).toContain('AND d.peruntukan IS NULL');
-    await files.listForVersion({ ...admin, peran: ['SUPERADMIN'] }, '50');
     expect(repo.rows.mock.calls.at(-1)?.[1]).not.toContain('AND d.peruntukan IS NULL');
-    repo.rows.mockResolvedValue([{ peruntukan: 'PERMOHONAN_SK' }]);
-    await expect(files.authorizeVersion(admin, '50', '8')).rejects.toBeInstanceOf(NotFoundException);
+    repo.rows.mockResolvedValue([{ peruntukan: 'PERMOHONAN_SK', document_created_by: '99', created_by: '99', tingkat_akses: 'publik' }]);
+    await expect(files.authorizeVersion(admin, '50', '8')).resolves.toMatchObject({ peruntukan: 'PERMOHONAN_SK' });
     await expect(core.updateVersion(admin, '50', { judul: 'Ubah SOP' })).rejects.toBeInstanceOf(NotFoundException);
     await expect(core.transition(admin, '50', 'SUBMIT')).rejects.toBeInstanceOf(NotFoundException);
     expect(repo.write).not.toHaveBeenCalled();

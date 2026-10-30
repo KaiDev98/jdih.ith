@@ -69,6 +69,18 @@ describe('DokumenAdminService.hapusPermanen', () => {
     );
   });
 
+  it.each([
+    { ...admin, peran: ['ADMIN'] },
+    { ...admin, izin: [] },
+    { ...admin, status: 'NONAKTIF' },
+  ])('rejects non-Superadmin, missing permission and inactive principals before reading or deleting', async (actor) => {
+    const { service, sql, storage, audit } = siapkan();
+    await expect(service.hapusPermanen(actor as never, '5')).rejects.toBeInstanceOf(ForbiddenException);
+    expect(sql).toEqual([]);
+    expect(storage.delete).not.toHaveBeenCalled();
+    expect(audit.recordDomain).not.toHaveBeenCalled();
+  });
+
   it('is denied without permission and 404 for unknown documents', async () => {
     const { service, sql } = siapkan();
     await expect(service.hapusPermanen(staf as never, '5')).rejects.toBeInstanceOf(

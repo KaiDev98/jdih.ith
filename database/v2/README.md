@@ -1,5 +1,13 @@
 # Physical Database JDIH ITH V2 — Phase 1
 
+Revisi 2026-10-30: terapkan `patch-021-staff-password-recovery.sql` pada database
+V2 yang sudah ada sebelum menjalankan backend pemulihan password. Patch idempoten
+menambah tabel token/antrean dan audit penerapan; tidak mereset data. Instalasi
+baru memakai `schema.sql` yang sudah mencakup keduanya. Konfigurasi email dan
+verifikasi operator dijelaskan di [panduan pemulihan](../../docs/STAFF_PASSWORD_RECOVERY.md).
+Penghapusan unggahan lokal yang diminta user bukan migrasi dan tidak dijalankan
+pada deployment.
+
 Revisi 2026-10-25: terapkan `patch-020-superadmin-persetujuan-langsung.sql` pada
 database V2 yang dipilih operator. Patch memperluas CHECK APPROVE agar menerima
 DRAF/REVISI -> DISETUJUI; pengecualian hanya Superadmin pemilik dokumen/versi

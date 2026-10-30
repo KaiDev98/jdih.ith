@@ -10,7 +10,7 @@ export class CoreBackendRepository {
       where: `d.deleted_at IS NULL AND ${
         superadmin
           ? "w.action='SUBMIT' AND v.status_workflow='DIAJUKAN' AND w.id=(SELECT MAX(latest.id) FROM dokumen_workflow latest WHERE latest.dokumen_versi_id=v.id AND latest.action='SUBMIT')"
-          : "w.action IN ('RETURN','APPROVE') AND v.created_by=? AND d.created_by=? AND d.peruntukan IS NULL"
+          : "w.action IN ('RETURN','APPROVE') AND v.created_by=? AND d.created_by=?"
       }`,
       values: superadmin ? [] : [actorId, actorId],
     };

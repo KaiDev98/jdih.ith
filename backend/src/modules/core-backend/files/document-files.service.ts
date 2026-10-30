@@ -164,7 +164,7 @@ export class DocumentFilesService {
       `SELECT CAST(f.id AS CHAR) id,f.jenis_berkas jenisBerkas,f.judul,f.nama_asli namaAsli,f.mime_type mimeType,CAST(f.size_bytes AS CHAR) sizeBytes,
          IF(?=1 OR f.uploaded_by=?,TRUE,FALSE) bolehHapus
        FROM dokumen_berkas f JOIN dokumen_versi v ON v.id=f.dokumen_versi_id JOIN dokumen d ON d.id=v.dokumen_id AND d.deleted_at IS NULL
-       WHERE f.dokumen_versi_id=?${ownOnly ? ' AND d.peruntukan IS NULL' : ''}
+       WHERE f.dokumen_versi_id=?
        ORDER BY f.jenis_berkas='LAMPIRAN',f.urutan,f.id`,
       [ownOnly ? 0 : 1, actor.id, versionId],
     );

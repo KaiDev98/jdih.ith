@@ -78,7 +78,7 @@ export function AdminDocumentCreate({
 } = {}) {
   const khusus = mode === 'permohonan-sk';
   const { csrfToken, pengguna } = useSession();
-  const aksesKhusus = !khusus || superadminAktif(pengguna);
+  const aksesKhusus = !khusus || (pengguna?.status === 'AKTIF' && pengguna.peran.some((role) => role === 'ADMIN' || role === 'SUPERADMIN'));
   const [types, setTypes] = useState<Master[]>([]);
   const [categories, setCategories] = useState<PilihanKategoriDokumen[]>([]);
   // SOP Permohonan SK memakai judul baku; kode dan alamat ikut terisi darinya.
@@ -247,7 +247,7 @@ export function AdminDocumentCreate({
   if (!aksesKhusus)
     return (
       <StateMessage title="Akses panel tidak tersedia">
-        Pengelolaan SOP Permohonan SK hanya untuk Superadmin.
+        Unggah SOP Permohonan SK tersedia untuk Admin dan Superadmin aktif.
       </StateMessage>
     );
 
@@ -261,7 +261,7 @@ export function AdminDocumentCreate({
       },
       {
         teks: khusus
-          ? 'Tinjau, setujui dan langsung terbitkan SOP'
+          ? superadminAktif(pengguna) ? 'Tinjau, setujui dan langsung terbitkan SOP' : 'Ajukan ke Superadmin untuk verifikasi dan penerbitan'
           : superadminAktif(pengguna)
             ? 'Setujui draf tanpa antrean verifikasi'
             : 'Ajukan untuk diverifikasi',
@@ -354,7 +354,7 @@ export function AdminDocumentCreate({
         title={khusus ? 'Unggah SOP Permohonan SK' : 'Upload dokumen hukum'}
         description={
           khusus
-            ? 'Pilih akses Publik atau Dosen/Staf. Setelah ditinjau dan disetujui, SOP langsung terbit sesuai akses yang dipilih.'
+            ? 'Pilih akses Publik atau Dosen/Staf. Ajukan draf untuk ditinjau Superadmin; SOP terbit setelah disetujui.'
             : superadminAktif(pengguna)
               ? 'Simpan sebagai draf, tinjau dan setujui langsung dari halaman detail tanpa antrean verifikasi.'
               : 'Simpan sebagai draf, lalu ajukan verifikasi dari halaman detail.'

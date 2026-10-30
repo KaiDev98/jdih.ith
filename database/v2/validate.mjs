@@ -20,7 +20,7 @@ const schema = readFileSync(resolve(directory, 'schema.sql'), 'utf8');
 const names = [...schema.matchAll(/^CREATE TABLE (\w+)/gm)].map(m => m[1]).sort();
 const expected = [
   'unit_kerja','pengguna','peran','izin','pengguna_peran','peran_izin','pengguna_izin',
-  'sesi_pengguna','jenis_dokumen','kategori','tag','dokumen','dokumen_versi',
+  'sesi_pengguna','password_reset_tokens','password_reset_emails','jenis_dokumen','kategori','tag','dokumen','dokumen_versi',
   'dokumen_versi_kategori','dokumen_versi_tag','dokumen_berkas','dokumen_relasi',
   'dokumen_akses_rahasia','dokumen_workflow','notifikasi_dihapus','dokumen_status_hukum_riwayat',
   'template_surat','template_surat_versi','kontak_kantor_butir','kunjungan_harian','dokumen_statistik','audit_log'
@@ -30,9 +30,9 @@ const checks = [...schema.matchAll(/CONSTRAINT (\w+) CHECK/g)].map(m => m[1]).so
 const unique = [...schema.matchAll(/UNIQUE KEY (\w+)/g)].map(m => m[1]).sort();
 const indexes = [...schema.matchAll(/^ {2}(?:UNIQUE )?KEY (\w+)/gm)].map(m => m[1]).sort();
 assert.deepEqual(names, expected);
-assert.equal((schema.match(/ON DELETE RESTRICT ON UPDATE RESTRICT/g) ?? []).length, fks.length - 2);
-assert.equal((schema.match(/ON DELETE CASCADE ON UPDATE RESTRICT/g) ?? []).length, 2);
-for (const fk of ['fk_notifikasi_pengguna', 'fk_notifikasi_workflow'])
+assert.equal((schema.match(/ON DELETE RESTRICT ON UPDATE RESTRICT/g) ?? []).length, fks.length - 4);
+assert.equal((schema.match(/ON DELETE CASCADE ON UPDATE RESTRICT/g) ?? []).length, 4);
+for (const fk of ['fk_notifikasi_pengguna', 'fk_notifikasi_workflow', 'fk_password_reset_user', 'fk_password_reset_email_token'])
   assert.match(schema, new RegExp(`CONSTRAINT ${fk} FOREIGN KEY[^\\n]+ON DELETE CASCADE ON UPDATE RESTRICT`));
 // Structural review of our deliberately regular DDL; not a MySQL syntax parser.
 const structures = new Map();
@@ -45,7 +45,7 @@ for (const match of schema.matchAll(/CREATE TABLE (\w+) \(\n([\s\S]*?)\n\) ENGIN
   }
   structures.set(match[1], {columns,keys,candidateKeys});
 }
-assert.equal(structures.size,27);
+assert.equal(structures.size,expected.length);
 for (const name of [...fks,...checks,...indexes]) assert.ok(name.length <= 64, 'Identifier too long: '+name);
 assert.equal(new Set([...fks,...checks]).size, fks.length+checks.length, 'Duplicate constraint name');
 const statements = [...schema.matchAll(/CREATE TABLE (\w+) \(\n([\s\S]*?)\n\) ENGINE=InnoDB;/g),
@@ -158,7 +158,7 @@ for (const [kind, declared] of [['FOREIGN KEY',fks],['CHECK',checks],['UNIQUE',u
   assert.deepEqual(list("SELECT constraint_name FROM information_schema.table_constraints WHERE table_schema=DATABASE() AND constraint_type='" + kind + "'"), declared, kind);
 }
 assert.equal(query("SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema=DATABASE() AND constraint_type='PRIMARY KEY'"), String(names.length));
-assert.equal(query("SELECT COUNT(*) FROM information_schema.referential_constraints WHERE constraint_schema=DATABASE() AND (delete_rule <> IF(constraint_name IN ('fk_notifikasi_pengguna','fk_notifikasi_workflow'),'CASCADE','RESTRICT') OR update_rule <> 'RESTRICT')"), '0');
+assert.equal(query("SELECT COUNT(*) FROM information_schema.referential_constraints WHERE constraint_schema=DATABASE() AND (delete_rule <> IF(constraint_name IN ('fk_notifikasi_pengguna','fk_notifikasi_workflow','fk_password_reset_user','fk_password_reset_email_token'),'CASCADE','RESTRICT') OR update_rule <> 'RESTRICT')"), '0');
 assert.equal(query("SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema=DATABASE() AND constraint_type='CHECK' AND enforced <> 'YES'"), '0');
 const actualIndexes = list("SELECT DISTINCT index_name FROM information_schema.statistics WHERE table_schema=DATABASE() AND index_name <> 'PRIMARY'");
 for (const index of indexes) assert.ok(actualIndexes.includes(index), 'Missing index: ' + index);

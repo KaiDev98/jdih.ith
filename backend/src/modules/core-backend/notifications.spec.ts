@@ -41,7 +41,7 @@ describe('hapus notifikasi pribadi', () => {
       2,
       db,
       expect.stringContaining(
-        "w.action IN ('RETURN','APPROVE') AND v.created_by=? AND d.created_by=? AND d.peruntukan IS NULL",
+        "w.action IN ('RETURN','APPROVE') AND v.created_by=? AND d.created_by=?",
       ),
       ['11', '11', '91'],
     );
@@ -62,7 +62,7 @@ describe('hapus notifikasi pribadi', () => {
     );
     expect(write.mock.calls[0]?.[1]).not.toMatch(/DELETE FROM/);
   });
-  it('404 untuk ID tidak ada, milik orang lain, atau SOP khusus yang tidak masuk cakupan penerima', async () => {
+  it('404 untuk ID tidak ada atau milik orang lain yang tidak masuk cakupan penerima', async () => {
     const { service, rows, write, audit } = setup();
     rows.mockResolvedValueOnce([{ id: '11' }] as never).mockResolvedValueOnce([]);
     await expect(service.dismissNotification(admin, '92')).rejects.toBeInstanceOf(

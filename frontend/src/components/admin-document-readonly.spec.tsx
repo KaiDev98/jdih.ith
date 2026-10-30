@@ -113,10 +113,21 @@ describe('Admin membaca dokumen tanpa tindakan Superadmin; SOP khusus Superadmin
         expect(screen.getByRole('button', { name: 'Ajukan untuk diverifikasi' })).toBeDisabled();
       }
     });
-  it('Admin tidak melihat pengelolaan SOP Permohonan SK dan tidak meminta API-nya', () => {
-    const { container } = render(<AdminSopPermohonanSk />);
-    expect(container).toBeEmptyDOMElement();
-    expect(state.daftar).not.toHaveBeenCalled();
+  it('Admin membuka SOP Permohonan SK dan dapat mengunggah tanpa kewenangan lepas', async () => {
+    state.daftar.mockResolvedValue({ data: [], meta: { totalButir: 0, totalHalaman: 0 } });
+    render(<AdminSopPermohonanSk />);
+    expect(await screen.findByRole('link', { name: 'Unggah dokumen baru' })).toHaveAttribute('href', '/admin/sop-permohonan-sk/baru');
+    expect(state.daftar).toHaveBeenCalledWith('/admin/documents', expect.objectContaining({ kueri: expect.objectContaining({ peruntukan: 'PERMOHONAN_SK' }) }));
+    expect(screen.queryByRole('button', { name: 'Lepas' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Gunakan SOP yang sudah ada')).not.toBeInTheDocument();
+  });
+  it('daftar SOP Admin dapat dimuat ulang setelah API gagal', async () => {
+    state.daftar.mockRejectedValueOnce(new Error('Temporary failure')).mockResolvedValue({ data: [], meta: { totalButir: 0, totalHalaman: 0 } });
+    render(<AdminSopPermohonanSk />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Coba muat lagi' }));
+    await screen.findByText('Belum ada SOP terverifikasi');
+    expect(screen.queryByText('Daftar gagal dimuat')).not.toBeInTheDocument();
+    expect(state.daftar).toHaveBeenCalledTimes(2);
   });
   it('Superadmin dapat membuka detail dan pengelolaan SOP', async () => {
     state.peran = ['SUPERADMIN'];

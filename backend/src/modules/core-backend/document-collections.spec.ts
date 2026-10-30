@@ -1,4 +1,3 @@
-import { NotFoundException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import type { PenggunaAktif } from '@jdih/shared';
 import { CoreBackendService } from './core-backend.service.js';
@@ -58,12 +57,16 @@ describe('filter koleksi dokumen panel sebelum pagination', () => {
       expect(repo.rows.mock.calls[1]![2]).toEqual(['11', 20, 20]);
     },
   );
-  it('menolak koleksi SOP Permohonan SK untuk Admin sebelum query data', async () => {
+  it('Admin membaca koleksi SOP Permohonan SK miliknya sebelum pagination', async () => {
     const { repo, service } = setup();
-    await expect(
-      service.adminDocuments(actor('ADMIN'), { peruntukan: 'PERMOHONAN_SK' }),
-    ).rejects.toBeInstanceOf(NotFoundException);
-    expect(repo.rows).not.toHaveBeenCalled();
+    await service.adminDocuments(actor('ADMIN'), { peruntukan: 'PERMOHONAN_SK' });
+    for (const [, sql, params] of repo.rows.mock.calls) {
+      expect(sql).toContain('d.created_by=?');
+      expect(sql).toContain('d.peruntukan=?');
+      expect(sql).not.toContain('d.peruntukan IS NULL');
+      expect(params).toContain('11');
+      expect(params).toContain('PERMOHONAN_SK');
+    }
   });
   it('mempertahankan cakupan terverifikasi pada koleksi SOP khusus Superadmin', async () => {
     const { repo, service } = setup();

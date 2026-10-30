@@ -132,7 +132,6 @@ export class CoreBackendService {
     const values: (string | number)[] = [];
     if (!actor.peran.includes('SUPERADMIN')) {
       cekPeruntukanPanel(actor, query.peruntukan);
-      where.push('d.peruntukan IS NULL');
       if (!verificationOnly) {
         where.push('d.created_by=?');
         values.push(actor.id);
@@ -463,7 +462,7 @@ export class CoreBackendService {
   async createDocument(actor: Actor, raw: unknown) {
     this.allow(actor, 'documents.create');
     const b = skemaBuatDokumen.parse(raw);
-    if (b.peruntukan) cekSuperadmin(actor);
+    cekPeruntukanPanel(actor, b.peruntukan);
     const v = b.versi;
     cekAksesSop(b.peruntukan, v.tingkatAkses);
     return this.repo

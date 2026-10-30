@@ -46,10 +46,8 @@ describe('akses halaman dan namespace panel', () => {
     state.pathname = peran === 'ADMIN' ? '/admin/sop-permohonan-sk' : '/superadmin/sop-permohonan-sk';
     state.peran = [peran];
     render(<AdminShell><p>Pengelolaan SOP</p></AdminShell>);
-    if (peran === 'ADMIN') {
-      expect(screen.queryByText('Pengelolaan SOP')).not.toBeInTheDocument();
-      expect(screen.getByText('Akses panel tidak tersedia')).toBeInTheDocument();
-    } else expect(screen.getByText('Pengelolaan SOP')).toBeInTheDocument();
+    expect(screen.getByText('Pengelolaan SOP')).toBeInTheDocument();
+    expect(screen.queryByText('Akses panel tidak tersedia')).not.toBeInTheDocument();
   });
   it('halaman kategori dapat dibuka Admin dan diberi penjelasan hanya baca', () => {
     state.pathname = '/admin/kategori'; state.peran = ['ADMIN'];

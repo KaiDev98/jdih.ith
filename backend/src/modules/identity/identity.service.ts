@@ -73,6 +73,8 @@ export class IdentityService {
   ) {}
   private readonly gagalLogin = new Map<string, { jumlah: number; mulai: number; sampai: number }>();
   private pendaftaranBerjalan = 0;
+  /** Dipanggil hanya setelah reset ber-token berhasil di-commit. */
+  clearPasswordFailures(email: string) { this.gagalLogin.delete(email); }
 
   private usable(user: UserRow | undefined): asserts user is UserRow {
     if (!user || user.deleted_at || !['AKTIF', 'MENUNGGU_VERIFIKASI'].includes(user.status))

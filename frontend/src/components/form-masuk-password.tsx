@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -87,7 +88,14 @@ export function FormMasukPassword({ jalur }: { jalur: 'admin' | 'superadmin' | '
         )}
       </div>
       <div className="auth-field">
-        <Label htmlFor="masuk-password">Password</Label>
+        <div className="auth-password-label">
+          <Label htmlFor="masuk-password">Password</Label>
+          {jalur === 'staff' && (
+            <Link className="auth-link" href="/lupa-password">
+              Lupa password?
+            </Link>
+          )}
+        </div>
         <div className="relative">
           <Input
             id="masuk-password"

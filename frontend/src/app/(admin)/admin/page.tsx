@@ -294,7 +294,7 @@ export default function DasborAdmin() {
       label: 'Upload dokumen',
       keterangan: 'Buat draf produk hukum baru',
     },
-      pengguna?.peran.includes('SUPERADMIN') === true && bolehDokumen && {
+      bolehDokumen && {
         href: '/admin/sop-permohonan-sk',
         ikon: FileSignature,
         label: 'SOP Permohonan SK',

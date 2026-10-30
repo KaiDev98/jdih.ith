@@ -77,8 +77,7 @@ describe('DasborAdmin', () => {
     izin.peran = [peran]; izin.daftar = ['documents.read_admin', 'documents.create'];
     siapkanApi(); render(<DasborAdmin />);
     const sop = screen.queryByRole('link', { name: /SOP Permohonan SK/ });
-    if (peran === 'ADMIN') expect(sop).not.toBeInTheDocument();
-    else expect(sop).toHaveAttribute('href', '/superadmin/sop-permohonan-sk');
+    expect(sop).toHaveAttribute('href', peran === 'ADMIN' ? '/admin/sop-permohonan-sk' : '/superadmin/sop-permohonan-sk');
   });
 
   it('menampilkan angka nyata dan pekerjaan yang menunggu sesuai izin', async () => {

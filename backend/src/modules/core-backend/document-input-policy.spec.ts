@@ -41,7 +41,7 @@ describe('unit input dan target perubahan dokumen', () => {
     for (const target of [
       { created_by: '22', published_version_created_by: '22' },
       { created_by: '11', published_version_created_by: '22' },
-      { created_by: '11', published_version_created_by: '11', peruntukan: 'PERMOHONAN_SK' },
+      { created_by: '22', published_version_created_by: '22', peruntukan: 'PERMOHONAN_SK' },
     ]) {
       it(`${jenisRelasi} menolak target/versi milik akun lain atau SOP khusus, termasuk ID hasil manipulasi`, async () => {
         const { core, repo, audit } = setup();

@@ -1,11 +1,49 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
 **Dokumen ini adalah konteks lengkap yang harus dipahami Codex sebelum mengerjakan project.**  
+Revisi hak pengajuan SOP Permohonan SK terakhir 2026-10-30 menggantikan seluruh
+larangan Admin atas koleksi ini pada revisi lama di bawah: Admin aktif dapat
+membuat, mengunggah, memperbaiki dan mengajukan SOP Permohonan SK miliknya dengan
+kategori/unit yang sesuai. Menu, pintasan, dropdown koleksi, halaman, detail,
+berkas dan notifikasi tersedia. Daftar/draf tetap milik sendiri; antrean dapat
+dibaca lintas pembuat seperti SOP biasa. Hanya Superadmin memverifikasi,
+mengembalikan, menyetujui dan menerbitkan. Persetujuan SOP khusus ini langsung
+menerbitkan secara atomik dengan tinjauan/konfirmasi dampak, audit dan izin
+approve/publish. Admin tidak mendapat kewenangan keputusan meskipun diberi
+permission langsung. Memindahkan SOP biasa ke/dari koleksi khusus tetap tindakan
+global Superadmin; Admin membuat langsung lewat Unggah SOP Permohonan SK.
+
+Revisi penghapusan unggahan 2026-10-30: Superadmin dengan izin
+`documents.delete` mendapat tombol Hapus permanen yang langsung terlihat, tanpa
+mengetik judul/nama file. Tetap gunakan konfirmasi singkat, CSRF, pencegahan klik
+ganda, loading dan feedback. Endpoint memeriksa peran/izin dan mencatat audit.
+Pembersihan koleksi lokal atas permintaan eksplisit user menghapus data dokumen
+unggahan beserta versinya dan format surat; jenis dokumen, kategori, akun, menu,
+tampilan portal, statistik kunjungan dan audit dipertahankan. Jangan mengulang
+pembersihan otomatis saat migrasi/deployment.
+
+Revisi pemulihan akun 2026-10-30: `/masuk` mempunyai Lupa password khusus
+Dosen/Staf menuju `/lupa-password`; `/atur-ulang-password#token=...` menerima
+token email sekali pakai selama 30 menit. Hanya akun lokal DOSEN_STAF aktif/
+menunggu verifikasi tanpa peran pengelola yang memenuhi syarat; status akun
+tidak berubah. Respons permintaan tidak mengungkap keberadaan akun. Token
+disimpan sebagai SHA-256 dan dienkripsi AES-GCM hanya dalam antrean email.
+Reset atomik mengubah hash password, mencabut semua sesi, mengonsumsi token
+dan mencatat audit. Gunakan patch-021 pada DB lama. Gmail/Workspace memakai
+SMTP TLS dan Password Aplikasi di environment privat; tanpa konfigurasi siap,
+UI menampilkan layanan belum tersedia. Verifikasi pengiriman nyata masih
+memerlukan kredensial operator; jangan mengaku email terkirim hanya dari tes
+SMTP lokal. Panduan: `docs/STAFF_PASSWORD_RECOVERY.md`.
+
+Revisi lebar SOP biasa terakhir 2026-10-30: daftar SOP biasa mengikuti bingkai
+Produk Hukum (max-w-7xl/1280px), bukan bingkai lebar koleksi khusus. Lebar mandiri
+1680px hanya untuk Format Persuratan dan SOP Permohonan SK.
+
 Revisi posisi logo login terakhir 2026-10-30: pada desktop (lebar minimal
 1024px), logo/wordmark JDIH ITH rata kiri; pada layout dua sisi sejajar dengan
 teks panel kiri. Ponsel/tablet tetap di tengah. Ini menggantikan aturan logo
-desktop terpusat sebelumnya. Belum ada pemulihan password Dosen/Staf; jangan
-menampilkan tombol lupa password yang tidak memiliki alur backend.
+desktop terpusat sebelumnya. Pemulihan password kini memakai alur backend
+yang dijelaskan pada revisi terbaru di atas.
 
 Revisi pemisahan login terakhir 2026-10-30: `/masuk` khusus Dosen/Staf, langsung
 ke formulir tanpa pemilih peran atau tautan login pengelola. Pendaftaran tetap

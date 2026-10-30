@@ -90,6 +90,7 @@ export function konfigurasi() {
       kataSandi: env.MAIL_PASSWORD,
       dariAlamat: env.MAIL_FROM_ADDRESS,
       dariNama: env.MAIL_FROM_NAME,
+      wajibTls: env.MAIL_REQUIRE_TLS,
     },
 
     pembatasanLaju: {

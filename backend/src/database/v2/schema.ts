@@ -16,6 +16,33 @@ const idType = customType<{ data: string; driverData: string }>({
   dataType: () => 'bigint unsigned',
 });
 const binary32 = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => 'binary(32)' });
+const cipher256 = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType: () => 'varbinary(256)',
+});
+
+export const password_reset_tokens = mysqlTable('password_reset_tokens', {
+  id: idType('id').notNull(),
+  pengguna_id: idType('pengguna_id').notNull(),
+  email: varchar('email', { length: 254 }).notNull(),
+  token_hash: binary32('token_hash').notNull(),
+  password_fingerprint: binary32('password_fingerprint').notNull(),
+  expires_at: datetime('expires_at', { mode: 'string', fsp: 6 }).notNull(),
+  used_at: datetime('used_at', { mode: 'string', fsp: 6 }),
+  invalidated_at: datetime('invalidated_at', { mode: 'string', fsp: 6 }),
+  created_at: datetime('created_at', { mode: 'string', fsp: 6 }).notNull(),
+});
+export const password_reset_emails = mysqlTable('password_reset_emails', {
+  id: idType('id').notNull(),
+  token_id: idType('token_id').notNull(),
+  jenis: mysqlEnum('jenis', ['RESET_LINK', 'PASSWORD_CHANGED']).notNull(),
+  token_cipher: cipher256('token_cipher'),
+  attempts: int('attempts').notNull(),
+  next_attempt_at: datetime('next_attempt_at', { mode: 'string', fsp: 6 }).notNull(),
+  lease_until: datetime('lease_until', { mode: 'string', fsp: 6 }),
+  sent_at: datetime('sent_at', { mode: 'string', fsp: 6 }),
+  cancelled_at: datetime('cancelled_at', { mode: 'string', fsp: 6 }),
+  created_at: datetime('created_at', { mode: 'string', fsp: 6 }).notNull(),
+});
 
 export const unit_kerja = mysqlTable('unit_kerja', {
   id: idType('id').notNull(),

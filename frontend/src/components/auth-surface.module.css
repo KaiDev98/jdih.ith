@@ -1413,3 +1413,30 @@
     min-height: 44px;
   }
 }
+.formContent :global(.auth-password-label) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.formContent :global(.auth-password-label a) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  font-size: 12px;
+}
+.formContent :global(.auth-recovery-result) {
+  display: grid;
+  gap: 14px;
+  color: #3c566d;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.formContent :global(.auth-recovery-result h2) {
+  color: #18344f;
+  font-size: 19px;
+  font-weight: 600;
+}
+.formContent :global(.auth-recovery-result > svg) {
+  color: #438061;
+}

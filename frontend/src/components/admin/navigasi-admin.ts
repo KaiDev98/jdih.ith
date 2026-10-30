@@ -83,7 +83,6 @@ export const MENU_ADMIN: readonly KelompokNav[] = [
       {
         label: 'SOP Permohonan SK',
         href: '/admin/sop-permohonan-sk',
-        superadminOnly: true,
         ikon: FileSignature,
         izin: ['documents.read_admin'],
         kataKunci: 'surat keputusan prosedur pengajuan',
@@ -118,7 +117,6 @@ export const AKSI_CEPAT: readonly ButirNav[] = [
   {
     label: 'Unggah SOP Permohonan SK',
     href: '/admin/sop-permohonan-sk/baru',
-    superadminOnly: true,
     ikon: FileSignature,
     izin: ['documents.create'],
     kataKunci: 'surat keputusan prosedur',
@@ -158,7 +156,7 @@ export function hrefAktif(pathname: string, menu: readonly KelompokNav[]) {
 
 /** Tampilan client-side tambahan; backend tetap sumber otorisasi. */
 export function halamanAdminBolehDibuka(pathname: string, peran: readonly string[]) {
-  if (/^\/(admin|superadmin)\/(sop-permohonan-sk|audit)(\/|$)/.test(pathname) &&
+  if (/^\/(admin|superadmin)\/audit(\/|$)/.test(pathname) &&
     !peran.includes('SUPERADMIN')) return false;
   return /^\/(admin|superadmin)(\/|$)/.test(pathname) &&
     peran.some((p) => p === 'ADMIN' || p === 'SUPERADMIN');
