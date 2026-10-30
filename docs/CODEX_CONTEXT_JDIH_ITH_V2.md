@@ -1,6 +1,9 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
 **Dokumen ini adalah konteks lengkap yang harus dipahami Codex sebelum mengerjakan project.**  
+Revisi Profil terakhir 2026-10-30: jangan tampilkan teks/tautan "Sumber: profil
+resmi ITH" pada halaman. Referensi faktual tetap dicatat pada dokumentasi repo.
+
 Revisi Profil dan kunjungan 2026-10-30: Profil memuat ringkasan institusi berdasarkan
 `https://ith.ac.id/about`, identitas/logo, tahun 2014/2021, fungsi JDIH, pintasan
 koleksi dan panduan akses. Tidak memakai placeholder maupun jumlah mahasiswa/

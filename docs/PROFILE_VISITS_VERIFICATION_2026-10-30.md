@@ -6,8 +6,9 @@ Verifikasi 30 Oktober 2026 pada branch `nesta`.
 
 Profil menjelaskan ITH, awal pendirian/operasional, fungsi JDIH dan akses dokumen.
 Sumber informasi institusi: [profil resmi ITH](https://ith.ac.id/about), diperiksa
-30 Oktober 2026. Halaman menyertakan tautan sumber dan tidak menggunakan angka
-mahasiswa, dosen atau program studi yang cepat berubah. Desain memakai tipografi
+30 Oktober 2026. Sesuai revisi user, teks/tautan sumber tidak ditampilkan pada
+halaman. Profil tidak menggunakan angka mahasiswa, dosen atau program studi yang
+cepat berubah. Desain memakai tipografi
 editorial, logo resmi, identitas institusi dan daftar tautan koleksi.
 
 Area isi Format Persuratan, SOP Permohonan SK dan SOP biasa memiliki batas lebar

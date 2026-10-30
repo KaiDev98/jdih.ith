@@ -65,14 +65,6 @@ export default function Profil() {
                 <dd>2021</dd>
               </div>
             </dl>
-            <a
-              className={styles.source}
-              href={`${KONTAK_INSTITUSI.situs}/about`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Sumber: profil resmi ITH <ArrowUpRight size={15} aria-hidden />
-            </a>
           </div>
           <aside className={styles.identity} aria-label="Identitas institusi">
             <span className={styles.logo}>
