@@ -7,6 +7,7 @@ import { randomUUID } from 'node:crypto';
 import mysql from 'mysql2';
 import type { Pool, RowDataPacket } from 'mysql2/promise';
 import { ConfigService } from '@nestjs/config';
+import { ConflictException } from '@nestjs/common';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { IdentityRepository } from './identity.repository.js';
 import { IdentityService } from './identity.service.js';
@@ -142,6 +143,36 @@ describe.skipIf(!enabled)('MySQL 8.4 identity/security integration', () => {
     expect((await dbUser(ordinary.id)).izin).not.toContain('users.approve');
     const pending = await register({ unitKerjaId: ordinary.unitId });
     await expect(identity.decision(ordinary.token, pending.id, 'approve', { unitKerjaId: ordinary.unitId })).rejects.toThrow();
+  });
+
+  it('Superadmin membuat Admin aktif yang dapat login, peran tetap ADMIN dan transaksi wajib diaudit', async () => {
+    const manager = await addAdmin();
+    const body = { nama: 'Admin Baru', email: `admin-created-${unique()}@example.com`, unitKerjaId: manager.unitId, password: 'PasswordAwal123' };
+    const created = await identity.buatAdmin(manager.token, body);
+    expect(await dbUser(created.id)).toMatchObject({ status: 'AKTIF', peran: ['ADMIN'], unitKerjaId: manager.unitId });
+    await expect(identity.loginPassword({ email: body.email, password: body.password }, 'ip', 'test', 'admin')).resolves.toHaveProperty('token');
+    await expect(identity.loginPassword({ email: body.email, password: body.password }, 'ip', 'test', 'superadmin')).rejects.toThrow();
+    await expect(identity.buatAdmin(manager.token, { ...body, email: `spoof-${unique()}@example.com`, peran: ['SUPERADMIN'] })).rejects.toThrow();
+    const ordinary = await addAdmin('ADMIN');
+    await expect(identity.buatAdmin(ordinary.token, { ...body, email: `denied-${unique()}@example.com` })).rejects.toThrow();
+    const logs = await repo.rows<RowDataPacket>(pool, "SELECT action FROM audit_log WHERE entity_id=? AND action='CREATE_ADMIN'", [created.id]);
+    expect(logs).toHaveLength(1);
+    const failedEmail = `rollback-admin-${unique()}@example.com`;
+    const record = vi.spyOn(audit, 'record').mockRejectedValueOnce(new Error('Audit rollback probe'));
+    try {
+      await expect(identity.buatAdmin(manager.token, { ...body, email: failedEmail })).rejects.toThrow('Audit rollback probe');
+      expect(await repo.byEmail(pool, failedEmail)).toBeUndefined();
+    } finally { record.mockRestore(); }
+  });
+
+  it('pembuatan Admin serentak dengan email sama hanya membuat satu akun dan memberi konflik yang jelas', async () => {
+    const first = await addAdmin(), second = await addAdmin();
+    const body = { nama: 'Admin Serentak', email: `parallel-admin-${unique()}@example.com`, unitKerjaId: first.unitId, password: 'PasswordAwal123' };
+    const results = await Promise.allSettled([identity.buatAdmin(first.token, body), identity.buatAdmin(second.token, body)]);
+    expect(results.map((result) => result.status).sort()).toEqual(['fulfilled', 'rejected']);
+    for (const result of results) if (result.status === 'rejected') expect(result.reason).toBeInstanceOf(ConflictException);
+    const accounts = await repo.rows<RowDataPacket>(pool, 'SELECT id FROM pengguna WHERE email=?', [body.email]);
+    expect(accounts).toHaveLength(1);
   });
 
   it('email pribadi dapat mendaftar/masuk; Internal baru tersedia setelah persetujuan Superadmin dan hilang saat dinonaktifkan', async () => {

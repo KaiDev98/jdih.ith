@@ -10,6 +10,7 @@ import {
   RefreshCw,
   ShieldCheck,
   UserCheck,
+  UserPlus,
 } from 'lucide-react';
 import { ambilApi, GalatApi } from '@/lib/api-client';
 import { useSession, csrfHeaders } from '@/lib/sesi';
@@ -25,6 +26,7 @@ import {
   TextAreaField,
 } from '@/components/ui';
 import { DaftarAkun } from '@/components/admin-akun';
+import { DialogTambahAdmin } from '@/components/admin/dialog-kelola-admin';
 import {
   Dialog,
   DialogContent,
@@ -60,6 +62,8 @@ export function AdminUsers() {
   const [refresh, setRefresh] = useState(0);
   const [termuat, setTermuat] = useState(false);
   const [kelompok, setKelompok] = useState<'ADMIN' | 'DOSEN_STAF'>('ADMIN');
+  const [tambahAdmin, setTambahAdmin] = useState(false);
+  const bolehTambahAdmin = superadmin && pengguna.izin.includes('users.read');
   useEffect(() => {
     let aktif = true;
     void Promise.all([
@@ -106,11 +110,28 @@ export function AdminUsers() {
         title="Pengguna"
         description="Akun pengelola dan Dosen/Staf tersusun dalam dua kelompok agar mudah ditemukan."
         action={
-          <Button tone="secondary" ukuran="kecil" onClick={() => setRefresh((x) => x + 1)}>
-            <RefreshCw aria-hidden className="size-3.5" /> Segarkan pengguna
-          </Button>
+          <>
+            {bolehTambahAdmin && kelompok === 'ADMIN' && (
+              <Button onClick={() => setTambahAdmin(true)}>
+                <UserPlus aria-hidden className="size-4" /> Tambah Admin
+              </Button>
+            )}
+            <Button tone="secondary" ukuran="kecil" onClick={() => setRefresh((x) => x + 1)}>
+              <RefreshCw aria-hidden className="size-3.5" /> Segarkan pengguna
+            </Button>
+          </>
         }
       />
+      {bolehTambahAdmin && (
+        <DialogTambahAdmin
+          buka={tambahAdmin}
+          onBukaChange={setTambahAdmin}
+          onDibuat={() => {
+            setKelompok('ADMIN');
+            setRefresh((value) => value + 1);
+          }}
+        />
+      )}
       {superadmin && (
         <div className="mb-4 flex flex-wrap items-center gap-4 rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-4 sm:px-5">
           <UserCheck aria-hidden className="size-6 shrink-0 text-amber-800" />

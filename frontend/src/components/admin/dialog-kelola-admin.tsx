@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -205,6 +205,8 @@ export function DialogTambahAdmin({
   const { csrfToken } = useSession();
   const [galat, setGalat] = useState('');
   const [dibuat, setDibuat] = useState<{ email: string; password: string }>();
+  const [konfirmasi, setKonfirmasi] = useState<MuatanBuatAdmin>();
+  const berjalan = useRef(false);
   const [unit, setUnit] = useState<Unit[]>([]);
   const [statusUnit, setStatusUnit] = useState<'memuat' | 'siap' | 'gagal'>('memuat');
   const {
@@ -240,16 +242,20 @@ export function DialogTambahAdmin({
   }, [buka]);
 
   function ubahBuka(b: boolean) {
+    if (berjalan.current) return;
     if (!b) {
       reset();
       setGalat('');
       setDibuat(undefined);
+      setKonfirmasi(undefined);
       setStatusUnit('memuat');
     }
     onBukaChange(b);
   }
 
   async function kirim(isian: MuatanBuatAdmin) {
+    if (berjalan.current) return;
+    berjalan.current = true;
     setGalat('');
     try {
       const hasil = await ambilApi<{ email: string }>('/admin/users/admins', {
@@ -260,17 +266,20 @@ export function DialogTambahAdmin({
       setDibuat({ email: hasil.email, password: isian.password });
       onDibuat();
     } catch (e) {
+      setKonfirmasi(undefined);
       if (e instanceof GalatApi && e.status === 409)
         setError('email', { message: 'Email ini sudah terdaftar' }, { shouldFocus: true });
       else if (e instanceof GalatApi && e.status === 422 && /unit/i.test(e.message))
         setError('unitKerjaId', { type: 'server', message: e.message }, { shouldFocus: true });
       else setGalat(e instanceof Error ? e.message : 'Akun belum dapat dibuat. Coba lagi.');
+    } finally {
+      berjalan.current = false;
     }
   }
 
   return (
     <Dialog open={buka} onOpenChange={ubahBuka}>
-      <DialogContent>
+      <DialogContent closeDisabled={isSubmitting}>
         {dibuat ? (
           <DataLogin
             judul="Akun Admin dibuat"
@@ -278,8 +287,60 @@ export function DialogTambahAdmin({
             password={dibuat.password}
             onSelesai={() => ubahBuka(false)}
           />
+        ) : konfirmasi ? (
+          <div className="grid gap-5">
+            <DialogHeader>
+              <DialogTitle>Buat akun Admin?</DialogTitle>
+              <DialogDescription>
+                Akun langsung aktif dan dapat mengelola dokumen unitnya. Periksa data sebelum
+                membuat akun.
+              </DialogDescription>
+            </DialogHeader>
+            <dl className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
+              <div>
+                <dt className="text-xs text-slate-500">Nama</dt>
+                <dd className="mt-1 font-medium">{konfirmasi.nama}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-slate-500">Email</dt>
+                <dd className="mt-1 break-all font-medium">{konfirmasi.email}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-slate-500">Unit kerja</dt>
+                <dd className="mt-1 font-medium">
+                  {unit.find((row) => row.id === konfirmasi.unitKerjaId)?.nama}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-slate-500">Peran</dt>
+                <dd className="mt-1 font-medium">Admin</dd>
+              </div>
+            </dl>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isSubmitting}
+                onClick={() => setKonfirmasi(undefined)}
+              >
+                Periksa kembali
+              </Button>
+              <Button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => void handleSubmit(kirim)()}
+              >
+                {isSubmitting && <LoaderCircle className="animate-spin" aria-hidden />}
+                {isSubmitting ? 'Membuat akun...' : 'Ya, buat Admin'}
+              </Button>
+            </DialogFooter>
+          </div>
         ) : (
-          <form noValidate onSubmit={(e) => void handleSubmit(kirim)(e)} className="grid gap-5">
+          <form
+            noValidate
+            onSubmit={(e) => void handleSubmit((values) => setKonfirmasi(values))(e)}
+            className="grid gap-5"
+          >
             <DialogHeader>
               <DialogTitle>Tambah Admin</DialogTitle>
               <DialogDescription>

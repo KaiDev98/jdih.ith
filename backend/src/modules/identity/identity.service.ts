@@ -253,7 +253,7 @@ export class IdentityService {
     const body = skemaBuatAdmin.parse(input);
     return this.repo.transaction(async (db) => {
       const actor = await this.superadmin(token, db);
-      if (await this.repo.emailTerpakai(db, body.email))
+      if (await this.repo.emailTerpakai(db, body.email, false))
         throw new ConflictException('Email sudah terdaftar');
       if (!(await this.repo.unitValid(db, body.unitKerjaId)))
         throw new UnprocessableEntityException('Unit kerja tidak tersedia');
@@ -275,6 +275,10 @@ export class IdentityService {
         db,
       );
       return { id, nama: body.nama, email: body.email, unitKerjaId: body.unitKerjaId };
+    }).catch((error: unknown) => {
+      if (error instanceof Error && 'code' in error && error.code === 'ER_DUP_ENTRY')
+        throw new ConflictException('Email sudah terdaftar');
+      throw error;
     });
   }
 

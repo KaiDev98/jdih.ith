@@ -62,6 +62,15 @@ Jangan membangun berdasarkan asumsi legacy berikut:
 - Workflow dokumen tidak memiliki state `ditolak`.
 - Status hukum hanya `berlaku`, `diubah`, `dicabut`.
 
+## REVISI PEMBUATAN ADMIN - 2026-10-30
+
+Superadmin aktif dapat menambahkan Admin lewat tombol Tambah Admin di Pengguna.
+Gunakan endpoint yang ada dengan nama, email, unit aktif dan password awal kuat,
+konfirmasi, loading, feedback, anti klik ganda, CSRF dan audit. Backend menetapkan
+ADMIN + AKTIF. Admin biasa tidak dapat membuat akun pengelola. Ini menggantikan
+larangan pembuatan Admin lewat UI pada aturan lama di bawah; pembuatan/promosi
+Superadmin lewat UI tetap tidak tersedia.
+
 ## REVISI SOP PERMOHONAN SK ? 2026-10-30
 
 Instruksi eksplisit terbaru user menggantikan larangan Admin atas SOP Permohonan

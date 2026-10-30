@@ -81,7 +81,7 @@ auth:
   new_staff_status: "MENUNGGU_VERIFIKASI"
   admin_approval_required: true
   admin_accounts_preprovisioned: true
-  allow_admin_creation_in_ui: false
+  allow_admin_creation_in_ui: "SUPERADMIN active with users.read; fixed ADMIN/AKTIF; confirmation, CSRF and audit"
   allow_admin_promotion_in_ui: false
   account_verifier: "SUPERADMIN"
   registration_fields:

@@ -1,6 +1,15 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
 **Dokumen ini adalah konteks lengkap yang harus dipahami Codex sebelum mengerjakan project.**  
+Revisi akun pengelola terakhir 2026-10-30: Superadmin aktif dengan users.read
+mempunyai tombol Tambah Admin pada kelompok Admin di Pengguna. Formulir memuat
+nama, email, unit aktif dan password awal kuat, lalu ringkasan konfirmasi.
+Backend menetapkan ADMIN + AKTIF tanpa menerima peran/status klien; audit dan
+CSRF wajib. Tampilkan sukses/password awal sekali lalu bersihkan saat dialog
+ditutup dan perbarui daftar. Admin biasa tidak boleh membuat akun pengelola.
+Ini menggantikan larangan pembuatan Admin lewat UI pada dokumen lama; pembuatan/
+promosi Superadmin lewat UI tetap tidak tersedia.
+
 Revisi hak pengajuan SOP Permohonan SK terakhir 2026-10-30 menggantikan seluruh
 larangan Admin atas koleksi ini pada revisi lama di bawah: Admin aktif dapat
 membuat, mengunggah, memperbaiki dan mengajukan SOP Permohonan SK miliknya dengan

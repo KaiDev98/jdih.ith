@@ -13,6 +13,7 @@ import type { Pool, RowDataPacket } from 'mysql2/promise';
 import { ConfigService } from '@nestjs/config';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { ForbiddenException } from '@nestjs/common';
+import type { PenggunaAktif } from '@jdih/shared';
 import { IdentityRepository } from '../identity/identity.repository.js';
 import { AuditService } from '../identity/audit.service.js';
 import { DocumentPolicyService } from '../identity/document-policy.service.js';
@@ -819,7 +820,7 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     expect(await files.listForVersion(owner, d.versionId)).toEqual(expect.arrayContaining([expect.objectContaining({ id: uploaded.id })]));
     await expect(service.updateVersion(other, d.versionId, { judul: 'Manipulasi' })).rejects.toThrow();
     await expect(service.transition(other, d.versionId, 'SUBMIT')).rejects.toThrow();
-    const elevated = { ...owner, izin: [...owner.izin, 'workflow.approve', 'workflow.return', 'workflow.publish'] };
+    const elevated: PenggunaAktif = { ...owner, izin: [...owner.izin, 'workflow.approve', 'workflow.return', 'workflow.publish'] };
     await expect(service.transition(elevated, d.versionId, 'APPROVE')).rejects.toBeInstanceOf(ForbiddenException);
     await expect(service.publish(elevated, d.versionId, {})).rejects.toBeInstanceOf(ForbiddenException);
     await service.transition(owner, d.versionId, 'SUBMIT');

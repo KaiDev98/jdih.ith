@@ -2,6 +2,10 @@
 
 ## Hasil
 
+- Tombol Tambah Admin pada Pengguna khusus Superadmin: nama/email/unit/password,
+  ringkasan konfirmasi, anti klik ganda dan sukses sekali tampil. Backend menetapkan
+  ADMIN aktif, menolak spoof peran dan membuat audit dalam transaksi.
+
 - Admin aktif dapat membuat/mengunggah/mengajukan SOP Permohonan SK miliknya.
   Unit/kategori dan kepemilikan diperiksa backend. Admin tidak dapat mengambil
   keputusan meskipun diberi permission langsung. Superadmin meninjau dampak,

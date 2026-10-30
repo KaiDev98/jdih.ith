@@ -2,6 +2,14 @@
 
 This file tells Codex how to move from the current foundation to the agreed V2 without losing design intent.
 
+## Tambah Admin oleh Superadmin - 2026-10-30
+
+Aktifkan formulir yang sudah ada dari kelompok Admin di Pengguna. Uji peran dan
+izin tombol, unit wajib, konfirmasi sebelum POST, kembali tanpa kehilangan isian,
+anti klik ganda, kegagalan/sukses dan pembaruan daftar. Integrasi MySQL membuktikan
+akun ADMIN aktif dapat masuk dengan password awal, tidak dapat masuk sebagai
+Superadmin, tidak menerima spoof peran dan rollback bila audit gagal.
+
 ## Revisi terakhir: Admin mengajukan SOP Permohonan SK
 
 Admin dapat membuat/mengunggah/mengajukan SOP Permohonan SK miliknya; kategori

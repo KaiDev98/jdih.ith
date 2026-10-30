@@ -58,6 +58,10 @@ describe('DialogTambahAdmin', () => {
     isiData();
     fireEvent.change(screen.getByLabelText('Unit kerja'), { target: { value: '9014' } });
     fireEvent.click(screen.getByRole('button', { name: 'Buat akun Admin' }));
+    const confirm = await screen.findByRole('button', { name: 'Ya, buat Admin' });
+    expect(screen.getByRole('dialog')).toHaveTextContent('Bagian Hukum');
+    expect(ambilApi).not.toHaveBeenCalledWith('/admin/users/admins', expect.anything());
+    fireEvent.click(confirm);
     await waitFor(() =>
       expect(ambilApi).toHaveBeenCalledWith(
         '/admin/users/admins',
@@ -67,5 +71,59 @@ describe('DialogTambahAdmin', () => {
         }),
       ),
     );
+    expect(await screen.findByText('Akun Admin dibuat')).toBeInTheDocument();
+  });
+
+  it('mempertahankan isian ketika kembali dari konfirmasi', async () => {
+    siapkan();
+    await screen.findByRole('option', { name: 'Bagian Hukum' });
+    isiData();
+    fireEvent.change(screen.getByLabelText('Unit kerja'), { target: { value: '9014' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Buat akun Admin' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Periksa kembali' }));
+    expect(screen.getByLabelText('Nama lengkap')).toHaveValue('Admin Baru');
+    expect(screen.getByLabelText('Email')).toHaveValue('admin.baru@ith.ac.id');
+    expect(screen.getByLabelText('Unit kerja')).toHaveValue('9014');
+    expect(ambilApi).not.toHaveBeenCalledWith('/admin/users/admins', expect.anything());
+  });
+
+  it('menahan klik ganda selama pembuatan akun', async () => {
+    siapkan();
+    await screen.findByRole('option', { name: 'Bagian Hukum' });
+    let selesai!: (value: { email: string }) => void;
+    ambilApi.mockImplementation((path: string) =>
+      path === '/public/units'
+        ? Promise.resolve(UNIT)
+        : new Promise((resolve) => {
+            selesai = resolve;
+          }),
+    );
+    isiData();
+    fireEvent.change(screen.getByLabelText('Unit kerja'), { target: { value: '9014' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Buat akun Admin' }));
+    const confirm = await screen.findByRole('button', { name: 'Ya, buat Admin' });
+    fireEvent.click(confirm);
+    await waitFor(() => expect(confirm).toBeDisabled());
+    fireEvent.click(confirm);
+    expect(ambilApi.mock.calls.filter(([path]) => path === '/admin/users/admins')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Tutup' })).toBeDisabled();
+    selesai({ email: 'admin.baru@ith.ac.id' });
+    expect(await screen.findByText('Akun Admin dibuat')).toBeInTheDocument();
+  });
+
+  it('menampilkan kegagalan API agar formulir dapat diperbaiki', async () => {
+    siapkan();
+    await screen.findByRole('option', { name: 'Bagian Hukum' });
+    ambilApi.mockImplementation((path: string) =>
+      path === '/public/units'
+        ? Promise.resolve(UNIT)
+        : Promise.reject(new Error('Pembuatan gagal')),
+    );
+    isiData();
+    fireEvent.change(screen.getByLabelText('Unit kerja'), { target: { value: '9014' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Buat akun Admin' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Ya, buat Admin' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Pembuatan gagal');
+    expect(screen.getByLabelText('Email')).toHaveValue('admin.baru@ith.ac.id');
   });
 });

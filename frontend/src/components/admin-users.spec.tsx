@@ -6,7 +6,7 @@ const state = vi.hoisted(() => ({ role: 'SUPERADMIN', id: '1', api: vi.fn() }));
 vi.mock('@/lib/sesi', () => ({
   useSession: () => ({
     csrfToken: 'csrf',
-    pengguna: { id: state.id, peran: [state.role], status: 'AKTIF', izin: ['users.approve'] },
+    pengguna: { id: state.id, peran: [state.role], status: 'AKTIF', izin: ['users.approve', 'users.read'] },
   }),
   csrfHeaders: () => ({}),
 }));
@@ -51,6 +51,14 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 describe('dua kelompok pengguna', () => {
+  it('Superadmin membuka formulir Tambah Admin tanpa langsung mengirim perubahan', async () => {
+    render(<AdminUsers />);
+    fireEvent.click(screen.getByRole('button', { name: 'Tambah Admin' }));
+    expect(await screen.findByRole('dialog', { name: 'Tambah Admin' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Nama lengkap')).toBeInTheDocument();
+    expect(screen.getByLabelText('Unit kerja')).toBeInTheDocument();
+    expect(state.api.mock.calls.every(([, options]) => !options?.method)).toBe(true);
+  });
   it.each(['ADMIN', 'SUPERADMIN'])(
     'menampilkan unit Superadmin secara konsisten pada panel %s',
     async (role) => {
