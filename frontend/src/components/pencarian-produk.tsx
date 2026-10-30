@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   ArrowRight,
   CalendarDays,
@@ -125,8 +126,8 @@ function Kerangka() {
 /**
  * Halaman daftar produk hukum: kepala halaman terang, panel penyaring di kiri,
  * dan daftar hasil di kanan. Penyaring berlaku langsung tanpa tombol terapkan.
- * Di desktop hasil bergulir dalam panel; ponsel/tablet memakai gulir halaman.
- * Pemuatan berikutnya mengikuti area gulir yang sesuai dan tetap tersedia
+ * Hasil bergulir dalam panel dengan tinggi terbatas pada semua perangkat.
+ * Pemuatan berikutnya mengikuti area gulir tersebut dan tetap tersedia
  * melalui tombol untuk pengguna keyboard atau browser tanpa pengamat gulir.
  */
 export function PencarianProduk({
@@ -146,6 +147,10 @@ export function PencarianProduk({
   initialJenisNama?: string;
 }) {
   const session = useSession();
+  const alamat = useSearchParams();
+  const kueriAlamat = alamat?.toString();
+  const [alamatDitulis, setAlamatDitulis] = useState<string | null>(null);
+  const [alamatDiterapkan, setAlamatDiterapkan] = useState<string>();
   const [filter, setFilter] = useState<Filter>({
     q: initialQuery,
     jenisDokumenId: '',
@@ -179,6 +184,26 @@ export function PencarianProduk({
   const gulirHasil = useRef<HTMLDivElement>(null);
   const ujungHasil = useRef<HTMLDivElement>(null);
 
+  const ubah = useCallback(
+    (perubahan: Partial<Filter>) => {
+      const next = { ...filter, ...perubahan };
+      setFilter(next);
+      setHalaman(1);
+      const params = new URLSearchParams();
+      const jenisKode = jenis.find((item) => item.id === next.jenisDokumenId)?.kode;
+      const kategoriKode = kategori.find((item) => item.id === next.kategoriId)?.kode;
+      if (jenisKode) params.set('jenis', jenisKode);
+      if (next.q) params.set('q', next.q);
+      if (next.tahun) params.set('tahun', next.tahun);
+      if (kategoriKode) params.set('kategori', kategoriKode);
+      if (next.statusHukum) params.set('statusHukum', next.statusHukum);
+      if (next.urut !== urutBawaan(next.q)) params.set('urut', next.urut);
+      setAlamatDitulis(params.toString());
+      window.history.replaceState(null, '', `/produk-hukum${params.size ? `?${params}` : ''}`);
+    },
+    [filter, jenis, kategori],
+  );
+
   useEffect(() => {
     let aktif = true;
     void Promise.all([
@@ -200,19 +225,44 @@ export function PencarianProduk({
     };
   }, [initialJenisKode, initialKategoriKode]);
 
+  // Next may reuse this component when a menu returns to its original URL.
+  // Read external navigation from the URL rather than unchanged initial props.
+  if (masterSiap && kueriAlamat !== undefined && kueriAlamat !== alamatDiterapkan) {
+    setAlamatDiterapkan(kueriAlamat);
+    setAlamatDitulis(null);
+    if (kueriAlamat !== alamatDitulis) {
+      const params = new URLSearchParams(kueriAlamat);
+      const q = params.get('q')?.trim() ?? '';
+      const status = params.get('statusHukum') ?? '';
+      const urut = params.get('urut');
+      const next: Filter = {
+        q,
+        jenisDokumenId: jenis.find((j) => j.kode === params.get('jenis'))?.id ?? '',
+        kategoriId: kategori.find((k) => k.kode === params.get('kategori'))?.id ?? '',
+        tahun: params.get('tahun') ?? '',
+        statusHukum: Object.hasOwn(STATUS, status) ? status : '',
+        urut:
+          urut && (URUTAN.includes(urut as UrutanDokumen) || (q && urut === 'relevansi'))
+            ? (urut as UrutanDokumen)
+            : urutBawaan(q),
+      };
+      setFilter(next);
+      setKetik(q);
+      setHalaman(1);
+    }
+  }
+
   // Kata kunci diterapkan sendiri setelah berhenti mengetik sebentar.
   useEffect(() => {
     if (ketik === filter.q) return;
     const t = window.setTimeout(() => {
-      setFilter((f) => ({
-        ...f,
+      ubah({
         q: ketik,
-        urut: f.urut === urutBawaan(f.q) ? urutBawaan(ketik) : f.urut,
-      }));
-      setHalaman(1);
+        urut: filter.urut === urutBawaan(filter.q) ? urutBawaan(ketik) : filter.urut,
+      });
     }, 400);
     return () => window.clearTimeout(t);
-  }, [ketik, filter.q]);
+  }, [ketik, filter.q, filter.urut, ubah]);
 
   const siap = masterSiap && session.state !== 'loading';
   // Kunci daftar tanpa nomor halaman: bila berubah, daftar dimulai lagi dari halaman 1.
@@ -254,20 +304,6 @@ export function PencarianProduk({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- kunci merangkum filter dan sesi
   }, [siap, kunci, halaman, ulangLanjut]);
 
-  // Alamat memakai kode, bukan id, agar dapat dibagikan dan tetap berlaku di basis data lain.
-  useEffect(() => {
-    if (!siap) return;
-    const params = new URLSearchParams();
-    const jenisKode = jenis.find((item) => item.id === filter.jenisDokumenId)?.kode;
-    const kategoriKode = kategori.find((item) => item.id === filter.kategoriId)?.kode;
-    if (jenisKode) params.set('jenis', jenisKode);
-    if (filter.q) params.set('q', filter.q);
-    if (filter.tahun) params.set('tahun', filter.tahun);
-    if (kategoriKode) params.set('kategori', kategoriKode);
-    if (filter.statusHukum) params.set('statusHukum', filter.statusHukum);
-    window.history.replaceState(null, '', `/produk-hukum${params.size ? `?${params}` : ''}`);
-  }, [siap, filter, jenis, kategori]);
-
   // Jumlah per jenis mengikuti penyaring lain, tetapi tidak penyaring jenis itu sendiri.
   const kunciFaset = JSON.stringify([
     filter.q,
@@ -307,7 +343,7 @@ export function PencarianProduk({
     [faset],
   );
 
-  // Desktop mengikuti panel gulir; ponsel/tablet mengikuti viewport halaman.
+  // Every viewport uses the bounded results region, including phones.
   // Pengamat dipasang ulang setiap kali satu halaman selesai dimuat, sehingga bila
   // ujungnya masih terlihat (daftar pendek), halaman berikutnya langsung menyusul.
   useEffect(() => {
@@ -315,33 +351,20 @@ export function PencarianProduk({
     if (!ujung || !adaLanjut || memuatLanjut || galatLanjut) return;
     if (typeof IntersectionObserver === 'undefined') return;
     const berikutnya = (hasil?.halaman ?? 0) + 1;
-    const media = window.matchMedia?.('(min-width: 1024px)');
-    let pengamat: IntersectionObserver;
-    const pasang = () => {
-      pengamat?.disconnect();
-      pengamat = new IntersectionObserver(
-        ([e]) => {
-          if (e?.isIntersecting) setHalaman(berikutnya);
-        },
-        {
-          root: !media || media.matches ? gulirHasil.current : null,
-          rootMargin: '0px 0px 240px 0px',
-        },
-      );
-      pengamat.observe(ujung);
-    };
-    pasang();
-    media?.addEventListener('change', pasang);
+    const pengamat = new IntersectionObserver(
+      ([e]) => {
+        if (e?.isIntersecting) setHalaman(berikutnya);
+      },
+      {
+        root: gulirHasil.current,
+        rootMargin: '0px 0px 240px 0px',
+      },
+    );
+    pengamat.observe(ujung);
     return () => {
       pengamat.disconnect();
-      media?.removeEventListener('change', pasang);
     };
   }, [adaLanjut, memuatLanjut, galatLanjut, hasil?.halaman]);
-
-  function ubah(perubahan: Partial<Filter>) {
-    setFilter((f) => ({ ...f, ...perubahan }));
-    setHalaman(1);
-  }
 
   const jenisAktif = jenis.find((j) => j.id === filter.jenisDokumenId);
   const namaJenis = jenisAktif?.nama ?? (masterSiap ? undefined : initialJenisNama);
@@ -675,6 +698,7 @@ export function PencarianProduk({
 
           <div
             ref={gulirHasil}
+            data-gulir-dokumen
             aria-busy={memuat || memuatLanjut}
             role="region"
             aria-label="Daftar dokumen"

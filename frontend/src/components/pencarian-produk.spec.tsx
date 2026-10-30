@@ -5,6 +5,10 @@ import { PencarianProduk } from './pencarian-produk';
 
 const sesi = vi.hoisted(() => ({ nilai: { state: 'anonymous' } as Record<string, unknown> }));
 const api = vi.hoisted(() => ({ hasil: [] as unknown[] }));
+const navigasi = vi.hoisted(() => ({ search: null as string | null }));
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => (navigasi.search === null ? null : new URLSearchParams(navigasi.search)),
+}));
 
 vi.mock('@/lib/sesi', () => ({ useSession: () => sesi.nilai }));
 vi.mock('@/lib/api-client', () => ({
@@ -62,6 +66,7 @@ const ringkasan = {
 beforeEach(() => {
   sesi.nilai = { state: 'anonymous' };
   api.hasil = [];
+  navigasi.search = null;
 });
 afterEach(() => {
   cleanup();
@@ -102,7 +107,9 @@ describe('tampilan hasil pencarian', () => {
     render(<PencarianProduk />);
     const card = await screen.findByRole('link', { name: ringkasan.judul });
     expect(card).toHaveAttribute('href', '/produk-hukum/sop-praktikum');
-    expect(within(card).getByRole('heading', { name: ringkasan.judul, level: 3 })).toBeInTheDocument();
+    expect(
+      within(card).getByRole('heading', { name: ringkasan.judul, level: 3 }),
+    ).toBeInTheDocument();
     expect(within(card).getByText(ringkasan.tipe)).toBeInTheDocument();
     expect(within(card).queryAllByRole('link')).toHaveLength(0);
   });
@@ -131,7 +138,7 @@ describe('tampilan hasil pencarian', () => {
       screen.queryByRole('button', { name: 'Muat dokumen berikutnya' }),
     ).not.toBeInTheDocument();
   });
-  it('pemuatan otomatis mengikuti viewport ponsel dan berganti ke panel saat desktop', async () => {
+  it('pemuatan otomatis tetap memakai panel pada ponsel dan desktop', async () => {
     const listeners = new Set<() => void>();
     const media = {
       matches: false,
@@ -164,12 +171,46 @@ describe('tampilan hasil pencarian', () => {
     });
     render(<PencarianProduk />);
     await screen.findByRole('button', { name: 'Muat dokumen berikutnya' });
-    await waitFor(() => expect(opsi.at(-1)?.root).toBeNull());
+    await waitFor(() =>
+      expect(opsi.at(-1)?.root).toBe(screen.getByRole('region', { name: 'Daftar dokumen' })),
+    );
     act(() => {
       media.matches = true;
       listeners.forEach((fn) => fn());
     });
-    await waitFor(() => expect(opsi.at(-1)?.root).toBe(screen.getByRole('region', { name: 'Daftar dokumen' })));
+    await waitFor(() =>
+      expect(opsi.at(-1)?.root).toBe(screen.getByRole('region', { name: 'Daftar dokumen' })),
+    );
+  });
+  it('menu jenis yang sama menghapus pencarian lama meskipun komponen dipakai ulang', async () => {
+    const { ambilApiBerdaftar } = await import('@/lib/api-client');
+    navigasi.search = 'jenis=PERREK';
+    api.hasil = [ringkasan];
+    const view = render(<PencarianProduk initialJenisKode="PERREK" />);
+    await screen.findByRole('link', { name: ringkasan.judul });
+    api.hasil = [];
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'zz-tidak-ada' } });
+    await screen.findByText('Tidak ada dokumen yang cocok');
+    navigasi.search = window.location.search.slice(1);
+    view.rerender(<PencarianProduk initialJenisKode="PERREK" />);
+    api.hasil = [ringkasan];
+    navigasi.search = 'jenis=PERREK';
+    view.rerender(<PencarianProduk initialJenisKode="PERREK" />);
+    await screen.findByRole('link', { name: ringkasan.judul });
+    expect(screen.getByRole('searchbox')).toHaveValue('');
+    expect(vi.mocked(ambilApiBerdaftar).mock.calls.at(-1)?.[1]?.kueri).toMatchObject({
+      q: '',
+      jenisDokumenId: '7',
+    });
+    api.hasil = [];
+    navigasi.search = 'jenis=PERREK&q=zz-tidak-ada';
+    view.rerender(<PencarianProduk initialJenisKode="PERREK" />);
+    await screen.findByText('Tidak ada dokumen yang cocok');
+    expect(screen.getByRole('searchbox')).toHaveValue('zz-tidak-ada');
+    api.hasil = [ringkasan];
+    navigasi.search = 'jenis=PERREK';
+    view.rerender(<PencarianProduk initialJenisKode="PERREK" />);
+    await screen.findByRole('link', { name: ringkasan.judul });
   });
   it('pengunjung anonim tidak melihat label Publik maupun Dosen/Staf', async () => {
     api.hasil = [ringkasan];

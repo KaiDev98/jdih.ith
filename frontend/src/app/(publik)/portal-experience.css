@@ -320,9 +320,10 @@
 }
 @media (max-width: 1023px) {
   .portal-publik .portal-results-scroll {
-    max-height: none;
-    overflow: visible;
-    overscroll-behavior: auto;
+    max-height: min(640px, 70svh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
   }
   .portal-publik .portal-results-layout {
     padding-top: 1.25rem;

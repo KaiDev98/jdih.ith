@@ -4,6 +4,14 @@ This file tells Codex how to move from the current foundation to the agreed V2 w
 
 ## Revisi tampilan autentikasi 2026-10-29
 
+Revisi lanjutan koleksi 2026-10-30: empat kolom desktop/maksimal tiga baris
+terlihat, pemuatan bertahap 12 berkas dan area gulir terbatas termasuk ponsel.
+Uji halaman lanjutan, retry, deduplikasi, pencegahan request ganda dan pergantian
+sesi. Kartu SOP seluruhnya dapat diklik, dengan konteks tautan kembali dan satu
+URL detail kanonis. Uji regresi filter kosong saat memilih jenis yang sama dari
+menu serta Back/Forward browser. Ringkas bantuan SK dan uji tombol kembali ke
+atas pada gulir halaman/daftar dengan reduced motion.
+
 Revisi koleksi setelah autentikasi: bedakan galeri map Format Persuratan dari
 SOP Permohonan SK dan hapus search bar pada kedua halaman
 publik/panel. Semua Dokumen memakai dropdown koleksi dan bingkai desktop tetap;

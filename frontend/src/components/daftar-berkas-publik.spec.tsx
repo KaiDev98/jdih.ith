@@ -11,6 +11,7 @@ vi.mock('@/lib/api-peladen', () => ({
 vi.mock('@/components/hero-halaman', () => ({
   HeroHalaman: ({ judul }: { judul: string }) => <h1>{judul}</h1>,
 }));
+vi.mock('@/lib/sesi', () => ({ useSession: () => ({ state: 'anonymous' }) }));
 afterEach(cleanup);
 beforeEach(() => {
   api.list.mockReset();
@@ -18,7 +19,7 @@ beforeEach(() => {
 });
 
 describe('koleksi berkas publik yang panjang', () => {
-  it('format menampilkan 12 item tanpa pencarian dan mempertahankan pagination', async () => {
+  it('format menampilkan 12 item di area gulir dan menyediakan pemuatan lanjutan', async () => {
     api.list.mockResolvedValue({
       data: Array.from({ length: 12 }, (_, index) => ({
         id: String(index + 1),
@@ -33,9 +34,9 @@ describe('koleksi berkas publik yang panjang', () => {
     expect(screen.getAllByRole('button', { name: 'Download' })).toHaveLength(12);
     expect(screen.getByText('150 berkas tersedia')).toBeInTheDocument();
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Berikutnya/ })).toHaveAttribute(
-      'href',
-      '/format-persuratan?halaman=3',
+    expect(screen.getByRole('button', { name: /Muat berkas berikutnya/ })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Daftar format persuratan' })).toHaveAttribute(
+      'data-gulir-dokumen',
     );
     const path = String(api.list.mock.calls[0]![0]);
     const params = new URL(path, 'http://local').searchParams;
@@ -65,9 +66,9 @@ describe('koleksi berkas publik yang panjang', () => {
     expect(api.public).toHaveBeenCalledWith('/public/contact', expect.anything());
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
     expect(screen.getByText('Khusus Dosen/Staf aktif')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Buka dokumen/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'SOP SK Dosen' })).toHaveAttribute(
       'href',
-      '/produk-hukum/sop-internal',
+      '/produk-hukum/sop-internal?asal=permohonan-sk',
     );
     expect(
       screen.queryByRole('navigation', { name: 'Halaman daftar berkas' }),

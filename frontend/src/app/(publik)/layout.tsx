@@ -2,6 +2,7 @@ import type { KontakKantor, RingkasanKunjungan, TahunTersedia } from '@jdih/shar
 import { PublicHeader, type JenisMenu, type UnitSopMenu } from '@/components/navigasi-publik';
 import { ambilPublik } from '@/lib/api-peladen';
 import { FooterPublik } from '@/components/footer-publik';
+import { KembaliKeAtas } from '@/components/kembali-ke-atas';
 import './portal-experience.css';
 
 /** Tahun untuk menu "Berdasarkan Tahun". Kegagalan tidak boleh merobohkan seluruh halaman. */
@@ -69,6 +70,7 @@ export default async function TataLetakPublik({ children }: { children: React.Re
         {children}
       </main>
       <FooterPublik kontak={kontak} kunjungan={kunjungan} />
+      <KembaliKeAtas />
     </div>
   );
 }

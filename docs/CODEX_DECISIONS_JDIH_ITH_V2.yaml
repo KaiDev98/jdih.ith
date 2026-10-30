@@ -31,8 +31,12 @@ public_home:
   profile_scope: "Tentang ITH"
 
 document_collections_ui:
-  format_public_layout: "folder cards, three desktop columns"
-  sop_request_public_layout: "three desktop columns, two tablet columns, one mobile column; blue document-signature cards without decorative numbering"
+  format_public_layout: "folder cards; four desktop columns, up to three visible rows; bounded scrolling with incremental 12-item requests"
+  sop_request_public_layout: "four desktop columns, up to three visible rows; two tablet columns, one mobile column; bounded scrolling and fully linked signature cards"
+  mobile_collection_scroll: "bounded inner scrolling on Produk Hukum, Format Persuratan and SOP Permohonan SK"
+  scroll_to_top: "page and active list; smooth with reduced-motion support"
+  sop_request_detail_url: "/produk-hukum/[slug]?asal=permohonan-sk; canonical URL excludes query; return link follows collection"
+  sop_request_help: "compact pale-blue contact bar titled Bantuan Pengajuan SK; real managed contact data"
   collection_page_search_bar: false
   collection_admin_search_bar: false
   all_documents_desktop: "fixed viewport; inner list scrolling; persistent filters and pagination"

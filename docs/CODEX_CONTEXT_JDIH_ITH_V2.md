@@ -6,6 +6,22 @@ Polesan akhir 2026-10-30: logo JDIH ITH dipusatkan pada semua halaman login
 produk hukum di beranda ponsel tidak boleh terpotong menjadi garis horizontal.
 Pertahankan warna dan geometri latar login ketika keyboard terbuka.
 
+Revisi koleksi terbaru 2026-10-30 menggantikan tiga kolom dan pagination publik:
+Format Persuratan dan SOP Permohonan SK memakai empat kolom desktop, maksimal
+tiga baris terlihat; tablet dua kolom, ponsel satu. Area daftar bergulir sendiri
+pada semua perangkat, memuat 12 berkas per request, otomatis menambah halaman
+ketika mendekati ujung dan menyediakan tombol muat berikutnya/coba lagi.
+Produk Hukum juga memakai area gulir terbatas di ponsel. Tombol kembali ke atas
+menggulir halaman dan daftar dengan halus, serta menghormati reduced motion.
+Semua permukaan kartu SOP adalah satu tautan. Pertahankan URL detail kanonis
+`/produk-hukum/[slug]`; `?asal=permohonan-sk` hanya menentukan tautan kembali ke
+koleksi SOP, bukan hak akses. Filter Produk Hukum mengikuti perubahan URL dari
+menu dan riwayat browser, termasuk ketika jenis yang sama dipilih lagi setelah
+pencarian kosong. Cegah request ganda dan pertahankan berkas lama saat load gagal.
+Panel "Bantuan Pengajuan SK" berbentuk bilah ringkas berwarna biru muda dengan
+ikon, telepon/email dari data pengelola dan tautan kontak; tidak memakai dua
+bagian besar atau kontak rekaan. Teks panjang tetap membungkus.
+
 Revisi koleksi terbaru 2026-10-29 menggantikan kesamaan kartu dan pencarian pada
 Format Persuratan/SOP Permohonan SK: format memakai galeri map berkas tiga kolom
 desktop pada portal. Revisi setelahnya: SOP juga memakai tiga kolom desktop,
