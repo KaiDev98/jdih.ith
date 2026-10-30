@@ -31,12 +31,18 @@ describe('tujuan halaman masuk mengikuti peran sesi', () => {
     expect(sesi.replace).toHaveBeenCalledWith(tujuan);
   });
   it('pengunjung mendapat formulir email/password, tautan daftar dan Google khusus ITH', () => {
-    sesi.state = 'anonymous'; sesi.pengguna = undefined;
+    sesi.state = 'anonymous';
+    sesi.pengguna = undefined;
     render(<MasukPage />);
     expect(screen.getByLabelText('Email')).toBeInTheDocument();
     expect(screen.getByLabelText('Password')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Daftar akun' })).toHaveAttribute('href', '/daftar');
-    expect(screen.getByRole('link', { name: 'Masuk dengan Google' })).toHaveAttribute('href', '/api/v1/auth/google');
+    expect(screen.getByRole('link', { name: 'Masuk dengan Google' })).toHaveAttribute(
+      'href',
+      '/api/v1/auth/google',
+    );
+    expect(screen.queryByRole('link', { name: 'Admin' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Superadmin' })).not.toBeInTheDocument();
     expect(screen.getByText('Masuk dengan Google khusus akun @ith.ac.id.')).toBeInTheDocument();
   });
 });

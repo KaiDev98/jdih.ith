@@ -50,6 +50,7 @@ document_collections_ui:
   collection_dropdown_style: "Radix radio menu; brief open/close animation; soft blue focus; keyboard and reduced motion"
 
 auth:
+  login_audience_separation: "staff /masuk has no role tabs; admin/superadmin login pages have only two adjacent manager tabs; registration remains staff-only /daftar"
   standalone_auth_pages: ["/masuk", "/daftar", "/masuk/admin", "/masuk/superadmin"]
   auth_public_navbar_footer: false
   auth_visual_style: "2026-10-29 latest: desktop split layout with document/section symbols and contrasting typography on the left, login/registration on the right; no campus photo; compact form on mobile and short landscape; ITH palette"

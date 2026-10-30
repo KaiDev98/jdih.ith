@@ -8,8 +8,20 @@ afterEach(() => {
 });
 
 describe('jalur masuk pada permukaan autentikasi', () => {
+  it('login Dosen/Staf berdiri sendiri tanpa pilihan pengelola', () => {
+    render(
+      <AuthSurface audience="staff">
+        <h1>Masuk Dosen dan Staf</h1>
+        <a href="/daftar">Daftar akun</a>
+      </AuthSurface>,
+    );
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Daftar akun' })).toHaveAttribute('href', '/daftar');
+    expect(screen.queryByRole('link', { name: 'Admin' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Superadmin' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'JDIH ITH, beranda' })).toHaveAttribute('href', '/');
+  });
   it.each([
-    ['staff', 'Dosen / Staf', '/masuk'],
     ['admin', 'Admin', '/masuk/admin'],
     ['superadmin', 'Superadmin', '/masuk/superadmin'],
   ] as const)(
@@ -20,10 +32,11 @@ describe('jalur masuk pada permukaan autentikasi', () => {
           <h1>Masuk</h1>
         </AuthSurface>,
       );
-      const nav = within(screen.getByRole('navigation', { name: 'Pilih jalur masuk' }));
+      const nav = within(screen.getByRole('navigation', { name: 'Pilih akses pengelola' }));
       expect(nav.getByRole('link', { name: label })).toHaveAttribute('aria-current', 'page');
       expect(nav.getByRole('link', { name: label })).toHaveAttribute('href', href);
-      expect(nav.getAllByRole('link')).toHaveLength(3);
+      expect(nav.getAllByRole('link')).toHaveLength(2);
+      expect(nav.queryByRole('link', { name: 'Dosen / Staf' })).not.toBeInTheDocument();
       expect(
         nav.getAllByRole('link').filter((link) => link.hasAttribute('aria-current')),
       ).toHaveLength(1);

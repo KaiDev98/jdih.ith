@@ -6,7 +6,6 @@ import { useEffect, useRef } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
-  BookOpen,
   Building2,
   Check,
   KeyRound,
@@ -24,8 +23,7 @@ const LABEL = {
   staff: 'Autentikasi Dosen dan Staf',
 };
 
-const JALUR_MASUK = [
-  { audience: 'staff', label: 'Dosen / Staf', href: '/masuk', ikon: BookOpen },
+const JALUR_PENGELOLA = [
   { audience: 'admin', label: 'Admin', href: '/masuk/admin', ikon: PenLine },
   { audience: 'superadmin', label: 'Superadmin', href: '/masuk/superadmin', ikon: ShieldCheck },
 ] as const;
@@ -301,30 +299,34 @@ export function AuthSurface({
           </aside>
           <div className={styles.formPanel}>
             <section className={styles.form} aria-label={LABEL[audience]}>
-              <nav
-                className={styles.roleNav}
-                aria-label={mode === 'register' ? 'Akses akun Dosen/Staf' : 'Pilih jalur masuk'}
-              >
-                {mode === 'register' ? (
-                  <>
-                    <Link href="/masuk">Masuk</Link>
-                    <Link href="/daftar" aria-current="page">
-                      Daftar akun
-                    </Link>
-                  </>
-                ) : (
-                  JALUR_MASUK.map((jalur) => (
-                    <Link
-                      key={jalur.audience}
-                      href={jalur.href}
-                      aria-current={audience === jalur.audience ? 'page' : undefined}
-                    >
-                      <jalur.ikon size={15} strokeWidth={1.7} aria-hidden="true" />
-                      {jalur.label}
-                    </Link>
-                  ))
-                )}
-              </nav>
+              {(mode === 'register' || audience !== 'staff') && (
+                <nav
+                  className={styles.roleNav}
+                  aria-label={
+                    mode === 'register' ? 'Akses akun Dosen/Staf' : 'Pilih akses pengelola'
+                  }
+                >
+                  {mode === 'register' ? (
+                    <>
+                      <Link href="/masuk">Masuk</Link>
+                      <Link href="/daftar" aria-current="page">
+                        Daftar akun
+                      </Link>
+                    </>
+                  ) : (
+                    JALUR_PENGELOLA.map((jalur) => (
+                      <Link
+                        key={jalur.audience}
+                        href={jalur.href}
+                        aria-current={audience === jalur.audience ? 'page' : undefined}
+                      >
+                        <jalur.ikon size={15} strokeWidth={1.7} aria-hidden="true" />
+                        {jalur.label}
+                      </Link>
+                    ))
+                  )}
+                </nav>
+              )}
               <div className={styles.formContent}>{children}</div>
               <div className={styles.cardFoot}>
                 <LockKeyhole size={13} aria-hidden />

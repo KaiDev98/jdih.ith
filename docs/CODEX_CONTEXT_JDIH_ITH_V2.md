@@ -1,6 +1,12 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
 **Dokumen ini adalah konteks lengkap yang harus dipahami Codex sebelum mengerjakan project.**  
+Revisi pemisahan login terakhir 2026-10-30: `/masuk` khusus Dosen/Staf, langsung
+ke formulir tanpa pemilih peran atau tautan login pengelola. Pendaftaran tetap
+`/daftar`. `/masuk/admin` dan `/masuk/superadmin` hanya mempunyai dua tab sejajar
+Admin/Superadmin, tanpa tab Dosen/Staf. Jalur autentikasi, aturan akun dan
+penanganan keyboard tetap berlaku.
+
 Revisi Profil terakhir 2026-10-30: jangan tampilkan teks/tautan "Sumber: profil
 resmi ITH" pada halaman. Referensi faktual tetap dicatat pada dokumentasi repo.
 

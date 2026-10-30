@@ -4,6 +4,11 @@ This file tells Codex how to move from the current foundation to the agreed V2 w
 
 ## Revisi tampilan autentikasi 2026-10-29
 
+Pemisahan login terakhir 2026-10-30: Dosen/Staf langsung ke formulir pada `/masuk`,
+tanpa pemilih pengelola. Admin/Superadmin saling menaut lewat dua tab pada URL
+masing-masing. Uji tautan, jalur request sesuai peran, pendaftaran, viewport
+ponsel/desktop dan keyboard; pertahankan pembatasan autentikasi server.
+
 Revisi Profil/kunjungan 2026-10-30: isi faktual bersumber dari profil resmi ITH;
 periksa tampilan responsif dan lebar koleksi mandiri maksimal 1680px. Verifikasi
 kunjungan aktual terhadap MySQL, bot/ulang kuki, request bersamaan, pergantian
