@@ -19,11 +19,16 @@ const like = (value: string) => `%${value.replaceAll('!', '!!').replaceAll('%', 
 export class SearchService {
   constructor(private readonly repo: CoreBackendRepository) {}
 
-  private filters(query: ReturnType<typeof skemaCariDokumen.parse>): Filter {
+  private filters(
+    query: ReturnType<typeof skemaCariDokumen.parse>,
+    koleksi: 'UMUM' | 'PERMOHONAN_SK' = 'UMUM',
+  ): Filter {
     const where = [
       'd.deleted_at IS NULL',
       "v.status_workflow='TERBIT'",
       'd.current_published_version_id=v.id',
+      // Koleksi SOP biasa dan Permohonan SK tidak saling mengisi daftar/hitungan.
+      koleksi === 'PERMOHONAN_SK' ? "d.peruntukan='PERMOHONAN_SK'" : 'd.peruntukan IS NULL',
     ];
     const values: (string | number)[] = [];
     if (query.jenisDokumenId) {
@@ -213,7 +218,7 @@ export class SearchService {
     const rows = await this.repo.rows<RowDataPacket & { tahun: number | string }>(
       this.repo.pool,
       `SELECT DISTINCT v.tahun FROM dokumen d JOIN dokumen_versi v ON v.id=d.current_published_version_id
-       WHERE d.deleted_at IS NULL AND v.status_workflow='TERBIT' AND v.tingkat_akses='publik' AND v.tahun IS NOT NULL
+       WHERE d.deleted_at IS NULL AND d.peruntukan IS NULL AND v.status_workflow='TERBIT' AND v.tingkat_akses='publik' AND v.tahun IS NOT NULL
        ORDER BY v.tahun DESC`,
     );
     return skemaTahunTersedia.parse(rows.map((row) => Number(row.tahun)));
@@ -232,8 +237,8 @@ export class SearchService {
   async permohonanSk(rawQuery: unknown = {}, actor?: PenggunaAktif) {
     const query = skemaCariDokumen.parse(rawQuery);
     const { anonymous, visibility } = this.visibilitas(actor);
-    const filter = this.filters(query);
-    const where = [...filter.where, "d.peruntukan='PERMOHONAN_SK'", visibility].join(' AND ');
+    const filter = this.filters(query, 'PERMOHONAN_SK');
+    const where = [...filter.where, visibility].join(' AND ');
     const [count] = await this.repo.rows(this.repo.pool,
       `SELECT COUNT(*) total FROM dokumen d JOIN dokumen_versi v ON v.id=d.current_published_version_id WHERE ${where}`, filter.values);
     const rows = await this.repo.rows(

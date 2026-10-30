@@ -31,6 +31,7 @@ public_home:
   profile_scope: "Tentang ITH"
 
 document_collections_ui:
+  regular_sop_scope: "peruntukan IS NULL; exclude PERMOHONAN_SK from general search, facets, years and home counts/latest; separate dedicated collection"
   format_public_layout: "folder cards; four desktop columns, up to three visible rows; bounded scrolling with incremental 12-item requests"
   sop_request_public_layout: "four desktop columns, up to three visible rows; two tablet columns, one mobile column; bounded scrolling and fully linked signature cards"
   mobile_collection_scroll: "bounded inner scrolling on Produk Hukum, Format Persuratan and SOP Permohonan SK"

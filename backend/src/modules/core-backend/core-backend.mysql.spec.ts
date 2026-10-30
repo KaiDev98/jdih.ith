@@ -21,6 +21,7 @@ import { CoreBackendService } from './core-backend.service.js';
 import { LocalStorageDriver } from './storage/storage.service.js';
 import { DocumentFilesService } from './files/document-files.service.js';
 import { SearchService } from './search/search.service.js';
+import { HomeRepository } from './search/home.repository.js';
 import { LetterTemplatesService } from './templates/letter-templates.service.js';
 
 const enabled = Boolean(process.env.IDENTITY_TEST_ENV);
@@ -784,6 +785,15 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
   it.each(['publik', 'internal'] as const)('SOP Permohonan SK %s terbit saat disetujui, mempertahankan versi dan akses', async (level) => {
     const marker = uid();
     const [types] = await pool.query<RowDataPacket[]>("SELECT id FROM jenis_dokumen WHERE kode='SOP' AND aktif=1 LIMIT 1");
+    // Jenis dasar dan kata kunci sama; hanya peruntukan yang membedakan koleksi.
+    const biasa = await service.createDocument(actor, { kodeDokumen: `biasa-${marker}`, slug: `sop-biasa-${marker}`, jenisDokumenId: String(types[0]!.id), versi: ready(`SOP biasa ${marker}`) });
+    await addFileMetadata(biasa.versionId, 'UTAMA');
+    await approve(biasa.versionId);
+    await publish(biasa.versionId);
+    const home = new HomeRepository(new CoreBackendRepository(pool));
+    const sebelum = await home.latestByType();
+    const kategoriSebelum = await home.categories(String(types[0]!.id));
+    const tahunSebelum = await home.years();
     const d = await service.createDocument(actor, { kodeDokumen: marker, slug: `sop-${marker}`, jenisDokumenId: String(types[0]!.id), peruntukan: 'PERMOHONAN_SK', versi: ready(`SOP SK ${marker}`, level) });
     await addFileMetadata(d.versionId, 'UTAMA');
     await expect(approve(d.versionId)).rejects.toThrow(/konfirmasi/i);
@@ -795,6 +805,17 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     expect((await search.permohonanSk({ q: marker }, staff)).data).toHaveLength(1);
     expect((await search.permohonanSk({ q: marker })).data).toHaveLength(level === 'publik' ? 1 : 0);
     expect((await search.permohonanSk({ q: marker }, pending)).data).toHaveLength(level === 'publik' ? 1 : 0);
+    for (const pengguna of [undefined, staff, pending, actor]) {
+      const umum = await search.search({ q: marker, jenisDokumenId: String(types[0]!.id) }, pengguna);
+      expect(umum.data.map(row => row.id)).toEqual([biasa.id]);
+      expect(umum.meta.totalButir).toBe(1);
+      expect((await search.facets({ q: marker }, pengguna)).total).toBe(1);
+    }
+    expect((await search.publicList({ q: marker })).data.map(row => row.id)).toEqual([biasa.id]);
+    expect((await search.latestPublic())?.id).toBe(biasa.id);
+    expect(await home.latestByType()).toEqual(sebelum);
+    expect(await home.categories(String(types[0]!.id))).toEqual(kategoriSebelum);
+    expect(await home.years()).toEqual(tahunSebelum);
     const revision = await service.newVersion(actor, d.id, ready(`SOP SK ${marker} revisi`, level));
     await addFileMetadata(revision.id, 'UTAMA');
     const [before] = await pool.query<RowDataPacket[]>('SELECT current_published_version_id FROM dokumen WHERE id=?', [d.id]);

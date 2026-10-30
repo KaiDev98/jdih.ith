@@ -12,7 +12,7 @@ export class HomeRepository {
         ROW_NUMBER() OVER(PARTITION BY d.jenis_dokumen_id ORDER BY v.published_at DESC,v.id DESC) rn,
         COUNT(*) OVER(PARTITION BY d.jenis_dokumen_id) jumlah
       FROM dokumen d JOIN dokumen_versi v ON v.id=d.current_published_version_id
-      WHERE d.deleted_at IS NULL AND v.status_workflow='TERBIT' AND v.tingkat_akses='publik'
+      WHERE d.deleted_at IS NULL AND d.peruntukan IS NULL AND v.status_workflow='TERBIT' AND v.tingkat_akses='publik'
     ) SELECT CAST(j.id AS CHAR) jenisId,j.kode,j.nama,r.id,r.slug,r.judul,r.nomor,r.tahun,
       r.tanggalPenetapan,r.statusHukum,COALESCE(r.jumlah,0) jumlah,COALESCE(st.jumlah_lihat,0) dilihat
       FROM jenis_dokumen j LEFT JOIN ranked r ON r.jenis_dokumen_id=j.id AND r.rn=1
@@ -25,7 +25,7 @@ export class HomeRepository {
         SELECT vk.kategori_id,COUNT(*) jumlah FROM dokumen d
         JOIN dokumen_versi v ON v.id=d.current_published_version_id
         JOIN dokumen_versi_kategori vk ON vk.dokumen_versi_id=v.id
-        WHERE d.deleted_at IS NULL AND v.status_workflow='TERBIT' AND v.tingkat_akses='publik'
+        WHERE d.deleted_at IS NULL AND d.peruntukan IS NULL AND v.status_workflow='TERBIT' AND v.tingkat_akses='publik'
           AND d.jenis_dokumen_id=?
         GROUP BY vk.kategori_id
       ) c ON c.kategori_id=k.id WHERE k.aktif=1 ORDER BY k.nama`, [sopTypeId]);
@@ -33,7 +33,7 @@ export class HomeRepository {
   years() {
     return this.repo.rows(this.repo.pool, `SELECT DISTINCT v.tahun FROM dokumen d
       JOIN dokumen_versi v ON v.id=d.current_published_version_id
-      WHERE d.deleted_at IS NULL AND v.status_workflow='TERBIT' AND v.tingkat_akses='publik'
+      WHERE d.deleted_at IS NULL AND d.peruntukan IS NULL AND v.status_workflow='TERBIT' AND v.tingkat_akses='publik'
         AND v.tahun IS NOT NULL ORDER BY v.tahun DESC`);
   }
 }

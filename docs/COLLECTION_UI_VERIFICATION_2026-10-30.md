@@ -13,7 +13,27 @@ Filter kini membaca navigasi eksternal dari URL dan membedakannya dari perubahan
 URL oleh formulir sendiri. Pengujian regresi mencakup jenis yang sama serta
 riwayat Back/Forward. Reproduksi browser memakai data lokal yang sebenarnya:
 Peraturan Rektor dan SOP kembali menampilkan satu dokumen setelah kata kunci
-tanpa hasil dibersihkan melalui menu.
+tanpa hasil dibersihkan melalui menu pada tahap audit awal, sebelum klarifikasi
+pemisahan koleksi SOP di bawah.
+
+## Klarifikasi pemisahan SOP
+
+SOP biasa pada Produk Hukum dan SOP Permohonan SK adalah koleksi terpisah.
+Pencarian/daftar umum, faset, tahun dan hitungan/dokumen terbaru beranda kini
+menyaring `peruntukan IS NULL` sebelum count/pagination. Endpoint khusus SK
+memakai `PERMOHONAN_SK`. Jenis master, data dan hak akses tidak diubah.
+
+Data lokal yang diperiksa memiliki enam produk hukum biasa dan satu SOP
+Permohonan SK publik; belum ada SOP biasa terbit. API umum/faset menghitung enam,
+SOP biasa/beranda SOP nol, sedangkan koleksi SK tetap satu. Angka nol pada SOP
+biasa ini mencerminkan data yang ada, bukan kegagalan navigasi.
+
+Seluruh 351 tes backend, termasuk MySQL, lulus setelah perubahan. Regresi MySQL
+menerbitkan SOP biasa dan SOP SK dengan jenis dasar/kata kunci sama pada database
+uji terpisah, kemudian memeriksa pencarian, total, faset dan beranda untuk anonim,
+pending, staf aktif dan Superadmin. Dua tes sitemap lulus untuk pagination kedua
+koleksi dan gangguan salah satu sumber. Sitemap tetap memuat dokumen publik dari
+kedua koleksi melalui endpoint masing-masing.
 
 ## Perilaku koleksi
 

@@ -31,6 +31,7 @@ describe('snapshot beranda publik', () => {
       expect(sql).toContain("v.status_workflow='TERBIT'");
       expect(sql).toContain("v.tingkat_akses='publik'");
       expect(sql).toContain('d.deleted_at IS NULL');
+      expect(sql).toContain('d.peruntukan IS NULL');
     }
     expect(repo.rows.mock.calls[1]?.[2]).toEqual(['9']);
   });

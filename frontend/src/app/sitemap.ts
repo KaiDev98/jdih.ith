@@ -15,10 +15,10 @@ const HALAMAN_MAKSIMUM = 50;
  * kuki, sehingga API hanya mengembalikan dokumen publik yang terbit. Dokumen
  * Internal tidak pernah tersebut di sini.
  */
-async function dokumenPublik(): Promise<HasilCariAnonim[]> {
+async function dokumenPublik(path: string): Promise<HasilCariAnonim[]> {
   const semua: HasilCariAnonim[] = [];
   for (let halaman = 1; halaman <= HALAMAN_MAKSIMUM; halaman += 1) {
-    const hasil = await ambilApiBerdaftar<HasilCariAnonim>('/public/documents', {
+    const hasil = await ambilApiBerdaftar<HasilCariAnonim>(path, {
       kueri: { halaman, perHalaman: 100 },
       next: { revalidate },
     });
@@ -38,7 +38,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${urlSitus}/kontak`, changeFrequency: 'yearly', priority: 0.4 },
   ];
   // API tidak terjangkau: sitemap tetap berisi halaman statis, bukan galat 500.
-  const dokumen = await dokumenPublik().catch(() => []);
+  // Kedua koleksi terpisah, tetapi dokumen publiknya tetap dapat diindeks.
+  const koleksi = await Promise.all(
+    ['/public/documents', '/public/documents/permohonan-sk'].map((path) =>
+      dokumenPublik(path).catch(() => []),
+    ),
+  );
+  const dokumen = [...new Map(koleksi.flat().map((d) => [d.id, d])).values()];
   return [
     ...statis,
     ...dokumen.map((d) => ({

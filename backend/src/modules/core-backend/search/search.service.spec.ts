@@ -22,6 +22,7 @@ describe('SearchService visibility projection', () => {
     // so Internal documents neither appear nor inflate the total.
     for (const call of calls) {
       expect(call.sql).toContain("v.tingkat_akses='publik'");
+      expect(call.sql).toContain('d.peruntukan IS NULL');
       expect(call.sql).not.toContain("'internal'");
       expect(call.sql).not.toContain("'rahasia'");
     }
@@ -48,6 +49,7 @@ describe('SearchService visibility projection', () => {
     expect(calls[0]).toContain("v.tingkat_akses='publik'");
     expect(calls[0]).not.toContain("'internal'");
     expect(calls[0]).toContain('ORDER BY v.tahun DESC');
+    expect(calls[0]).toContain('d.peruntukan IS NULL');
   });
 
   it('applies keyword and explicit filters with prepared values', async () => {
@@ -93,6 +95,7 @@ describe('SearchService.facets', () => {
       ],
     });
     expect(calls[0]!.sql).toContain("v.tingkat_akses='publik'");
+    expect(calls[0]!.sql).toContain('d.peruntukan IS NULL');
     expect(calls[0]!.sql).not.toContain('d.jenis_dokumen_id=?');
     expect(calls[0]!.values).toEqual([2026]);
   });
@@ -115,6 +118,7 @@ describe('SOP Permohonan SK: akses dan pagination', () => {
     expect(result.meta).toMatchObject({ totalButir: 25, totalHalaman: 3, halaman: 2, perHalaman: 12 });
     for (const [, sql] of repo.rows.mock.calls) {
       expect(sql).toContain("d.peruntukan='PERMOHONAN_SK'");
+      expect(sql).not.toContain('d.peruntukan IS NULL');
       expect(sql).toContain(status === 'AKTIF' ? "v.tingkat_akses IN ('publik','internal')" : "v.tingkat_akses='publik'");
       expect(sql).not.toContain("'rahasia'");
     }

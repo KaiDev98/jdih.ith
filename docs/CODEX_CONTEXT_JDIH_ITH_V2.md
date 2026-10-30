@@ -1,6 +1,15 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
 **Dokumen ini adalah konteks lengkap yang harus dipahami Codex sebelum mengerjakan project.**  
+Pemisahan koleksi SOP 2026-10-30: SOP biasa pada Produk Hukum dan SOP Permohonan
+SK merupakan dua koleksi berbeda. Pencarian/daftar umum, faset, pilihan tahun,
+hitungan jenis/kategori dan dokumen terbaru beranda hanya memakai dokumen dengan
+`peruntukan IS NULL`. Koleksi `/permohonan-sk` hanya memakai `PERMOHONAN_SK`.
+Pemisahan diterapkan di SQL sebelum count/pagination, termasuk bagi staf aktif
+dan Superadmin yang memakai portal. Jangan membuat jenis master baru atau
+mengubah data dokumen hanya untuk pemisahan ini. Sitemap mengambil kedua koleksi
+publik secara terpisah; akses Internal/Rahasia tetap mengikuti kebijakan semula.
+
 Polesan akhir 2026-10-30: logo JDIH ITH dipusatkan pada semua halaman login
 (di panel kiri pada desktop, di viewport pada ponsel). Bayangan panel jenis
 produk hukum di beranda ponsel tidak boleh terpotong menjadi garis horizontal.

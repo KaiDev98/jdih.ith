@@ -4,6 +4,11 @@ This file tells Codex how to move from the current foundation to the agreed V2 w
 
 ## Revisi tampilan autentikasi 2026-10-29
 
+Klarifikasi koleksi 2026-10-30: SOP biasa terpisah dari SOP Permohonan SK pada
+query portal, termasuk count/faset/tahun/beranda. Uji dengan jenis dasar dan kata
+kunci sama serta akses anonim, pending, staf aktif dan Superadmin. Sitemap tetap
+memuat kedua koleksi publik melalui endpoint masing-masing.
+
 Revisi lanjutan koleksi 2026-10-30: empat kolom desktop/maksimal tiga baris
 terlihat, pemuatan bertahap 12 berkas dan area gulir terbatas termasuk ponsel.
 Uji halaman lanjutan, retry, deduplikasi, pencegahan request ganda dan pergantian
