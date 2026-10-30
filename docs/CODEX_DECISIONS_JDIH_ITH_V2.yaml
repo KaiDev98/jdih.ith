@@ -29,8 +29,11 @@ public_home:
   statistics: false
   latest_public_document: true
   profile_scope: "Tentang ITH"
+  profile_source: "https://ith.ac.id/about; institutional introduction, 2014/2021 history, JDIH purpose and access guidance"
+  footer_visits: "actual MySQL daily aggregates; browser/day WITA; server cookie and bot filter; no-store SSR; visible-tab refresh and day rollover; shared requests/Web Locks; unavailable state instead of invented zero"
 
 document_collections_ui:
+  collection_body_max_width: "1680px for Format Persuratan, SOP Permohonan SK and regular SOP; independent of hero/footer widths"
   type_filter_switch: "clear category on a different type; preserve keyword/year/status; alternative type counts ignore category; active type count reflects actual results"
   regular_sop_scope: "peruntukan IS NULL; exclude PERMOHONAN_SK from general search, facets, years and home counts/latest; separate dedicated collection"
   format_public_layout: "folder cards; four desktop columns, up to three visible rows; bounded scrolling with incremental 12-item requests"

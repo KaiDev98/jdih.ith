@@ -1,6 +1,19 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
 **Dokumen ini adalah konteks lengkap yang harus dipahami Codex sebelum mengerjakan project.**  
+Revisi Profil dan kunjungan 2026-10-30: Profil memuat ringkasan institusi berdasarkan
+`https://ith.ac.id/about`, identitas/logo, tahun 2014/2021, fungsi JDIH, pintasan
+koleksi dan panduan akses. Tidak memakai placeholder maupun jumlah mahasiswa/
+program studi yang tidak dikelola portal. Isi koleksi Format Persuratan, SOP
+Permohonan SK dan SOP biasa dapat melebar sampai 1680px secara mandiri dari hero
+dan footer; empat kolom dan gulir terbatas tetap berlaku.
+Kunjungan footer berasal dari agregat `kunjungan_harian` di MySQL, satu peramban
+per hari WITA dengan kuki server dan penyaringan bot. SSR tidak menyimpan cache;
+frontend memperbarui saat terlihat/setiap 30 detik, memeriksa ulang hari, berbagi
+request bersamaan dan memakai Web Locks bila tersedia untuk koordinasi tab.
+Penanda lokal hanya ditulis setelah respons valid. Saat gagal, tampilkan status
+tidak tersedia atau data terakhir; jangan menggantinya dengan angka rekaan/nol.
+
 Perbaikan penyaring 2026-10-30: pilihan unit pada navigasi SOP membatasi hasil
 jenis yang sedang dipilih saja. Saat mengganti jenis lewat panel, kategori
 dilepas; kata kunci, tahun dan status tetap berlaku. Hitungan pilihan jenis

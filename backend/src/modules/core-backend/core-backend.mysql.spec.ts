@@ -22,6 +22,7 @@ import { LocalStorageDriver } from './storage/storage.service.js';
 import { DocumentFilesService } from './files/document-files.service.js';
 import { SearchService } from './search/search.service.js';
 import { HomeRepository } from './search/home.repository.js';
+import { KunjunganService } from './kunjungan/kunjungan.service.js';
 import { LetterTemplatesService } from './templates/letter-templates.service.js';
 
 const enabled = Boolean(process.env.IDENTITY_TEST_ENV);
@@ -153,6 +154,23 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     const row = await identities.user(pool, id);
     return identities.principal(pool, row!);
   }
+
+  it('kunjungan berasal dari jumlah MySQL aktual dengan batas hari/bulan WITA', async () => {
+    const db = await pool.getConnection();
+    await db.beginTransaction();
+    try {
+      const kunjungan = new KunjunganService(new CoreBackendRepository(db as unknown as Pool));
+      const januari = new Date('2100-01-31T15:59:00Z');
+      const februari = new Date('2100-01-31T16:00:00Z');
+      const sebelumJan = await kunjungan.ringkasan(januari);
+      const sebelumFeb = await kunjungan.ringkasan(februari);
+      await kunjungan.catat(januari);
+      await kunjungan.catat(januari);
+      await kunjungan.catat(februari);
+      expect(await kunjungan.ringkasan(januari)).toEqual({ hariIni: sebelumJan.hariIni + 2, bulanIni: sebelumJan.bulanIni + 2, tahunIni: sebelumJan.tahunIni + 2, total: sebelumJan.total + 2 });
+      expect(await kunjungan.ringkasan(februari)).toEqual({ hariIni: sebelumFeb.hariIni + 1, bulanIni: sebelumFeb.bulanIni + 1, tahunIni: sebelumFeb.tahunIni + 3, total: sebelumFeb.total + 3 });
+    } finally { await db.rollback(); db.release(); }
+  });
   async function addStaff() {
     const suffix = uid();
     const [unit] = await pool.execute('INSERT INTO unit_kerja(kode,nama) VALUES(?,?)', [

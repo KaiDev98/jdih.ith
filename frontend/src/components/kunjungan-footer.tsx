@@ -4,36 +4,10 @@ import { useEffect, useState } from 'react';
 import { Users } from 'lucide-react';
 import { BukaFooter } from './buka-footer';
 import type { RingkasanKunjungan } from '@jdih/shared';
-import { ambilApi } from '@/lib/api-client';
+import { ambilKunjunganPortal } from '@/lib/kunjungan-portal';
 
 const JEDA_PEMBARUAN = 30_000;
-const KUNCI_TERCATAT = 'jdih:kunjungan-tercatat';
 const angka = new Intl.NumberFormat('id-ID');
-
-/** Tanggal hari ini di zona WITA, sama dengan yang dipakai backend. */
-const hariIniWita = () =>
-  new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Makassar',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date());
-
-function sudahTercatat(hari: string) {
-  try {
-    return window.localStorage.getItem(KUNCI_TERCATAT) === hari;
-  } catch {
-    return false;
-  }
-}
-
-function tandaiTercatat(hari: string) {
-  try {
-    window.localStorage.setItem(KUNCI_TERCATAT, hari);
-  } catch {
-    // Penyimpanan diblokir (mode privat): backend tetap menyaring lewat kukinya.
-  }
-}
 
 /**
  * Ringkasan kunjungan di footer. Kunjungan peramban ini dicatat sekali per
@@ -44,26 +18,25 @@ function tandaiTercatat(hari: string) {
  */
 export function KunjunganFooter({ awal }: { awal: RingkasanKunjungan | null }) {
   const [data, setData] = useState(awal);
+  const [galat, setGalat] = useState(false);
+  const [ulang, setUlang] = useState(0);
 
   useEffect(() => {
     let aktif = true;
-    const simpan = (hasil: RingkasanKunjungan) => {
-      if (aktif) setData(hasil);
-    };
-    const hari = hariIniWita();
-    if (!sudahTercatat(hari))
-      void ambilApi<RingkasanKunjungan>('/public/visits', { method: 'POST' })
-        .then((hasil) => {
-          tandaiTercatat(hari);
-          simpan(hasil);
-        })
-        .catch(() => undefined);
     const perbarui = () => {
       if (document.visibilityState !== 'visible') return;
-      void ambilApi<RingkasanKunjungan>('/public/visits', { cache: 'no-store' })
-        .then(simpan)
-        .catch(() => undefined);
+      void ambilKunjunganPortal()
+        .then((hasil) => {
+          if (aktif) {
+            setData(hasil);
+            setGalat(false);
+          }
+        })
+        .catch(() => {
+          if (aktif) setGalat(true);
+        });
     };
+    perbarui();
     const pewaktu = window.setInterval(perbarui, JEDA_PEMBARUAN);
     document.addEventListener('visibilitychange', perbarui);
     return () => {
@@ -71,17 +44,19 @@ export function KunjunganFooter({ awal }: { awal: RingkasanKunjungan | null }) {
       window.clearInterval(pewaktu);
       document.removeEventListener('visibilitychange', perbarui);
     };
-  }, []);
+  }, [ulang]);
 
-  if (!data) return null;
-  const butir = [
-    { label: 'Hari ini', nilai: data.hariIni },
-    { label: 'Bulan ini', nilai: data.bulanIni },
-    { label: 'Tahun ini', nilai: data.tahunIni },
-    { label: 'Total', nilai: data.total },
-  ];
+  const butir = data
+    ? [
+        { label: 'Hari ini', nilai: data.hariIni },
+        { label: 'Bulan ini', nilai: data.bulanIni },
+        { label: 'Tahun ini', nilai: data.tahunIni },
+        { label: 'Total', nilai: data.total },
+      ]
+    : [];
   return (
-    <BukaFooter label={
+    <BukaFooter
+      label={
         <span className="flex min-w-0 items-center gap-2.5">
           <span className="grid size-8 shrink-0 place-items-center rounded-full bg-white/6 ring-1 ring-white/15 ring-inset">
             <Users aria-hidden strokeWidth={1.75} className="size-4 text-institusi-400" />
@@ -89,13 +64,39 @@ export function KunjunganFooter({ awal }: { awal: RingkasanKunjungan | null }) {
           <span className="min-w-0">
             <span className="block text-sm font-semibold text-white">Kunjungan portal</span>
             <span className="block text-xs text-gigi-300">
-              {angka.format(data.total)} total kunjungan
+              {data
+                ? `${angka.format(data.total)} total kunjungan`
+                : galat
+                  ? 'Data belum tersedia'
+                  : 'Memuat data kunjungan…'}
             </span>
           </span>
         </span>
-    }>
+      }
+    >
       <div className="pt-3">
-        <p className="mb-3 text-xs text-gigi-300">Dihitung sekali per pengunjung setiap hari.</p>
+        <p className="mb-3 text-xs leading-5 text-gigi-300">
+          Satu peramban dihitung sekali per hari, berdasarkan waktu WITA.
+        </p>
+        {galat && (
+          <div role="status" className="mb-3 text-xs leading-5 text-gigi-200">
+            <p>
+              {data
+                ? 'Menampilkan data terakhir. Pembaruan belum tersedia.'
+                : 'Statistik belum dapat dimuat.'}
+            </p>
+            <button
+              type="button"
+              className="mt-1 min-h-11 underline underline-offset-4"
+              onClick={() => {
+                setGalat(false);
+                setUlang((nilai) => nilai + 1);
+              }}
+            >
+              Coba lagi
+            </button>
+          </div>
+        )}
         <dl className="grid grid-cols-2 gap-2.5" aria-live="polite">
           {butir.map((b) => (
             <div

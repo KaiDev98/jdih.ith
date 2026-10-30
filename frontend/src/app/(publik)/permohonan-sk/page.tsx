@@ -47,7 +47,7 @@ export default async function PermohonanSk({
         judul="SOP Permohonan SK"
         deskripsi="Prosedur resmi pengajuan Surat Keputusan (SK) di lingkungan Institut Teknologi Bacharuddin Jusuf Habibie."
       />
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className={styles.pageWidth}>
         <KoleksiBerkas
           key={halaman}
           jenis="sk"

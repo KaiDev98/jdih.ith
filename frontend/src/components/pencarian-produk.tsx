@@ -471,7 +471,12 @@ export function PencarianProduk({
         </div>
       </header>
 
-      <div className="portal-results-layout mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[17.5rem_minmax(0,1fr)] lg:items-start lg:gap-8 lg:px-8">
+      <div
+        className={cn(
+          'portal-results-layout mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[17.5rem_minmax(0,1fr)] lg:items-start lg:gap-8 lg:px-8',
+          tampilanJenis(kodeJenis, namaJenis).macam === 'sop' && 'portal-results-layout--sop',
+        )}
+      >
         <aside aria-label="Penyaring" className="lg:sticky lg:top-24">
           <div className="panel p-4 sm:p-5">
             <form

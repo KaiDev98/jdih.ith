@@ -49,7 +49,7 @@ async function ambilKontak(): Promise<KontakKantor | null> {
 /** Angka kunjungan awal untuk footer; komponen di peramban memperbaruinya sendiri. */
 async function ambilKunjungan(): Promise<RingkasanKunjungan | null> {
   try {
-    return await ambilPublik<RingkasanKunjungan>('/public/visits', { next: { revalidate: 5 } });
+    return await ambilPublik<RingkasanKunjungan>('/public/visits', { cache: 'no-store' });
   } catch {
     return null;
   }

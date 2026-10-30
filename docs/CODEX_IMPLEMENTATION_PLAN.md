@@ -4,6 +4,12 @@ This file tells Codex how to move from the current foundation to the agreed V2 w
 
 ## Revisi tampilan autentikasi 2026-10-29
 
+Revisi Profil/kunjungan 2026-10-30: isi faktual bersumber dari profil resmi ITH;
+periksa tampilan responsif dan lebar koleksi mandiri maksimal 1680px. Verifikasi
+kunjungan aktual terhadap MySQL, bot/ulang kuki, request bersamaan, pergantian
+hari WITA, lock tab, API gagal dan storage diblokir. Hindari angka pengganti
+buatan; pertahankan definisi peramban per hari dan feedback kegagalan.
+
 Regresi penyaring 2026-10-30: buka SOP unit kosong dari menu desktop/ponsel;
 jenis lain tetap memiliki hitungan dan menampilkan hasil ketika dipilih.
 Pergantian jenis melepas kategori, mempertahankan kata kunci/tahun/status.

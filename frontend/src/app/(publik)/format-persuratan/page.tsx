@@ -4,6 +4,7 @@ import { ambilBerdaftarDariPeladen } from '@/lib/api-peladen';
 import { GalatApi } from '@/lib/api-client';
 import { HeroHalaman } from '@/components/hero-halaman';
 import { KoleksiBerkas } from '@/components/koleksi-berkas';
+import styles from '@/components/koleksi-berkas.module.css';
 import {
   parameterDaftarBerkas,
   type ParameterDaftarBerkas,
@@ -41,7 +42,7 @@ export default async function FormatPersuratan({
         judul="Format Persuratan"
         deskripsi="Format surat resmi ITH yang dapat diunduh dan digunakan."
       />
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className={styles.pageWidth}>
         <KoleksiBerkas
           key={halaman}
           jenis="format"

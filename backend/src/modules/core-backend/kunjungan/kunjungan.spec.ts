@@ -90,6 +90,17 @@ describe('KunjunganController.catat', () => {
     expect(service.catat).not.toHaveBeenCalled();
     expect(res.cookie).not.toHaveBeenCalled();
   });
+
+  it('bot tidak menambah data dan kegagalan tulis tidak memasang penanda sukses', async () => {
+    const bot = siapkan();
+    bot.req.get = () => 'HeadlessChrome/141.0';
+    await bot.controller.catat(bot.req as never, bot.res as never);
+    expect(bot.service.catat).not.toHaveBeenCalled();
+    const gagal = siapkan();
+    gagal.service.catat.mockRejectedValueOnce(new Error('database offline'));
+    await expect(gagal.controller.catat(gagal.req as never, gagal.res as never)).rejects.toThrow('database offline');
+    expect(gagal.res.cookie).not.toHaveBeenCalled();
+  });
 });
 
 describe('bukanManusia', () => {
