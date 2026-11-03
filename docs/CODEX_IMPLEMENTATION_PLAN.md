@@ -2,6 +2,16 @@
 
 This file tells Codex how to move from the current foundation to the agreed V2 without losing design intent.
 
+## Hapus Format Persuratan - 2026-11-04
+
+Ganti Arsipkan dengan Hapus melalui DELETE terproteksi. Gunakan deleted_at induk,
+lepas pointer dan aktif=0 atomik bersama audit; pertahankan versi/berkas historis.
+Tombol berlaku juga untuk format belum terbit/nonaktif, Admin/Superadmin berizin.
+Uji konfirmasi/batal, kegagalan, loading/anti klik ganda, CSRF, izin dan penghapusan
+berulang. Integrasi MySQL memeriksa daftar publik/panel, tinjauan/unduhan tertutup,
+penolakan perubahan setelah hapus, rollback audit dan publish/hapus bersamaan.
+Tidak mengubah schema atau menghapus unggahan lokal untuk mencoba tombol.
+
 ## Persetujuan dan penerbitan terpisah - 2026-11-04
 
 Hilangkan jalur otomatis SOP Permohonan SK: approve hanya DISETUJUI; publish

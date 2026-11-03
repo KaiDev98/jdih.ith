@@ -8,6 +8,7 @@ import { IdentityService } from './identity.service.js';
 import { acak, csrfToken } from './security.js';
 import { GoogleService } from './google.service.js';
 import { AuditService } from './audit.service.js';
+import { LetterTemplatesService } from '../core-backend/templates/letter-templates.service.js';
 
 @Controller('contract-probe')
 class DefaultClosedProbe {
@@ -41,6 +42,7 @@ describe('AppModule HTTP security wiring (no database/network provider)', () => 
     loginPassword: vi.fn().mockResolvedValue({ token, expires: new Date(Date.now() + 3600000) }),
     registerWithPassword: vi.fn().mockResolvedValue({ token, expires: new Date(Date.now() + 3600000), result: { id: '9', status: 'MENUNGGU_VERIFIKASI', peran: ['DOSEN_STAF'] } }),
   };
+  const templates = { remove: vi.fn().mockResolvedValue({ id: '5', deleted: true }) };
   beforeAll(async () => {
     Object.assign(process.env, {
       NODE_ENV: 'test',
@@ -75,6 +77,8 @@ describe('AppModule HTTP security wiring (no database/network provider)', () => 
       .useValue({})
       .overrideProvider(AuditService)
       .useValue({ record: vi.fn() })
+      .overrideProvider(LetterTemplatesService)
+      .useValue(templates)
       .compile();
     app = module.createNestApplication({ logger: false });
     app.use(cookieParser());
@@ -177,5 +181,26 @@ describe('AppModule HTTP security wiring (no database/network provider)', () => 
     expect(identity.logout).toHaveBeenCalledWith(token);
     expect(response.headers.get('set-cookie')).toContain('HttpOnly');
     expect(response.headers.get('set-cookie')).toContain('SameSite=Lax');
+  });
+  it('DELETE Format Persuratan memerlukan sesi, izin, origin dan CSRF sebelum memanggil service', async () => {
+    templates.remove.mockClear();
+    auth('AKTIF', ['templates.manage']);
+    const path = base + '/api/v1/admin/letter-templates/5';
+    const headers = { cookie: 'jdih_session=' + token, origin: 'http://localhost:3000' };
+    for (const invalid of [
+      headers,
+      { ...headers, 'x-csrf-token': 'salah' },
+      { ...headers, origin: 'https://evil.test', 'x-csrf-token': csrfToken(token, key) },
+    ]) expect((await fetch(path, { method: 'DELETE', headers: invalid })).status).toBe(403);
+    const valid = { ...headers, 'x-csrf-token': csrfToken(token, key) };
+    auth();
+    expect((await fetch(path, { method: 'DELETE', headers: valid })).status).toBe(403);
+    expect(templates.remove).not.toHaveBeenCalled();
+    for (const role of ['ADMIN', 'SUPERADMIN'] as const) {
+      const actor = { ...user, peran: [role], izin: ['templates.manage'] };
+      identity.authenticate.mockResolvedValue({ user: actor });
+      expect((await fetch(path, { method: 'DELETE', headers: valid })).status).toBe(200);
+      expect(templates.remove).toHaveBeenLastCalledWith(actor, '5', undefined);
+    }
   });
 });

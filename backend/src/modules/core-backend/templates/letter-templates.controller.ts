@@ -1,5 +1,6 @@
 import {
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -122,14 +123,14 @@ export class AdminLetterTemplatesController {
     file.stream.pipe(res);
   }
 
-  @Post(':templateId/archive')
+  @Delete(':templateId')
   @Izin('templates.manage')
-  archive(
+  remove(
     @Param('templateId') id: string,
     @Req() req: PermintaanBerpengguna,
     @Aktor() actor: PenggunaAktif,
   ) {
-    return this.templates.archive(actor, id, req.body);
+    return this.templates.remove(actor, skemaId.parse(id), req.body);
   }
 }
 

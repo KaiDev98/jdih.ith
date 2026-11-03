@@ -625,7 +625,7 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     await expect(publish(tampered.versionId)).rejects.toThrow('File UTAMA tidak tersedia atau checksum berubah');
   });
 
-  it('creates templates, atomically archives old versions, enforces visibility and archives safely', async () => {
+  it('creates templates, preserves version history, enforces visibility and deletes from all lists', async () => {
     const suffix = uid();
     const first = await templates.create(
       actor,
@@ -686,21 +686,71 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
       [next.id],
     );
     expect(Number(downloadAudit[0]?.total)).toBe(1);
-    await templates.archive(actor, first.id, {});
-    const [archived] = await pool.query<RowDataPacket[]>(
-      'SELECT current_version_id,aktif FROM template_surat WHERE id=?', [first.id],
+    await templates.remove(actor, first.id, {});
+    const [deleted] = await pool.query<RowDataPacket[]>(
+      'SELECT current_version_id,aktif,deleted_at FROM template_surat WHERE id=?', [first.id],
     );
-    expect(archived[0]?.current_version_id).toBeNull();
-    expect(archived[0]?.aktif).toBe(0);
+    expect(deleted[0]?.current_version_id).toBeNull();
+    expect(deleted[0]?.aktif).toBe(0);
+    expect(deleted[0]?.deleted_at).not.toBeNull();
     expect(next.templateSuratId).toBe(first.id);
-    const reactivated = await templates.newVersion(actor, first.id, await incomingFile('surat-reactivated.docx', minimalDocx()), { tingkatAkses: 'PUBLIK' });
-    expect(reactivated.nomorVersi).toBe(3);
-    await templates.verify(actor, first.id, reactivated.id, {});
-    await templates.publish(actor, first.id, reactivated.id, {});
+    const [retained] = await pool.query<RowDataPacket[]>(
+      'SELECT status FROM template_surat_versi WHERE template_surat_id=? ORDER BY nomor_versi', [first.id],
+    );
+    expect(retained).toEqual(versions);
+    expect(await templates.adminList(actor)).not.toEqual(expect.arrayContaining([expect.objectContaining({ id: first.id })]));
+    expect((await templates.list({ halaman: 1, perHalaman: 100 }, staff)).data).not.toEqual(expect.arrayContaining([expect.objectContaining({ id: first.id })]));
+    await expect(templates.open(`format-${suffix}`, staff)).rejects.toThrow();
+    await expect(templates.review(actor, first.id, next.id)).rejects.toThrow();
+    await expect(templates.newVersion(actor, first.id, await incomingFile('surat-reactivated.docx', minimalDocx()), { tingkatAkses: 'PUBLIK' })).rejects.toThrow();
+    await expect(templates.publish(actor, first.id, next.id, {})).rejects.toThrow();
+    await expect(templates.remove(actor, first.id, {})).rejects.toThrow();
     const anonim = (await templates.list({ halaman: 1, perHalaman: 20 })).data;
-    expect(anonim).toEqual(expect.arrayContaining([expect.objectContaining({ id: first.id })]));
+    expect(anonim).not.toEqual(expect.arrayContaining([expect.objectContaining({ id: first.id })]));
     // Tanggapan anonim tidak boleh menyiratkan adanya tingkat akses lain.
     for (const item of anonim) expect(item).not.toHaveProperty('tingkatAkses');
+  });
+
+  it.each(['PENDING_REVIEW', 'APPROVED', 'ARCHIVED'])(
+    'deletion handles unpublished %s templates and rolls back completely when audit fails',
+    async (status) => {
+      const admin = await addAdmin('ADMIN');
+      const template = await templates.create(admin, await incomingFile('pending.docx', minimalDocx()), {
+        slug: `delete-${uid()}`, nama: 'Format untuk hapus', tingkatAkses: 'PUBLIK',
+      });
+      if (status === 'APPROVED') await templates.verify(actor, template.id, template.versionId, {});
+      if (status === 'ARCHIVED') await pool.execute("UPDATE template_surat_versi SET status='ARCHIVED',archived_at=UTC_TIMESTAMP(6) WHERE id=?", [template.versionId]);
+      const auditSpy = vi.spyOn(audit, 'recordDomain').mockRejectedValueOnce(new Error('delete audit rollback'));
+      try {
+        await expect(templates.remove(admin, template.id, {})).rejects.toThrow('delete audit rollback');
+      } finally { auditSpy.mockRestore(); }
+      expect(await templates.adminList(actor)).toEqual(expect.arrayContaining([expect.objectContaining({ id: template.id })]));
+      const [before] = await pool.query<RowDataPacket[]>('SELECT deleted_at FROM template_surat WHERE id=?', [template.id]);
+      expect(before[0]?.deleted_at).toBeNull();
+      await templates.remove(admin, template.id, {});
+      expect(await templates.adminList(actor)).not.toEqual(expect.arrayContaining([expect.objectContaining({ id: template.id })]));
+      const [history] = await pool.query<RowDataPacket[]>('SELECT status,storage_key FROM template_surat_versi WHERE id=?', [template.versionId]);
+      expect(history[0]?.status).toBe(status);
+      expect(await storage.exists(String(history[0]!.storage_key))).toBe(true);
+      await expect(templates.verify(actor, template.id, template.versionId, {})).rejects.toThrow();
+      const [events] = await pool.query<RowDataPacket[]>("SELECT action FROM audit_log WHERE module='letter-templates' AND entity_type='template_surat' AND entity_id=? AND action='DELETE'", [template.id]);
+      expect(events).toHaveLength(1);
+    },
+  );
+
+  it('simultaneous publication and deletion cannot reactivate a deleted format', async () => {
+    const template = await templates.create(actor, await incomingFile('concurrent.docx', minimalDocx()), {
+      slug: `delete-race-${uid()}`, nama: 'Format bersamaan', tingkatAkses: 'PUBLIK',
+    });
+    await templates.verify(actor, template.id, template.versionId, {});
+    const results = await Promise.allSettled([
+      templates.remove(actor, template.id, {}),
+      templates.publish(actor, template.id, template.versionId, {}),
+    ]);
+    expect(results[0]?.status).toBe('fulfilled');
+    const [row] = await pool.query<RowDataPacket[]>('SELECT aktif,current_version_id,deleted_at FROM template_surat WHERE id=?', [template.id]);
+    expect(row[0]).toMatchObject({ aktif: 0, current_version_id: null });
+    expect(row[0]?.deleted_at).not.toBeNull();
   });
 
   it('keeps Admin template uploads pending until an active Superadmin verifies them', async () => {

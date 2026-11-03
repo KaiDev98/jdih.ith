@@ -55,10 +55,11 @@ describe('pustaka Format Persuratan', () => {
     render(<AdminTemplates />);
     await screen.findByText('Surat Tugas');
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Arsip 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Nonaktif 1' }));
     expect(screen.queryByText('Surat Tugas')).not.toBeInTheDocument();
     expect(screen.getByText('Surat Lama')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Buat template' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Hapus' })).toBeDisabled();
     expect(state.api.mock.calls.every(([, options]) => !options?.method)).toBe(true);
   });
   it('mengosongkan pilihan berkas ketika berpindah ke versi baru', async () => {
@@ -189,4 +190,79 @@ describe('pustaka Format Persuratan', () => {
     expect(screen.queryByRole('button', { name: 'Setujui' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Terbitkan' })).not.toBeInTheDocument();
   });
+
+  it.each(['ADMIN', 'SUPERADMIN'])(
+    '%s dapat menghapus format setelah konfirmasi, tanpa mengetik nama atau mengarsipkan',
+    async (role) => {
+      state.role = role;
+      let deleted = false;
+      state.api.mockImplementation((_url: string, options?: { method?: string }) => {
+        if (options?.method === 'DELETE') {
+          deleted = true;
+          return Promise.resolve({ id: '1', deleted: true });
+        }
+        return Promise.resolve(deleted ? rows.slice(1) : rows);
+      });
+      render(<AdminTemplates />);
+      await screen.findByText('Surat Tugas');
+      expect(screen.queryByRole('button', { name: 'Arsipkan' })).not.toBeInTheDocument();
+      fireEvent.click(screen.getAllByRole('button', { name: 'Hapus' })[0]!);
+      expect(state.api.mock.calls.some(([, options]) => options?.method)).toBe(false);
+      fireEvent.click(screen.getByRole('button', { name: 'Batal' }));
+      expect(state.api.mock.calls.some(([, options]) => options?.method)).toBe(false);
+      fireEvent.click(screen.getAllByRole('button', { name: 'Hapus' })[0]!);
+      fireEvent.click(screen.getByRole('button', { name: 'Ya, hapus' }));
+      await screen.findByText('Surat Tugas berhasil dihapus.');
+      await waitFor(() => expect(screen.queryByText('Surat Tugas')).not.toBeInTheDocument());
+      expect(screen.getByText('Surat Lama')).toBeInTheDocument();
+      expect(state.api).toHaveBeenCalledWith('/admin/letter-templates/1', {
+        method: 'DELETE',
+        headers: { 'X-CSRF-Token': 'csrf' },
+        muatan: {},
+      });
+    },
+  );
+
+  it('penghapusan yang gagal mempertahankan baris dan dapat dicoba ulang tanpa klik ganda', async () => {
+    let rejectDelete!: (error: Error) => void;
+    state.api.mockImplementation((_url: string, options?: { method?: string }) =>
+      options?.method === 'DELETE'
+        ? new Promise((_resolve, reject) => {
+            rejectDelete = reject;
+          })
+        : Promise.resolve(rows),
+    );
+    render(<AdminTemplates />);
+    await screen.findByText('Surat Tugas');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Hapus' })[0]!);
+    fireEvent.click(screen.getByRole('button', { name: 'Ya, hapus' }));
+    expect(screen.getByRole('button', { name: /Memproses/ })).toBeDisabled();
+    expect(state.api.mock.calls.filter(([, options]) => options?.method === 'DELETE')).toHaveLength(
+      1,
+    );
+    rejectDelete(new Error('Penghapusan gagal'));
+    await screen.findByText('Penghapusan gagal');
+    expect(screen.getByText('Surat Tugas')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ya, hapus' })).toBeEnabled();
+  });
+
+  it.each(['PENDING_REVIEW', 'APPROVED'])(
+    'Hapus tersedia juga untuk format belum terbit (%s)',
+    async (status) => {
+      state.api.mockResolvedValue([
+        {
+          ...rows[0],
+          aktif: 0,
+          currentVersionId: null,
+          nomorVersi: null,
+          pendingVersionId: '3',
+          pendingNomorVersi: 1,
+          pendingStatus: status,
+        },
+      ]);
+      render(<AdminTemplates />);
+      await screen.findByText('Surat Tugas');
+      expect(screen.getByRole('button', { name: 'Hapus' })).toBeEnabled();
+    },
+  );
 });

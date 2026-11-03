@@ -422,7 +422,9 @@ test('template version metadata rejects actor/state/storage assignment', () => {
   ok(c.skemaBuatVersiTemplate, { tingkatAkses: 'INTERNAL' });
   for (const field of ['createdBy', 'status', 'storageKey'])
     bad(c.skemaBuatVersiTemplate, { tingkatAkses: 'PUBLIK', [field]: 'x' });
-  ok(c.skemaArsipTemplate, {});
+  ok(c.skemaKeputusanTemplate, {});
+  ok(c.skemaHapusTemplate, {});
+  bad(c.skemaHapusTemplate, { actorId: '1', status: 'ACTIVE' });
 });
 test('legacy exports no longer present', () => {
   for (const name of [

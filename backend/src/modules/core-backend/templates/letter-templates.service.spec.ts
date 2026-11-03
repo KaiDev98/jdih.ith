@@ -1,4 +1,4 @@
-import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import type { PenggunaAktif } from '@jdih/shared';
 import { mkdtemp, rm, rmdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -144,24 +144,25 @@ describe('Format Persuratan dikelola Admin dan Superadmin', () => {
       );
     });
 
-    it(`${peran} dapat mengarsipkan format milik akun lain dengan audit`, async () => {
+    it(`${peran} dapat menghapus format milik akun lain tanpa mengarsipkan versinya`, async () => {
       const { service, repo, audit, db } = setup();
-      repo.rows
-        .mockResolvedValueOnce([{ id: '5', current_version_id: '50', aktif: 1, created_by: '99' }])
-        .mockResolvedValueOnce([{ id: '50' }]);
-      await expect(service.archive({ ...admin, peran: [peran] }, '5', {})).resolves.toEqual({
+      repo.rows.mockResolvedValueOnce([
+        { id: '5', nama: 'Surat', current_version_id: '50', aktif: 1, created_by: '99' },
+      ]);
+      await expect(service.remove({ ...admin, peran: [peran] }, '5', {})).resolves.toEqual({
         id: '5',
-        archived: true,
+        deleted: true,
       });
       expect(repo.write).toHaveBeenCalledWith(
         db,
-        expect.stringContaining('SET current_version_id=NULL,aktif=0'),
+        expect.stringContaining('SET current_version_id=NULL,aktif=0,deleted_at=UTC_TIMESTAMP(6)'),
         ['5'],
       );
       expect(audit.recordDomain).toHaveBeenCalledWith(
-        expect.objectContaining({ action: 'ARCHIVE', actorId: admin.id }),
+        expect.objectContaining({ action: 'DELETE', actorId: admin.id }),
         db,
       );
+      expect(repo.write).toHaveBeenCalledTimes(1);
     });
   }
 
@@ -285,8 +286,31 @@ describe('Format Persuratan dikelola Admin dan Superadmin', () => {
       await expect(service.newVersion(actor, '5', file, {})).rejects.toBeInstanceOf(
         ForbiddenException,
       );
-      await expect(service.archive(actor, '5', {})).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(service.remove(actor, '5', {})).rejects.toBeInstanceOf(ForbiddenException);
       expect(storage.stage).not.toHaveBeenCalled();
       expect(repo.transaction).not.toHaveBeenCalled();
     });
+
+  it('format tanpa publikasi aktif tetap dapat dihapus', async () => {
+    const { service, repo } = setup();
+    repo.rows.mockResolvedValueOnce([
+      { id: '5', nama: 'Surat', current_version_id: null, aktif: 0 },
+    ]);
+    await expect(service.remove(admin, '5', {})).resolves.toEqual({ id: '5', deleted: true });
+    expect(repo.write).toHaveBeenCalledTimes(1);
+  });
+
+  it('penghapusan berulang atau ID tidak ditemukan ditolak tanpa write/audit', async () => {
+    const { service, repo, audit } = setup();
+    repo.rows.mockResolvedValueOnce([]);
+    await expect(service.remove(admin, '5', {})).rejects.toBeInstanceOf(NotFoundException);
+    expect(repo.write).not.toHaveBeenCalled();
+    expect(audit.recordDomain).not.toHaveBeenCalled();
+  });
+
+  it('menolak payload penghapusan yang mencoba mengirim status atau identitas', async () => {
+    const { service, repo } = setup();
+    await expect(service.remove(admin, '5', { aktif: true, actorId: '99' })).rejects.toThrow();
+    expect(repo.transaction).not.toHaveBeenCalled();
+  });
 });

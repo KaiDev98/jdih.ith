@@ -63,7 +63,7 @@ describe('Halaman informasi Admin tetap terbuka dengan kontrol perubahan nonakti
     render(<AdminTemplates />);
     expect(await screen.findByText('Surat tugas')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Versi baru' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Arsipkan' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Hapus' })).toBeEnabled();
     fireEvent.change(screen.getByLabelText('Nama'), { target: { value: 'Surat izin' } });
     fireEvent.change(screen.getByLabelText(/^Berkas/), { target: { files: [new File(['%PDF-1.7'], 'format.pdf', { type: 'application/pdf' })] } });
     fireEvent.click(screen.getByRole('button', { name: 'Buat template' }));
@@ -82,12 +82,12 @@ describe('Halaman informasi Admin tetap terbuka dengan kontrol perubahan nonakti
     fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
     await waitFor(() => expect(state.api).toHaveBeenCalledWith('/admin/letter-templates/1/versions', expect.objectContaining({ method: 'POST', muatan: expect.any(FormData) })));
   });
-  it('Admin dapat mengarsipkan format dengan konfirmasi', async () => {
+  it('Admin dapat menghapus format dengan konfirmasi', async () => {
     render(<AdminTemplates />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Arsipkan' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Hapus' }));
     expect(state.api.mock.calls.every(([, options]) => !options?.method)).toBe(true);
-    fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
-    await waitFor(() => expect(state.api).toHaveBeenCalledWith('/admin/letter-templates/1/archive', expect.objectContaining({ method: 'POST' })));
+    fireEvent.click(screen.getByRole('button', { name: 'Ya, hapus' }));
+    await waitFor(() => expect(state.api).toHaveBeenCalledWith('/admin/letter-templates/1', expect.objectContaining({ method: 'DELETE' })));
   });
   it('kontak tetap hanya dapat dibaca Admin', async () => {
     render(<AdminKontak />);

@@ -17,7 +17,8 @@ export const skemaBuatTemplate = z.strictObject({
 });
 /** Upload accompanies this metadata; physical MIME/size/checksum/storage key are server-validated. */
 export const skemaBuatVersiTemplate = z.strictObject({ tingkatAkses: skemaAksesTemplate });
-export const skemaArsipTemplate = z.strictObject({});
+export const skemaKeputusanTemplate = z.strictObject({});
+export const skemaHapusTemplate = z.strictObject({});
 export const skemaVersiTemplateAdmin = z.strictObject({
   id: skemaId,
   templateSuratId: skemaId,
@@ -55,7 +56,7 @@ export const skemaUnggahTemplateAwal = skemaBuatTemplate.extend({
 });
 export type MuatanBuatTemplate = z.infer<typeof skemaBuatTemplate>;
 export type MuatanBuatVersiTemplate = z.infer<typeof skemaBuatVersiTemplate>;
-export type MuatanArsipTemplate = z.infer<typeof skemaArsipTemplate>;
+export type MuatanHapusTemplate = z.infer<typeof skemaHapusTemplate>;
 export type ItemTemplatePublik = z.infer<typeof skemaItemTemplatePublik>;
 export type ItemTemplateAuthorized = z.infer<typeof skemaItemTemplateAuthorized>;
 export type VersiTemplateAdmin = z.infer<typeof skemaVersiTemplateAdmin>;

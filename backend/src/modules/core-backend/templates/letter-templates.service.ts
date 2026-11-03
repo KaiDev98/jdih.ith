@@ -11,7 +11,8 @@ import { ConfigService } from '@nestjs/config';
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import type { PenggunaAktif } from '@jdih/shared';
 import {
-  skemaArsipTemplate,
+  skemaKeputusanTemplate,
+  skemaHapusTemplate,
   skemaBuatVersiTemplate,
   skemaDaftarTemplateAuthorized,
   skemaDaftarTemplatePublik,
@@ -286,7 +287,7 @@ export class LetterTemplatesService {
   async verify(actor: PenggunaAktif, templateId: string, versionId: string, raw: unknown) {
     cekSuperadmin(actor);
     cekIzin(actor, ['templates.manage']);
-    skemaArsipTemplate.parse(raw);
+    skemaKeputusanTemplate.parse(raw);
     return this.repo.transaction(async (db) => {
       await this.lockTemplate(db, templateId);
       const version = await this.version(db, templateId, versionId);
@@ -323,7 +324,7 @@ export class LetterTemplatesService {
   async publish(actor: PenggunaAktif, templateId: string, versionId: string, raw: unknown) {
     cekSuperadmin(actor);
     cekIzin(actor, ['templates.manage']);
-    skemaArsipTemplate.parse(raw);
+    skemaKeputusanTemplate.parse(raw);
     return this.repo.transaction(async (db) => {
       const template = await this.lockTemplate(db, templateId);
       const version = await this.version(db, templateId, versionId);
@@ -390,53 +391,50 @@ export class LetterTemplatesService {
     return this.openAuthorized(version, actor);
   }
 
-  async archive(actor: PenggunaAktif, templateId: string, raw: unknown) {
+  async remove(actor: PenggunaAktif, templateId: string, raw: unknown) {
     this.cekPengelola(actor);
-    skemaArsipTemplate.parse(raw);
+    skemaHapusTemplate.parse(raw ?? {});
     return this.repo.transaction(async (db) => {
       const template = (
         await this.repo.rows<
-          RowDataPacket & { id: string; current_version_id: string | null; aktif: number }
+          RowDataPacket & {
+            id: string;
+            nama: string;
+            current_version_id: string | null;
+            aktif: number;
+          }
         >(
           db,
-          'SELECT id,current_version_id,aktif FROM template_surat WHERE id=? AND deleted_at IS NULL FOR UPDATE',
+          'SELECT id,nama,current_version_id,aktif FROM template_surat WHERE id=? AND deleted_at IS NULL FOR UPDATE',
           [templateId],
         )
       )[0];
       if (!template) throw new NotFoundException();
-      if (!template.current_version_id)
-        throw new ConflictException('Template tidak memiliki versi aktif');
-      const version = (
-        await this.repo.rows<RowDataPacket & { id: string }>(
-          db,
-          "SELECT id FROM template_surat_versi WHERE id=? AND status='ACTIVE' FOR UPDATE",
-          [template.current_version_id],
-        )
-      )[0];
-      if (!version) throw new ConflictException('Versi aktif template tidak ditemukan');
+      // Semua tindakan versi mengunci induk yang sama. Setelah dihapus, unggah,
+      // persetujuan, penerbitan dan unduhan tidak dapat menghidupkannya kembali.
+      // Riwayat versi/berkas dipertahankan, tanpa mengubahnya menjadi arsip.
       await this.repo.write(
         db,
-        "UPDATE template_surat_versi SET status='ARCHIVED',archived_at=GREATEST(UTC_TIMESTAMP(6),activated_at) WHERE id=?",
-        [version.id],
-      );
-      await this.repo.write(
-        db,
-        'UPDATE template_surat SET current_version_id=NULL,aktif=0 WHERE id=?',
+        'UPDATE template_surat SET current_version_id=NULL,aktif=0,deleted_at=UTC_TIMESTAMP(6) WHERE id=?',
         [templateId],
       );
       await this.audit.recordDomain(
         {
           module: 'letter-templates',
-          action: 'ARCHIVE',
+          action: 'DELETE',
           entityType: 'template_surat',
           entityId: templateId,
           actorId: actor.id,
-          before: { status: 'ACTIVE' },
-          after: { status: 'ARCHIVED' },
+          before: {
+            nama: template.nama,
+            aktif: Boolean(template.aktif),
+            currentVersionId: template.current_version_id,
+          },
+          after: { deleted: true },
         },
         db,
       );
-      return { id: templateId, archived: true };
+      return { id: templateId, deleted: true };
     });
   }
 

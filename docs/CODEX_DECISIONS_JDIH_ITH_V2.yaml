@@ -350,6 +350,9 @@ letter_templates:
   approval_metadata: [verified_by, approved_at]
   publish_verifies_file_checksum: true
   hard_delete_normal_history: false
+  manual_removal: "DELETE /admin/letter-templates/:id; active Admin/Superadmin with templates.manage; no archive action"
+  removal_transaction: "lock parent; deleted_at + active=0 + current pointer NULL + audit DELETE; preserve versions/files; no bulk purge"
+  deleted_template_access: "absent from panel/public lists; downloads/review/new versions/approval/publication denied"
   manager: "ADMIN and SUPERADMIN with templates.manage; only SUPERADMIN approves and publishes separately"
 
 popup_rule:

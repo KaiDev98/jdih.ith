@@ -1,6 +1,16 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
 **Dokumen ini adalah konteks lengkap yang harus dipahami Codex sebelum mengerjakan project.**  
+Revisi terbaru penghapusan Format Persuratan 2026-11-04: tombol Hapus menggantikan
+Arsipkan. Admin/Superadmin aktif berizin templates.manage dapat menghapus format
+lintas pemilik pada semua tahap. Transaksi mengisi deleted_at induk, aktif=0,
+current_version_id=NULL dan audit DELETE; tidak mengarsipkan versi. Daftar panel,
+portal, unduhan publik/tinjauan dan seluruh perubahan versi menolak induk dihapus.
+Riwayat versi/berkas/audit tetap disimpan. Konfirmasi singkat, CSRF, loading,
+anti klik ganda dan feedback wajib; tidak meminta ketik nama. Arsip versi historis
+saat penggantian file tetap berlaku. Tidak menghapus data unggahan yang ada
+secara massal. Struktur database sudah mendukung ini, tanpa patch baru.
+
 Revisi persetujuan dan penerbitan TERBARU 2026-11-04 menggantikan semua aturan
 langsung aktif/terbit pada revisi lama di bawah. Semua dokumen, termasuk SOP
 Permohonan SK, harus DISETUJUI dahulu lalu TERBIT melalui tindakan terpisah.

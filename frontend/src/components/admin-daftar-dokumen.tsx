@@ -582,7 +582,7 @@ export function DaftarDokumenAdmin({
                     </p>
                   </div>
                   <Badge color={format.aktif ? 'green' : 'slate'}>
-                    {format.aktif ? 'Terbit' : format.pendingStatus === 'APPROVED' ? 'Disetujui, belum terbit' : format.pendingVersionId ? 'Menunggu persetujuan' : 'Arsip'}
+                    {format.aktif ? 'Terbit' : format.pendingStatus === 'APPROVED' ? 'Disetujui, belum terbit' : format.pendingVersionId ? 'Menunggu persetujuan' : 'Nonaktif'}
                   </Badge>
                   <Link
                     href="/admin/format-persuratan"

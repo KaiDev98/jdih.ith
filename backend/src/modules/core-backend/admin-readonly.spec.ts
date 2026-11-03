@@ -131,7 +131,7 @@ describe('Admin membaca informasi tanpa kewenangan perubahan global', () => {
     const templates = new LetterTemplatesService(repo as never, storage as never, audit as never, {} as never);
     await expect(templates.adminList(admin)).resolves.toEqual([]);
     await expect(core.auditList(admin, {})).rejects.toBeInstanceOf(ForbiddenException);
-    await expect(templates.archive(admin, '1', {})).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(templates.remove(admin, '1', {})).rejects.toBeInstanceOf(ForbiddenException);
     expect(repo.write).not.toHaveBeenCalled();
   });
 

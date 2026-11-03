@@ -62,6 +62,17 @@ Jangan membangun berdasarkan asumsi legacy berikut:
 - Workflow dokumen tidak memiliki state `ditolak`.
 - Status hukum hanya `berlaku`, `diubah`, `dicabut`.
 
+## REVISI HAPUS FORMAT PERSURATAN - 2026-11-04
+
+Tindakan manual Format Persuratan adalah Hapus, bukan Arsipkan. Admin dan
+Superadmin aktif dengan templates.manage dapat menghapus format lintas pemilik,
+termasuk pending/approved/nonaktif. Hapus mengisi deleted_at pada induk, melepas
+current_version_id dan menonaktifkan format secara atomik bersama audit DELETE.
+Format hilang dari panel/portal dan semua unduhan/tindakan versi ditolak.
+Riwayat versi, berkas dan audit dipertahankan; penggantian versi terbit tetap
+menyimpan versi sebelumnya. Tidak ada purge massal atau hard-delete riwayat.
+Konfirmasi singkat tanpa mengetik nama, CSRF, loading dan feedback tetap wajib.
+
 ## REVISI WORKFLOW - 2026-11-04
 
 Persetujuan dan penerbitan terpisah untuk SEMUA dokumen termasuk SOP Permohonan

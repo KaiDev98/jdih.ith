@@ -53,7 +53,7 @@ export function AdminTemplates() {
   const [refresh, setRefresh] = useState(0);
   const [selected, setSelected] = useState<Template>();
   const [filter, setFilter] = useState<
-    'SEMUA' | 'AKTIF' | 'MENUNGGU_VERIFIKASI' | 'DISETUJUI' | 'ARSIP'
+    'SEMUA' | 'AKTIF' | 'MENUNGGU_VERIFIKASI' | 'DISETUJUI' | 'NONAKTIF'
   >('SEMUA');
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
@@ -147,13 +147,15 @@ export function AdminTemplates() {
     setNotice(`Versi ${row.pendingNomorVersi} ${row.nama} berhasil diterbitkan.`);
     setRefresh((value) => value + 1);
   }
-  async function archive(row: Template) {
-    await ambilApi(`/admin/letter-templates/${row.id}/archive`, {
-      method: 'POST',
+  async function remove(row: Template) {
+    if (!bolehKelola) throw new Error('Anda tidak memiliki izin menghapus format persuratan.');
+    await ambilApi(`/admin/letter-templates/${row.id}`, {
+      method: 'DELETE',
       headers: csrfHeaders(csrfToken),
       muatan: {},
     });
-    setNotice(`${row.nama} berhasil diarsipkan.`);
+    setNotice(`${row.nama} berhasil dihapus.`);
+    setRows((data) => data.filter((item) => item.id !== row.id));
     if (selected?.id === row.id) reset();
     setRefresh((x) => x + 1);
   }
@@ -162,7 +164,7 @@ export function AdminTemplates() {
     (row) => row.pendingVersionId && row.pendingStatus !== 'APPROVED',
   ).length;
   const disetujui = rows.filter((row) => row.pendingStatus === 'APPROVED').length;
-  const arsip = rows.filter((row) => !row.aktif && !row.pendingVersionId).length;
+  const nonaktif = rows.filter((row) => !row.aktif && !row.pendingVersionId).length;
   const tampil = rows.filter(
     (row) =>
       filter === 'SEMUA' ||
@@ -171,7 +173,7 @@ export function AdminTemplates() {
         !!row.pendingVersionId &&
         row.pendingStatus !== 'APPROVED') ||
       (filter === 'DISETUJUI' && row.pendingStatus === 'APPROVED') ||
-      (filter === 'ARSIP' && !row.aktif && !row.pendingVersionId),
+      (filter === 'NONAKTIF' && !row.aktif && !row.pendingVersionId),
   );
 
   return (
@@ -235,7 +237,7 @@ export function AdminTemplates() {
                   ['AKTIF', 'Aktif', aktif],
                   ['MENUNGGU_VERIFIKASI', 'Menunggu persetujuan', menungguVerifikasi],
                   ['DISETUJUI', 'Disetujui', disetujui],
-                  ['ARSIP', 'Arsip', arsip],
+                  ['NONAKTIF', 'Nonaktif', nonaktif],
                 ] as const
               ).map(([id, label, count]) => (
                 <button
@@ -291,7 +293,7 @@ export function AdminTemplates() {
                             : 'Menunggu persetujuan'}
                         </Badge>
                       ) : (
-                        <Badge color="slate">Arsip</Badge>
+                        <Badge color="slate">Nonaktif</Badge>
                       )}
                       {!!row.aktif && row.pendingVersionId && (
                         <Badge color={row.pendingStatus === 'APPROVED' ? 'blue' : 'amber'}>
@@ -356,17 +358,16 @@ export function AdminTemplates() {
                           onConfirm={() => publish(row)}
                         />
                       )}
-                    {!!row.aktif && (
-                      <ConfirmAction
-                        label="Arsipkan"
-                        tone="danger"
-                        ukuran="kecil"
-                        title="Arsipkan template?"
-                        description={`${row.nama} tidak lagi tersedia untuk diunduh. Riwayat versinya tetap disimpan.`}
-                        disabled={!bolehKelola}
-                        onConfirm={() => archive(row)}
-                      />
-                    )}
+                    <ConfirmAction
+                      label="Hapus"
+                      tone="danger"
+                      ukuran="kecil"
+                      title="Hapus format persuratan?"
+                      confirmLabel="Ya, hapus"
+                      description={`${row.nama} akan dihapus dari daftar pengelola dan portal. Seluruh versi berkasnya tidak lagi dapat diunduh.`}
+                      disabled={!bolehKelola}
+                      onConfirm={() => remove(row)}
+                    />
                   </div>
                 </li>
               ))}
