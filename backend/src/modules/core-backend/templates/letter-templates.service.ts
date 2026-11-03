@@ -18,8 +18,14 @@ import {
   skemaDaftarTemplatePublik,
   skemaUnggahTemplateAwal,
   skemaCariTemplate,
+  skemaAntreanTemplate,
 } from '@jdih/shared';
-import { cekBacaPanel, cekIzin, cekSuperadmin } from '../../identity/security.js';
+import {
+  cekBacaPanel,
+  cekIzin,
+  cekPemilikAtauSuperadmin,
+  cekSuperadmin,
+} from '../../identity/security.js';
 import { AuditService } from '../../identity/audit.service.js';
 import { CoreBackendRepository } from '../core-backend.repository.js';
 import { StorageService } from '../storage/storage.service.js';
@@ -132,13 +138,16 @@ export class LetterTemplatesService {
     try {
       return await this.repo.transaction(async (db) => {
         const template = (
-          await this.repo.rows<RowDataPacket & { id: string; current_version_id: string | null }>(
+          await this.repo.rows<
+            RowDataPacket & { id: string; created_by: string; current_version_id: string | null }
+          >(
             db,
-            'SELECT id,current_version_id FROM template_surat WHERE id=? AND deleted_at IS NULL FOR UPDATE',
+            'SELECT id,created_by,current_version_id FROM template_surat WHERE id=? AND deleted_at IS NULL FOR UPDATE',
             [templateId],
           )
         )[0];
         if (!template) throw new NotFoundException();
+        cekPemilikAtauSuperadmin(actor, template.created_by);
         const pending = (
           await this.repo.rows<RowDataPacket & { id: string; nomor_versi: number; status: string }>(
             db,
@@ -146,6 +155,10 @@ export class LetterTemplatesService {
             [templateId],
           )
         )[0];
+        if (pending?.status === 'APPROVED' && !actor.peran.includes('SUPERADMIN'))
+          throw new ConflictException(
+            'Versi yang sudah disetujui dikunci sampai diterbitkan Superadmin',
+          );
         const old = template.current_version_id
           ? (
               await this.repo.rows<RowDataPacket & { id: string; nomor_versi: number }>(
@@ -377,8 +390,10 @@ export class LetterTemplatesService {
     cekBacaPanel(actor, 'templates.manage');
     const [version] = await this.repo.rows<TemplateFile>(
       this.repo.pool,
-      'SELECT v.* FROM template_surat_versi v JOIN template_surat t ON t.id=v.template_surat_id WHERE v.id=? AND t.id=? AND t.deleted_at IS NULL',
-      [versionId, templateId],
+      `SELECT v.* FROM template_surat_versi v JOIN template_surat t ON t.id=v.template_surat_id WHERE v.id=? AND t.id=? AND t.deleted_at IS NULL${actor.peran.includes('SUPERADMIN') ? '' : ' AND t.created_by=?'}`,
+      actor.peran.includes('SUPERADMIN')
+        ? [versionId, templateId]
+        : [versionId, templateId, actor.id],
     );
     if (!version) throw new NotFoundException();
     await this.audit.recordDomain({
@@ -402,14 +417,27 @@ export class LetterTemplatesService {
             nama: string;
             current_version_id: string | null;
             aktif: number;
+            created_by: string;
           }
         >(
           db,
-          'SELECT id,nama,current_version_id,aktif FROM template_surat WHERE id=? AND deleted_at IS NULL FOR UPDATE',
+          'SELECT id,nama,created_by,current_version_id,aktif FROM template_surat WHERE id=? AND deleted_at IS NULL FOR UPDATE',
           [templateId],
         )
       )[0];
       if (!template) throw new NotFoundException();
+      cekPemilikAtauSuperadmin(actor, template.created_by);
+      if (!actor.peran.includes('SUPERADMIN')) {
+        const approved = await this.repo.rows(
+          db,
+          "SELECT id FROM template_surat_versi WHERE template_surat_id=? AND status='APPROVED' FOR UPDATE",
+          [templateId],
+        );
+        if (template.current_version_id || approved.length)
+          throw new ConflictException(
+            'Format yang sudah disetujui atau terbit hanya dapat dihapus Superadmin',
+          );
+      }
       // Semua tindakan versi mengunci induk yang sama. Setelah dihapus, unggah,
       // persetujuan, penerbitan dan unduhan tidak dapat menghidupkannya kembali.
       // Riwayat versi/berkas dipertahankan, tanpa mengubahnya menjadi arsip.
@@ -493,10 +521,50 @@ export class LetterTemplatesService {
 
   async adminList(actor: PenggunaAktif) {
     cekBacaPanel(actor, 'templates.manage');
+    const superadmin = actor.peran.includes('SUPERADMIN');
     return this.repo.rows(
       this.repo.pool,
-      "SELECT CAST(t.id AS CHAR) id,t.slug,t.nama,t.aktif,CAST(t.current_version_id AS CHAR) currentVersionId,CAST(v.nomor_versi AS UNSIGNED) nomorVersi,v.tingkat_akses tingkatAkses,v.status,CAST(p.id AS CHAR) pendingVersionId,CAST(p.nomor_versi AS UNSIGNED) pendingNomorVersi,p.tingkat_akses pendingTingkatAkses,p.status pendingStatus FROM template_surat t LEFT JOIN template_surat_versi v ON v.id=t.current_version_id LEFT JOIN template_surat_versi p ON p.template_surat_id=t.id AND p.status IN ('PENDING_REVIEW','APPROVED') WHERE t.deleted_at IS NULL ORDER BY t.updated_at DESC",
+      `SELECT CAST(t.id AS CHAR) id,CAST(t.created_by AS CHAR) createdBy,t.slug,t.nama,t.aktif,CAST(t.current_version_id AS CHAR) currentVersionId,CAST(v.nomor_versi AS UNSIGNED) nomorVersi,v.tingkat_akses tingkatAkses,v.status,CAST(p.id AS CHAR) pendingVersionId,CAST(p.nomor_versi AS UNSIGNED) pendingNomorVersi,p.tingkat_akses pendingTingkatAkses,p.status pendingStatus FROM template_surat t LEFT JOIN template_surat_versi v ON v.id=t.current_version_id LEFT JOIN template_surat_versi p ON p.template_surat_id=t.id AND p.status IN ('PENDING_REVIEW','APPROVED') WHERE t.deleted_at IS NULL${superadmin ? '' : ' AND t.created_by=?'} ORDER BY t.updated_at DESC`,
+      superadmin ? [] : [actor.id],
     );
+  }
+
+  async verificationQueue(actor: PenggunaAktif, rawQuery: unknown) {
+    cekBacaPanel(actor, 'templates.manage');
+    const page = skemaCariTemplate.parse(rawQuery ?? {});
+    const superadmin = actor.peran.includes('SUPERADMIN');
+    const values: (string | number)[] = superadmin ? [] : [actor.id];
+    const where = ['t.deleted_at IS NULL', "v.status='PENDING_REVIEW'"];
+    if (!superadmin) where.push('t.created_by=?');
+    if (page.q) {
+      where.push("t.nama LIKE ? ESCAPE '!'");
+      values.push(`%${page.q.replaceAll('!', '!!').replaceAll('%', '!%').replaceAll('_', '!_')}%`);
+    }
+    const from = `FROM template_surat t JOIN template_surat_versi v ON v.template_surat_id=t.id JOIN pengguna u ON u.id=v.created_by WHERE ${where.join(' AND ')}`;
+    const [count] = await this.repo.rows<RowDataPacket & { total: string }>(
+      this.repo.pool,
+      `SELECT COUNT(*) total ${from}`,
+      values,
+    );
+    const offset = (page.halaman - 1) * page.perHalaman;
+    const data = await this.repo.rows(
+      this.repo.pool,
+      `SELECT CAST(v.id AS CHAR) id,CAST(t.id AS CHAR) templateSuratId,t.nama,v.nomor_versi nomorVersi,v.tingkat_akses tingkatAkses,v.status,u.nama pengunggah,CAST(v.created_at AS CHAR) diajukanPada ${from} ORDER BY v.created_at,v.id LIMIT ? OFFSET ?`,
+      [...values, page.perHalaman, offset],
+    );
+    const total = Number(count?.total ?? 0);
+    return skemaAntreanTemplate.parse({
+      sukses: true,
+      data,
+      meta: {
+        halaman: page.halaman,
+        perHalaman: page.perHalaman,
+        totalButir: total,
+        totalHalaman: Math.ceil(total / page.perHalaman),
+        adaSebelumnya: page.halaman > 1,
+        adaBerikutnya: offset + data.length < total,
+      },
+    });
   }
 
   async authorizeOpen(slug: string, actor?: PenggunaAktif) {

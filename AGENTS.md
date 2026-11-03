@@ -62,6 +62,21 @@ Jangan membangun berdasarkan asumsi legacy berikut:
 - Workflow dokumen tidak memiliki state `ditolak`.
 - Status hukum hanya `berlaku`, `diubah`, `dicabut`.
 
+## REVISI KEPEMILIKAN DAN ANTREAN - 2026-11-04 (TERBARU)
+
+Persetujuan Format Persuratan dilakukan pada Antrean Verifikasi, khusus
+Superadmin aktif; penerbitan tetap terpisah. Unggahan sendiri Superadmin juga
+masuk antrean format. Admin hanya melihat/mengelola format yang dibuatnya,
+tidak dapat mengganti, menghapus atau meninjau berkas panel milik Admin lain
+melalui ID langsung. SOP Permohonan SK tetap milik masing-masing Admin untuk
+unggah/ubah/ajukan; seluruh keputusan tetap khusus Superadmin. Format APPROVED
+tidak dapat diganti Admin sampai diterbitkan; format yang disetujui/terbit hanya
+dapat dihapus Superadmin. Revisi setelah terbit tetap memerlukan persetujuan baru.
+Ini menggantikan pengecualian template lintas pemilik pada revisi lama.
+Hilangkan fitur tambah Kategori SOP dan Jenis Dokumen, termasuk POST API bagi
+Superadmin. Daftar, perubahan data yang sudah ada dan pilihan saat unggah tetap
+tersedia. Tidak menghapus master atau unggahan yang ada; tanpa migrasi baru.
+
 ## REVISI HAPUS FORMAT PERSURATAN - 2026-11-04
 
 Tindakan manual Format Persuratan adalah Hapus, bukan Arsipkan. Admin dan

@@ -104,13 +104,11 @@ describe('CoreBackendService unit kerja mengikuti kategori SOP', () => {
     expect(repo.transaction).not.toHaveBeenCalled();
   });
 
-  it('kategori baru langsung menjadi unit kerja dengan kode dan nama yang sama', async () => {
-    const { service, sql } = setup();
-    await service.masterSave(superadmin, 'kategori', null, { kode: 'SOP-HUKUM', nama: 'Bagian Hukum' });
-    expect(sql()).toContainEqual([
-      expect.stringContaining('INSERT INTO unit_kerja(kode,nama,aktif)'),
-      ['SOP-HUKUM', 'Bagian Hukum', true],
-    ]);
+  it.each(['kategori', 'jenis_dokumen'] as const)('penambahan %s ditutup juga bagi Superadmin', async (table) => {
+    const { service, repo } = setup();
+    await expect(service.masterSave(superadmin, table, null, { kode: 'BARU', nama: 'Data Baru' })).rejects.toBeInstanceOf(ForbiddenException);
+    expect(repo.transaction).not.toHaveBeenCalled();
+    expect(repo.write).not.toHaveBeenCalled();
   });
 
   it('mengganti kode kategori ikut mengganti kode unitnya', async () => {

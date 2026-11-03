@@ -2,6 +2,17 @@
 
 This file tells Codex how to move from the current foundation to the agreed V2 without losing design intent.
 
+## Kepemilikan dan Antrean Verifikasi - 2026-11-04 (terbaru)
+
+Format Persuratan Admin dibatasi pemilik di SQL dan service untuk list, queue,
+newVersion, delete dan review. Superadmin tetap lintas pemilik. Approval di
+bagian format pada halaman Antrean Verifikasi; publish terpisah di pengelolaan.
+Admin tidak bisa mengganti APPROVED atau menghapus format disetujui/terbit.
+Uji dua Admin, spoof ID/izin, antrean berhalaman, keputusan stale, audit/CSRF,
+versi aktif tetap current dan larangan menyentuh SOP Permohonan SK akun lain.
+Hilangkan formulir tambah jenis/kategori; POST master kedua tabel ditolak bahkan
+Superadmin. Pertahankan daftar dan editor master lama, tanpa perubahan schema.
+
 ## Hapus Format Persuratan - 2026-11-04
 
 Ganti Arsipkan dengan Hapus melalui DELETE terproteksi. Gunakan deleted_at induk,

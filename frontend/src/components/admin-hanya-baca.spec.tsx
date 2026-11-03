@@ -17,7 +17,7 @@ beforeEach(() => {
   state.pengguna.peran = ['ADMIN'];
   state.api.mockReset().mockImplementation((url: string) => Promise.resolve(
     url === '/public/contact' ? { butir: [{ id: '1', jenis: 'SUREL', label: null, nilai: 'hukum@ith.ac.id' }] } :
-    url === '/admin/letter-templates' ? [{ id: '1', nama: 'Surat tugas', slug: 'surat-tugas', aktif: true, nomorVersi: 1, tingkatAkses: 'PUBLIK' }] :
+    url === '/admin/letter-templates' ? [{ id: '1', createdBy: '1', nama: 'Surat tugas', slug: 'surat-tugas', aktif: true, nomorVersi: 1, tingkatAkses: 'PUBLIK' }] :
     url === '/admin/users/accounts' ? [{ id: '2', nama: 'Admin Lain', email: 'lain@ith.ac.id', status: 'AKTIF', peran: ['ADMIN'] }] :
     url === '/admin/users' ? [{ id: '3', nama: 'Dosen Baru', email: 'baru@ith.ac.id', status: 'MENUNGGU_VERIFIKASI', unitKerjaId: '1' }] :
     [{ id: '1', nama: 'Keuangan', kode: 'KEU', aktif: true }],
@@ -46,24 +46,27 @@ describe('Halaman informasi Admin tetap terbuka dengan kontrol perubahan nonakti
     render(<AdminMaster table="kategori" />);
     expect(await screen.findAllByText('Keuangan')).toHaveLength(2);
     for (const button of screen.getAllByRole('button', { name: 'Ubah' })) expect(button).toBeDisabled();
-    expect(screen.getByLabelText('Nama')).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Tambah' })).toBeDisabled();
+    expect(screen.queryByLabelText('Nama')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Tambah' })).not.toBeInTheDocument();
     expect(state.api.mock.calls.every(([, options]) => !options?.method)).toBe(true);
   });
-  it('Superadmin tetap dapat mengisi master data', async () => {
+  it('Superadmin hanya dapat mengubah master yang sudah ada', async () => {
     state.pengguna.peran = ['SUPERADMIN'];
     render(<AdminMaster table="kategori" />);
     await screen.findAllByText('Keuangan');
+    expect(screen.queryByRole('button', { name: 'Tambah' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Nama')).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Ubah' })[0]!);
     expect(screen.getByLabelText('Nama')).toBeEnabled();
     fireEvent.change(screen.getByLabelText('Nama'), { target: { value: 'Hukum' } });
     fireEvent.change(screen.getByLabelText('Kode'), { target: { value: 'HKM' } });
-    expect(screen.getByRole('button', { name: 'Tambah' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Simpan perubahan' })).toBeEnabled();
   });
   it('Admin dapat membuat format dan mengelola format yang sudah ada', async () => {
     render(<AdminTemplates />);
     expect(await screen.findByText('Surat tugas')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Versi baru' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Hapus' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Hapus' })).toBeDisabled();
     fireEvent.change(screen.getByLabelText('Nama'), { target: { value: 'Surat izin' } });
     fireEvent.change(screen.getByLabelText(/^Berkas/), { target: { files: [new File(['%PDF-1.7'], 'format.pdf', { type: 'application/pdf' })] } });
     fireEvent.click(screen.getByRole('button', { name: 'Buat template' }));
@@ -82,7 +85,8 @@ describe('Halaman informasi Admin tetap terbuka dengan kontrol perubahan nonakti
     fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
     await waitFor(() => expect(state.api).toHaveBeenCalledWith('/admin/letter-templates/1/versions', expect.objectContaining({ method: 'POST', muatan: expect.any(FormData) })));
   });
-  it('Admin dapat menghapus format dengan konfirmasi', async () => {
+  it('Admin dapat menghapus format miliknya yang masih menunggu dengan konfirmasi', async () => {
+    state.api.mockResolvedValue([{ id: '1', createdBy: '1', nama: 'Surat tugas', slug: 'surat-tugas', aktif: 0, pendingVersionId: '3', pendingStatus: 'PENDING_REVIEW' }]);
     render(<AdminTemplates />);
     fireEvent.click(await screen.findByRole('button', { name: 'Hapus' }));
     expect(state.api.mock.calls.every(([, options]) => !options?.method)).toBe(true);

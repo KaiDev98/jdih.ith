@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { FileText, FileUp, Plus, UploadCloud, X } from 'lucide-react';
+import Link from '@/components/admin/tautan-panel';
 import { ambilApi, GalatApi } from '@/lib/api-client';
 import { useSession, csrfHeaders } from '@/lib/sesi';
 import { jadikanSlug, rapikanSlugKetik } from '@/lib/slug';
@@ -22,6 +23,7 @@ import styles from './admin-templates.module.css';
 
 type Template = {
   id: string;
+  createdBy: string;
   slug: string;
   nama: string;
   aktif: boolean | number;
@@ -45,7 +47,12 @@ export function AdminTemplates() {
     pengguna?.status === 'AKTIF' &&
     pengguna.peran.includes('SUPERADMIN') &&
     pengguna.izin.includes('templates.manage');
-  const bolehGantiVersiTertunda = bolehKelola;
+  const bolehUbah = (row: Template) =>
+    bolehKelola && (bolehVerifikasi || row.createdBy === pengguna?.id);
+  const bolehGanti = (row: Template) =>
+    bolehUbah(row) && (bolehVerifikasi || row.pendingStatus !== 'APPROVED');
+  const bolehHapus = (row: Template) =>
+    bolehUbah(row) && (bolehVerifikasi || (!row.aktif && row.pendingStatus !== 'APPROVED'));
   const [rows, setRows] = useState<Template[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState('');
@@ -98,6 +105,7 @@ export function AdminTemplates() {
   }
   async function upload() {
     if (!bolehKelola) throw new Error('Anda tidak memiliki izin mengelola format persuratan.');
+    if (selected && !bolehGanti(selected)) throw new Error('Format ini tidak dapat Anda ubah.');
     if (!file) throw new Error('Pilih berkas format surat.');
     const data = new FormData();
     data.set('file', file);
@@ -123,19 +131,6 @@ export function AdminTemplates() {
     reset();
     setRefresh((x) => x + 1);
   }
-  async function verify(row: Template) {
-    if (!bolehVerifikasi || !row.pendingVersionId)
-      throw new Error('Hanya Superadmin aktif yang dapat memverifikasi format persuratan.');
-    await ambilApi(`/admin/letter-templates/${row.id}/versions/${row.pendingVersionId}/verify`, {
-      method: 'POST',
-      headers: csrfHeaders(csrfToken),
-      muatan: {},
-    });
-    setNotice(
-      `Versi ${row.pendingNomorVersi} ${row.nama} berhasil disetujui. Terbitkan secara terpisah agar tersedia di portal.`,
-    );
-    setRefresh((x) => x + 1);
-  }
   async function publish(row: Template) {
     if (!bolehVerifikasi || !row.pendingVersionId || row.pendingStatus !== 'APPROVED')
       throw new Error('Setujui format terlebih dahulu sebelum menerbitkan.');
@@ -148,7 +143,8 @@ export function AdminTemplates() {
     setRefresh((value) => value + 1);
   }
   async function remove(row: Template) {
-    if (!bolehKelola) throw new Error('Anda tidak memiliki izin menghapus format persuratan.');
+    if (!bolehHapus(row))
+      throw new Error('Format yang disetujui atau terbit hanya dapat dihapus Superadmin.');
     await ambilApi(`/admin/letter-templates/${row.id}`, {
       method: 'DELETE',
       headers: csrfHeaders(csrfToken),
@@ -310,9 +306,8 @@ export function AdminTemplates() {
                       tone="secondary"
                       ukuran="kecil"
                       disabled={
-                        !bolehKelola ||
-                        (!row.aktif && !row.pendingVersionId) ||
-                        (!!row.pendingVersionId && !bolehGantiVersiTertunda)
+                        !bolehGanti(row) ||
+                        (!row.aktif && !row.pendingVersionId)
                       }
                       onClick={() => {
                         reset();
@@ -322,9 +317,7 @@ export function AdminTemplates() {
                       }}
                     >
                       <FileUp aria-hidden className="size-3.5" />
-                      {row.pendingVersionId && bolehGantiVersiTertunda
-                        ? 'Unggah perbaikan'
-                        : 'Versi baru'}
+                      {row.pendingVersionId && bolehGanti(row) ? 'Unggah perbaikan' : 'Versi baru'}
                     </Button>
                     {row.pendingVersionId && (
                       <a
@@ -334,19 +327,14 @@ export function AdminTemplates() {
                         Unduh untuk ditinjau
                       </a>
                     )}
-                    {bolehVerifikasi &&
-                      row.pendingVersionId &&
-                      row.pendingStatus !== 'APPROVED' && (
-                        <ConfirmAction
-                          label="Setujui"
-                          tone="secondary"
-                          ukuran="kecil"
-                          title="Setujui format persuratan?"
-                          description={`${row.nama} versi ${row.pendingNomorVersi} akan disetujui. Penerbitan dilakukan melalui tombol Terbitkan setelahnya; versi terbit sebelumnya tetap tersedia.`}
-                          disabled={!bolehVerifikasi}
-                          onConfirm={() => verify(row)}
-                        />
-                      )}
+                    {row.pendingVersionId && row.pendingStatus !== 'APPROVED' && (
+                      <Link
+                        href="/admin/dokumen/verifikasi"
+                        className="inline-flex min-h-11 items-center text-xs font-semibold text-institusi-700 underline underline-offset-4"
+                      >
+                        Lihat di Antrean Verifikasi
+                      </Link>
+                    )}
                     {bolehVerifikasi &&
                       row.pendingVersionId &&
                       row.pendingStatus === 'APPROVED' && (
@@ -365,7 +353,7 @@ export function AdminTemplates() {
                       title="Hapus format persuratan?"
                       confirmLabel="Ya, hapus"
                       description={`${row.nama} akan dihapus dari daftar pengelola dan portal. Seluruh versi berkasnya tidak lagi dapat diunduh.`}
-                      disabled={!bolehKelola}
+                      disabled={!bolehHapus(row)}
                       onConfirm={() => remove(row)}
                     />
                   </div>

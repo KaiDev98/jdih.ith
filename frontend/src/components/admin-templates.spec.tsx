@@ -9,7 +9,7 @@ const state = vi.hoisted(() => ({
 }));
 vi.mock('@/lib/sesi', () => ({
   useSession: () => ({
-    pengguna: { status: 'AKTIF', peran: [state.role], izin: state.permissions },
+    pengguna: { id: '11', status: 'AKTIF', peran: [state.role], izin: state.permissions },
     csrfToken: 'csrf',
   }),
   csrfHeaders: () => ({ 'X-CSRF-Token': 'csrf' }),
@@ -21,6 +21,7 @@ vi.mock('@/lib/api-client', async (original) => ({
 const rows = [
   {
     id: '1',
+    createdBy: '11',
     nama: 'Surat Tugas',
     slug: 'surat-tugas',
     aktif: 1,
@@ -32,6 +33,7 @@ const rows = [
   },
   {
     id: '2',
+    createdBy: '11',
     nama: 'Surat Lama',
     slug: 'surat-lama',
     aktif: 0,
@@ -50,6 +52,13 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('pustaka Format Persuratan', () => {
+  it('Admin tidak mendapat kontrol perubahan untuk format milik akun lain meski respons lama memuatnya', async () => {
+    state.api.mockResolvedValue([{ ...rows[0], createdBy: '99' }]);
+    render(<AdminTemplates />);
+    await screen.findByText('Surat Tugas');
+    expect(screen.getByRole('button', { name: 'Versi baru' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Hapus' })).toBeDisabled();
+  });
   it('filter status tetap tersedia tanpa bilah pencarian atau izin mengubah', async () => {
     state.permissions = [];
     render(<AdminTemplates />);
@@ -120,26 +129,15 @@ describe('pustaka Format Persuratan', () => {
       expect.objectContaining({ method: 'POST', headers: { 'X-CSRF-Token': 'csrf' } }),
     );
   });
-  it('hanya Superadmin yang melihat aksi verifikasi dan mengirim konfirmasi ber-CSRF', async () => {
+  it('persetujuan dipindahkan ke Antrean Verifikasi, bukan dilakukan di pengelolaan format', async () => {
     state.role = 'SUPERADMIN';
-    const pending = [
-      {
-        ...rows[0],
-        pendingVersionId: 'v3',
-        pendingNomorVersi: 3,
-        pendingTingkatAkses: 'INTERNAL',
-      },
-    ];
-    state.api.mockResolvedValue(pending);
+    state.api.mockResolvedValue([{ ...rows[0], pendingVersionId: '3', pendingNomorVersi: 3 }]);
     render(<AdminTemplates />);
     await screen.findByText('Surat Tugas');
-    fireEvent.click(screen.getByRole('button', { name: 'Setujui' }));
-    expect(screen.getByText(/akan disetujui/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
-    await screen.findByText(/berhasil disetujui/);
-    expect(state.api).toHaveBeenCalledWith(
-      '/admin/letter-templates/1/versions/v3/verify',
-      expect.objectContaining({ method: 'POST', headers: { 'X-CSRF-Token': 'csrf' } }),
+    expect(screen.queryByRole('button', { name: 'Setujui' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Lihat di Antrean Verifikasi' })).toHaveAttribute(
+      'href',
+      '/superadmin/dokumen/verifikasi',
     );
   });
   it('Terbitkan hanya muncul setelah disetujui dan tetap perlu konfirmasi tersendiri', async () => {
@@ -201,7 +199,14 @@ describe('pustaka Format Persuratan', () => {
           deleted = true;
           return Promise.resolve({ id: '1', deleted: true });
         }
-        return Promise.resolve(deleted ? rows.slice(1) : rows);
+        return Promise.resolve(
+          deleted
+            ? rows.slice(1)
+            : [
+                { ...rows[0], aktif: 0, pendingVersionId: '3', pendingStatus: 'PENDING_REVIEW' },
+                rows[1],
+              ],
+        );
       });
       render(<AdminTemplates />);
       await screen.findByText('Surat Tugas');
@@ -230,7 +235,10 @@ describe('pustaka Format Persuratan', () => {
         ? new Promise((_resolve, reject) => {
             rejectDelete = reject;
           })
-        : Promise.resolve(rows),
+        : Promise.resolve([
+            { ...rows[0], aktif: 0, pendingVersionId: '3', pendingStatus: 'PENDING_REVIEW' },
+            rows[1],
+          ]),
     );
     render(<AdminTemplates />);
     await screen.findByText('Surat Tugas');
@@ -247,7 +255,7 @@ describe('pustaka Format Persuratan', () => {
   });
 
   it.each(['PENDING_REVIEW', 'APPROVED'])(
-    'Hapus tersedia juga untuk format belum terbit (%s)',
+    'Hapus hanya tersedia sebelum keputusan Superadmin (%s)',
     async (status) => {
       state.api.mockResolvedValue([
         {
@@ -262,7 +270,9 @@ describe('pustaka Format Persuratan', () => {
       ]);
       render(<AdminTemplates />);
       await screen.findByText('Surat Tugas');
-      expect(screen.getByRole('button', { name: 'Hapus' })).toBeEnabled();
+      if (status === 'APPROVED')
+        expect(screen.getByRole('button', { name: 'Hapus' })).toBeDisabled();
+      else expect(screen.getByRole('button', { name: 'Hapus' })).toBeEnabled();
     },
   );
 });

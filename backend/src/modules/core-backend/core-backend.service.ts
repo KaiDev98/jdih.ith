@@ -328,6 +328,8 @@ export class CoreBackendService {
     cekSuperadmin(actor);
     this.allow(actor, table === 'unit_kerja' ? 'units.manage' : 'master.manage');
     if (table === 'unit_kerja') throw new ConflictException(UNIT_IKUT_KATEGORI);
+    if (!id && (table === 'jenis_dokumen' || table === 'kategori'))
+      throw new ForbiddenException('Penambahan jenis dokumen dan kategori SOP tidak tersedia');
     const b = (
       table === 'jenis_dokumen'
         ? skemaJenisDokumen.parse(input)
@@ -345,32 +347,18 @@ export class CoreBackendService {
           if (!before) throw new NotFoundException();
         }
         if (table === 'jenis_dokumen') {
-          if (id)
-            await this.repo.write(
-              db,
-              'UPDATE jenis_dokumen SET kode=?,nama=?,urutan=?,aktif=? WHERE id=?',
-              [b.kode, b.nama, b.urutan ?? 0, b.aktif ?? true, id],
-            );
-          else
-            await this.repo.write(
-              db,
-              'INSERT INTO jenis_dokumen(kode,nama,urutan,aktif) VALUES(?,?,?,?)',
-              [b.kode, b.nama, b.urutan ?? 0, b.aktif ?? true],
-            );
+          await this.repo.write(
+            db,
+            'UPDATE jenis_dokumen SET kode=?,nama=?,urutan=?,aktif=? WHERE id=?',
+            [b.kode, b.nama, b.urutan ?? 0, b.aktif ?? true, id],
+          );
         } else if (table === 'kategori') {
-          if (id)
-            await this.repo.write(db, 'UPDATE kategori SET kode=?,nama=?,aktif=? WHERE id=?', [
-              b.kode,
-              b.nama,
-              b.aktif ?? true,
-              id,
-            ]);
-          else
-            await this.repo.write(db, 'INSERT INTO kategori(kode,nama,aktif) VALUES(?,?,?)', [
-              b.kode,
-              b.nama,
-              b.aktif ?? true,
-            ]);
+          await this.repo.write(db, 'UPDATE kategori SET kode=?,nama=?,aktif=? WHERE id=?', [
+            b.kode,
+            b.nama,
+            b.aktif ?? true,
+            id,
+          ]);
           await this.selaraskanUnit(db, b, before?.kode as string | undefined);
         } else {
           if (id) await this.repo.write(db, 'UPDATE tag SET nama=? WHERE id=?', [b.nama, id]);

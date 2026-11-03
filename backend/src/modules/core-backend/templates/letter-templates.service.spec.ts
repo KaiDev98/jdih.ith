@@ -116,10 +116,10 @@ describe('Format Persuratan dikelola Admin dan Superadmin', () => {
       );
     });
 
-    it(`${peran} dapat memperbarui format milik akun lain tanpa menghapus versi lama`, async () => {
+    it(`${peran} dapat memperbarui format miliknya tanpa menghapus versi lama`, async () => {
       const { service, repo, audit, db } = setup();
       repo.rows
-        .mockResolvedValueOnce([{ id: '5', current_version_id: '50', created_by: '99' }])
+        .mockResolvedValueOnce([{ id: '5', current_version_id: '50', created_by: admin.id }])
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([{ id: '50', nomor_versi: 1 }])
         .mockResolvedValueOnce([{ number: '1' }]);
@@ -144,11 +144,13 @@ describe('Format Persuratan dikelola Admin dan Superadmin', () => {
       );
     });
 
-    it(`${peran} dapat menghapus format milik akun lain tanpa mengarsipkan versinya`, async () => {
+    it(`${peran} dapat menghapus format miliknya yang belum disetujui tanpa mengarsipkan versinya`, async () => {
       const { service, repo, audit, db } = setup();
-      repo.rows.mockResolvedValueOnce([
-        { id: '5', nama: 'Surat', current_version_id: '50', aktif: 1, created_by: '99' },
-      ]);
+      repo.rows
+        .mockResolvedValueOnce([
+          { id: '5', nama: 'Surat', current_version_id: null, aktif: 0, created_by: admin.id },
+        ])
+        .mockResolvedValueOnce([]);
       await expect(service.remove({ ...admin, peran: [peran] }, '5', {})).resolves.toEqual({
         id: '5',
         deleted: true,
@@ -179,7 +181,7 @@ describe('Format Persuratan dikelola Admin dan Superadmin', () => {
       checksum: Buffer.alloc(32),
     };
     repo.rows
-      .mockResolvedValueOnce([{ id: '5', current_version_id: '50' }])
+      .mockResolvedValueOnce([{ id: '5', created_by: admin.id, current_version_id: '50' }])
       .mockResolvedValueOnce([version]);
     await expect(service.verify(superadmin, '5', '80', {})).resolves.toMatchObject({
       status: 'APPROVED',
@@ -196,7 +198,7 @@ describe('Format Persuratan dikelola Admin dan Superadmin', () => {
     );
     repo.write.mockClear();
     repo.rows
-      .mockResolvedValueOnce([{ id: '5', current_version_id: '50' }])
+      .mockResolvedValueOnce([{ id: '5', created_by: admin.id, current_version_id: '50' }])
       .mockResolvedValueOnce([
         { ...version, status: 'APPROVED', verified_by: superadmin.id, approved_at: '2026-11-04' },
       ])
@@ -254,7 +256,7 @@ describe('Format Persuratan dikelola Admin dan Superadmin', () => {
   it('archives an earlier pending version when a new upload is submitted', async () => {
     const { service, repo, storage, db } = setup();
     repo.rows
-      .mockResolvedValueOnce([{ id: '5', current_version_id: '50' }])
+      .mockResolvedValueOnce([{ id: '5', created_by: admin.id, current_version_id: '50' }])
       .mockResolvedValueOnce([{ id: '70', nomor_versi: 2 }])
       .mockResolvedValueOnce([{ id: '50', nomor_versi: 1 }])
       .mockResolvedValueOnce([{ number: '2' }]);
@@ -287,15 +289,18 @@ describe('Format Persuratan dikelola Admin dan Superadmin', () => {
         ForbiddenException,
       );
       await expect(service.remove(actor, '5', {})).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(service.verificationQueue(actor, {})).rejects.toBeInstanceOf(ForbiddenException);
       expect(storage.stage).not.toHaveBeenCalled();
       expect(repo.transaction).not.toHaveBeenCalled();
     });
 
   it('format tanpa publikasi aktif tetap dapat dihapus', async () => {
     const { service, repo } = setup();
-    repo.rows.mockResolvedValueOnce([
-      { id: '5', nama: 'Surat', current_version_id: null, aktif: 0 },
-    ]);
+    repo.rows
+      .mockResolvedValueOnce([
+        { id: '5', nama: 'Surat', created_by: admin.id, current_version_id: null, aktif: 0 },
+      ])
+      .mockResolvedValueOnce([]);
     await expect(service.remove(admin, '5', {})).resolves.toEqual({ id: '5', deleted: true });
     expect(repo.write).toHaveBeenCalledTimes(1);
   });
@@ -312,5 +317,47 @@ describe('Format Persuratan dikelola Admin dan Superadmin', () => {
     const { service, repo } = setup();
     await expect(service.remove(admin, '5', { aktif: true, actorId: '99' })).rejects.toThrow();
     expect(repo.transaction).not.toHaveBeenCalled();
+  });
+
+  it('Admin tidak dapat mengganti atau menghapus format milik pengunggah lain', async () => {
+    const { service, repo, storage, audit } = setup();
+    repo.rows.mockResolvedValue([{ id: '5', created_by: '99', current_version_id: null }]);
+    await expect(
+      service.newVersion(admin, '5', await incoming(), { tingkatAkses: 'PUBLIK' }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.remove(admin, '5', {})).rejects.toBeInstanceOf(NotFoundException);
+    expect(repo.write).not.toHaveBeenCalled();
+    expect(audit.recordDomain).not.toHaveBeenCalled();
+    expect(storage.discard).toHaveBeenCalledOnce();
+  });
+
+  it('hasil persetujuan Superadmin tidak dapat diganti atau dihapus Admin pemilik', async () => {
+    const { service, repo } = setup();
+    const own = { id: '5', created_by: admin.id, current_version_id: null };
+    repo.rows
+      .mockResolvedValueOnce([own])
+      .mockResolvedValueOnce([{ id: '80', status: 'APPROVED' }]);
+    await expect(
+      service.newVersion(admin, '5', await incoming(), { tingkatAkses: 'PUBLIK' }),
+    ).rejects.toThrow('dikunci');
+    repo.rows.mockResolvedValueOnce([own]).mockResolvedValueOnce([{ id: '80' }]);
+    await expect(service.remove(admin, '5', {})).rejects.toThrow('hanya dapat dihapus Superadmin');
+    expect(repo.write).not.toHaveBeenCalled();
+  });
+
+  it('daftar pengelolaan Admin menyaring pemilik di server; Superadmin dapat membaca semua', async () => {
+    const { service, repo } = setup();
+    await service.adminList(admin);
+    expect(repo.rows).toHaveBeenLastCalledWith(
+      undefined,
+      expect.stringContaining('AND t.created_by=?'),
+      [admin.id],
+    );
+    await service.adminList({ ...admin, peran: ['SUPERADMIN'] });
+    expect(repo.rows).toHaveBeenLastCalledWith(
+      undefined,
+      expect.not.stringContaining('AND t.created_by=?'),
+      [],
+    );
   });
 });

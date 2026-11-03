@@ -1,6 +1,22 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
 **Dokumen ini adalah konteks lengkap yang harus dipahami Codex sebelum mengerjakan project.**  
+Revisi kepemilikan/antrean TERBARU 2026-11-04 menggantikan template lintas pemilik:
+Admin hanya mengelola format yang dibuatnya, termasuk unggah versi, hapus dan
+tinjauan file panel. ID milik akun lain ditolak 404; daftar/antrean format Admin
+disaring berdasarkan pemilik oleh SQL. Superadmin meninjau seluruh pengajuan.
+Persetujuan format dipusatkan di Antrean Verifikasi (bagian Format Persuratan),
+bukan tombol Setujui pada pengelolaan format. PENDING_REVIEW langsung masuk
+antrean, APPROVED keluar; Terbitkan tetap di pengelolaan dengan aksi tersendiri.
+Admin tidak dapat mengganti APPROVED atau menghapus format APPROVED/terbit.
+Revisi setelah terbit membuat kandidat baru, publikasi lama tetap tersedia.
+SOP Permohonan SK memakai batas pemilik dokumen/versi/file yang sama dengan
+produk hukum; Admin lain tidak bisa mengubah/mengunggah/mengajukan milik orang
+lain. Antrean hukum tetap dapat dibaca lintas pembuat tanpa hak keputusan.
+Tambah Kategori SOP dan Jenis Dokumen dihapus dari UI dan diblokir di API,
+termasuk Superadmin. Master lama tetap dapat dipilih, ditinjau dan diubah sesuai
+izin. Tidak ada purge data atau perubahan schema pada revisi ini.
+
 Revisi terbaru penghapusan Format Persuratan 2026-11-04: tombol Hapus menggantikan
 Arsipkan. Admin/Superadmin aktif berizin templates.manage dapat menghapus format
 lintas pemilik pada semua tahap. Transaksi mengisi deleted_at induk, aktif=0,

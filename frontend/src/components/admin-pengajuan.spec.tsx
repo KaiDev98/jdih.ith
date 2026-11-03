@@ -270,7 +270,7 @@ describe('pengajuan dokumen pada panel', () => {
   });
   it('antrean dimuat ulang ketika tab difokuskan dan tombol segarkan dipakai', async () => {
     render(<DaftarDokumenAdmin verificationOnly />);
-    await screen.findByText('Antrean kosong');
+    await screen.findByText('Antrean dokumen hukum kosong');
     state.daftar.mockResolvedValue({
       data: [
         {
@@ -292,9 +292,9 @@ describe('pengajuan dokumen pada panel', () => {
     expect(
       (await screen.findAllByRole('link', { name: /Pengajuan Admin lain/ })).length,
     ).toBeGreaterThan(0);
-    expect(state.daftar).toHaveBeenCalledTimes(2);
+    expect(state.daftar.mock.calls.filter(([url]) => url === '/admin/documents/verification-queue')).toHaveLength(2);
     fireEvent.click(screen.getByRole('button', { name: 'Segarkan antrean' }));
-    await waitFor(() => expect(state.daftar).toHaveBeenCalledTimes(3));
+    await waitFor(() => expect(state.daftar.mock.calls.filter(([url]) => url === '/admin/documents/verification-queue')).toHaveLength(3));
   });
   it('Admin membuka unggahan SOP Permohonan SK dengan jenis SOP dan verifikasi Superadmin', async () => {
     state.api.mockImplementation((url: string) =>

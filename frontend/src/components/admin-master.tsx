@@ -33,8 +33,7 @@ const deskripsi: Record<Table, string> = {
 const satuan: Record<Table, string> = { jenis_dokumen: 'jenis', kategori: 'kategori' };
 
 /**
- * Data master: daftar di kiri, formulir tambah/ubah di kanan (menempel saat
- * digulir) agar halaman tidak memanjang ke bawah dan formulir selalu terlihat.
+ * Master yang sudah tersedia dapat ditinjau/diubah; penambahan ditutup di UI/API.
  */
 export function AdminMaster({ table }: { table: Table }) {
   const { csrfToken, pengguna } = useSession();
@@ -58,12 +57,13 @@ export function AdminMaster({ table }: { table: Table }) {
     setOrder(String(row?.urutan ?? 0));
   }
   async function save() {
+    if (!bolehKelola || !selected) throw new Error('Pilih data yang sudah ada untuk diubah.');
     const body =
       table === 'jenis_dokumen'
         ? { kode: code, nama: name, urutan: Number(order) }
         : { kode: code, nama: name };
-    await ambilApi(`/admin/master/${table}${selected ? `/${selected.id}` : ''}`, {
-      method: selected ? 'PATCH' : 'POST',
+    await ambilApi(`/admin/master/${table}/${selected.id}`, {
+      method: 'PATCH',
       headers: csrfHeaders(csrfToken),
       muatan: body,
     });
@@ -88,7 +88,9 @@ export function AdminMaster({ table }: { table: Table }) {
           </StateMessage>
         </div>
       )}
-      <div className="formulir-panel grid grid-cols-[minmax(0,1fr)] items-start gap-5 [&>*]:min-w-0 lg:grid-cols-[minmax(0,1fr)_19rem]">
+      <div
+        className={`formulir-panel grid grid-cols-[minmax(0,1fr)] items-start gap-5 [&>*]:min-w-0 ${selected ? 'lg:grid-cols-[minmax(0,1fr)_19rem]' : ''}`}
+      >
         <Card className="p-0! sm:p-0!">
           <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 sm:px-5">
             <h2 className="text-sm font-semibold text-slate-900">Daftar {satuan[table]}</h2>
@@ -202,58 +204,54 @@ export function AdminMaster({ table }: { table: Table }) {
           </div>
         </Card>
 
-        <Card className="lg:sticky lg:top-4">
-          <h2 className="text-sm font-semibold text-slate-900">
-            {selected ? `Ubah: ${selected.nama}` : `Tambah ${satuan[table]}`}
-          </h2>
-          <p className="mt-0.5 text-xs text-slate-500">
-            {selected
-              ? 'Simpan untuk menerapkan perubahan, atau batalkan.'
-              : 'Kode dipakai di alamat halaman portal; nama tampil ke pengunjung.'}
-          </p>
-          <form className="mt-4 grid gap-3" onSubmit={(e) => e.preventDefault()}>
-            <Field
-              label="Kode"
-              id="master-code"
-              required
-              maxLength={40}
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-            />
-            <Field
-              label="Nama"
-              id="master-name"
-              required
-              maxLength={200}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            {table === 'jenis_dokumen' && (
+        {selected && (
+          <Card className="lg:sticky lg:top-4">
+            <h2 className="text-sm font-semibold text-slate-900">Ubah: {selected.nama}</h2>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Simpan untuk menerapkan perubahan, atau batalkan.
+            </p>
+            <form className="mt-4 grid gap-3" onSubmit={(e) => e.preventDefault()}>
               <Field
-                label="Urutan"
-                id="master-order"
-                type="number"
-                min={0}
-                value={order}
-                onChange={(e) => setOrder(e.target.value)}
+                label="Kode"
+                id="master-code"
+                required
+                maxLength={40}
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
               />
-            )}
-            <div className="mt-1 grid gap-2">
-              <ConfirmAction
-                label={selected ? 'Simpan perubahan' : 'Tambah'}
-                title={selected ? 'Simpan perubahan master?' : 'Tambah master?'}
-                description="Pastikan kode dan nama sudah benar sebelum menyimpan."
-                disabled={!name.trim() || !code.trim()}
-                onConfirm={save}
+              <Field
+                label="Nama"
+                id="master-name"
+                required
+                maxLength={200}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
               />
-              {selected && (
+              {table === 'jenis_dokumen' && (
+                <Field
+                  label="Urutan"
+                  id="master-order"
+                  type="number"
+                  min={0}
+                  value={order}
+                  onChange={(e) => setOrder(e.target.value)}
+                />
+              )}
+              <div className="mt-1 grid gap-2">
+                <ConfirmAction
+                  label="Simpan perubahan"
+                  title="Simpan perubahan master?"
+                  description="Pastikan kode dan nama sudah benar sebelum menyimpan."
+                  disabled={!name.trim() || !code.trim()}
+                  onConfirm={save}
+                />
                 <Button type="button" tone="secondary" onClick={() => edit()}>
                   Batal
                 </Button>
-              )}
-            </div>
-          </form>
-        </Card>
+              </div>
+            </form>
+          </Card>
+        )}
       </div>
     </fieldset>
   );

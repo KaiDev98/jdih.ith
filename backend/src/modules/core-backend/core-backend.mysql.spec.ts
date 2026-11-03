@@ -721,13 +721,14 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
       if (status === 'APPROVED') await templates.verify(actor, template.id, template.versionId, {});
       if (status === 'ARCHIVED') await pool.execute("UPDATE template_surat_versi SET status='ARCHIVED',archived_at=UTC_TIMESTAMP(6) WHERE id=?", [template.versionId]);
       const auditSpy = vi.spyOn(audit, 'recordDomain').mockRejectedValueOnce(new Error('delete audit rollback'));
+      const remover = status === 'APPROVED' ? actor : admin;
       try {
-        await expect(templates.remove(admin, template.id, {})).rejects.toThrow('delete audit rollback');
+        await expect(templates.remove(remover, template.id, {})).rejects.toThrow('delete audit rollback');
       } finally { auditSpy.mockRestore(); }
       expect(await templates.adminList(actor)).toEqual(expect.arrayContaining([expect.objectContaining({ id: template.id })]));
       const [before] = await pool.query<RowDataPacket[]>('SELECT deleted_at FROM template_surat WHERE id=?', [template.id]);
       expect(before[0]?.deleted_at).toBeNull();
-      await templates.remove(admin, template.id, {});
+      await templates.remove(remover, template.id, {});
       expect(await templates.adminList(actor)).not.toEqual(expect.arrayContaining([expect.objectContaining({ id: template.id })]));
       const [history] = await pool.query<RowDataPacket[]>('SELECT status,storage_key FROM template_surat_versi WHERE id=?', [template.versionId]);
       expect(history[0]?.status).toBe(status);
@@ -737,6 +738,38 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
       expect(events).toHaveLength(1);
     },
   );
+
+  it('template ownership and verification queue isolate two Admin accounts and protect approved decisions', async () => {
+    const owner = await addAdmin('ADMIN');
+    const other = await addAdmin('ADMIN');
+    const marker = uid();
+    const own = await templates.create(owner, await incomingFile('owner.docx', minimalDocx()), {
+      slug: `owner-${marker}`, nama: `Queue ${marker} A`, tingkatAkses: 'PUBLIK',
+    });
+    const foreign = await templates.create(other, await incomingFile('other.docx', minimalDocx()), {
+      slug: `other-${marker}`, nama: `Queue ${marker} B`, tingkatAkses: 'PUBLIK',
+    });
+    expect((await templates.adminList(owner)).map(row => String(row.id))).toContain(own.id);
+    expect((await templates.adminList(owner)).map(row => String(row.id))).not.toContain(foreign.id);
+    expect((await templates.verificationQueue(owner, { q: marker })).data.map(row => row.templateSuratId)).toEqual([own.id]);
+    expect((await templates.verificationQueue(actor, { q: marker })).data).toHaveLength(2);
+    await expect(templates.newVersion(other, own.id, await incomingFile('attack.docx', minimalDocx()), { tingkatAkses: 'PUBLIK' })).rejects.toThrow();
+    await expect(templates.remove(other, own.id, {})).rejects.toThrow();
+    await expect(templates.review(other, own.id, own.versionId)).rejects.toThrow();
+    const elevated: PenggunaAktif = { ...owner, izin: [...owner.izin, 'workflow.approve', 'workflow.publish'] };
+    await expect(templates.verify(elevated, own.id, own.versionId, {})).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(templates.publish(elevated, own.id, own.versionId, {})).rejects.toBeInstanceOf(ForbiddenException);
+    await templates.verify(actor, own.id, own.versionId, {});
+    expect((await templates.verificationQueue(actor, { q: marker })).data.map(row => row.templateSuratId)).toEqual([foreign.id]);
+    await expect(templates.newVersion(owner, own.id, await incomingFile('approved.docx', minimalDocx()), { tingkatAkses: 'PUBLIK' })).rejects.toThrow('dikunci');
+    await expect(templates.remove(owner, own.id, {})).rejects.toThrow('hanya dapat dihapus Superadmin');
+    await templates.publish(actor, own.id, own.versionId, {});
+    await expect(templates.remove(owner, own.id, {})).rejects.toThrow('hanya dapat dihapus Superadmin');
+    const replacement = await templates.newVersion(owner, own.id, await incomingFile('revision.docx', minimalDocx()), { tingkatAkses: 'PUBLIK' });
+    expect(replacement.status).toBe('PENDING_REVIEW');
+    const [current] = await pool.query<RowDataPacket[]>('SELECT CAST(current_version_id AS CHAR) current FROM template_surat WHERE id=?', [own.id]);
+    expect(current[0]?.current).toBe(own.versionId);
+  });
 
   it('simultaneous publication and deletion cannot reactivate a deleted format', async () => {
     const template = await templates.create(actor, await incomingFile('concurrent.docx', minimalDocx()), {
@@ -757,7 +790,7 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     const suffix = uid();
     const admin = await addAdmin('ADMIN');
     const template = await templates.create(
-      actor,
+      admin,
       await incomingFile('surat-awal.docx', minimalDocx()),
       { slug: `review-${suffix}`, nama: `Review ${suffix}`, tingkatAkses: 'PUBLIK' },
     );
@@ -955,6 +988,9 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     const uploaded = await files.upload(owner, d.versionId, await incomingFile('sop.pdf', pdf), { jenisBerkas: 'UTAMA' });
     expect(await files.listForVersion(owner, d.versionId)).toEqual(expect.arrayContaining([expect.objectContaining({ id: uploaded.id })]));
     await expect(service.updateVersion(other, d.versionId, { judul: 'Manipulasi' })).rejects.toThrow();
+    await expect(service.newVersion(other, d.id, ready('Revisi tidak berhak', level))).rejects.toThrow();
+    await expect(service.updateDocument(other, d.id, { slug: `dicoba-${marker}` })).rejects.toThrow();
+    await expect(files.removeFromDraft(other, d.versionId, uploaded.id)).rejects.toThrow();
     await expect(service.transition(other, d.versionId, 'SUBMIT')).rejects.toThrow();
     const elevated: PenggunaAktif = { ...owner, izin: [...owner.izin, 'workflow.approve', 'workflow.return', 'workflow.publish'] };
     await expect(service.transition(elevated, d.versionId, 'APPROVE')).rejects.toBeInstanceOf(ForbiddenException);

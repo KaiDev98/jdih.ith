@@ -19,6 +19,17 @@ export const skemaBuatTemplate = z.strictObject({
 export const skemaBuatVersiTemplate = z.strictObject({ tingkatAkses: skemaAksesTemplate });
 export const skemaKeputusanTemplate = z.strictObject({});
 export const skemaHapusTemplate = z.strictObject({});
+export const skemaItemAntreanTemplate = z.strictObject({
+  id: skemaId,
+  templateSuratId: skemaId,
+  nama: teksWajib(255, 'Nama'),
+  nomorVersi: skemaNomorVersi,
+  tingkatAkses: skemaAksesTemplate,
+  status: z.literal('PENDING_REVIEW'),
+  pengunggah: teksWajib(255, 'Pengunggah'),
+  diajukanPada: z.string(),
+});
+export const skemaAntreanTemplate = skemaTanggapanHalaman(skemaItemAntreanTemplate);
 export const skemaVersiTemplateAdmin = z.strictObject({
   id: skemaId,
   templateSuratId: skemaId,
@@ -57,6 +68,7 @@ export const skemaUnggahTemplateAwal = skemaBuatTemplate.extend({
 export type MuatanBuatTemplate = z.infer<typeof skemaBuatTemplate>;
 export type MuatanBuatVersiTemplate = z.infer<typeof skemaBuatVersiTemplate>;
 export type MuatanHapusTemplate = z.infer<typeof skemaHapusTemplate>;
+export type ItemAntreanTemplate = z.infer<typeof skemaItemAntreanTemplate>;
 export type ItemTemplatePublik = z.infer<typeof skemaItemTemplatePublik>;
 export type ItemTemplateAuthorized = z.infer<typeof skemaItemTemplateAuthorized>;
 export type VersiTemplateAdmin = z.infer<typeof skemaVersiTemplateAdmin>;

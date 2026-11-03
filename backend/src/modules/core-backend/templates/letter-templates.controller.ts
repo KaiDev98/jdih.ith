@@ -38,6 +38,12 @@ export class AdminLetterTemplatesController {
     return this.templates.adminList(actor);
   }
 
+  @Get('verification-queue')
+  @IzinSalahSatu('templates.manage', 'documents.read_admin')
+  queue(@Query() query: unknown, @Aktor() actor: PenggunaAktif) {
+    return this.templates.verificationQueue(actor, query);
+  }
+
   @Post()
   @Izin('templates.manage')
   @UseInterceptors(UploadInterceptor)

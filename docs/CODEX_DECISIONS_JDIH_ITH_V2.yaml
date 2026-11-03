@@ -111,7 +111,7 @@ admin_document_policy:
   can_view_sop_permohonan_sk_in_panel: true
   can_view_audit: false
   sop_permohonan_sk_menu_visible: true
-  verification_queue_read_scope: "all submitted documents including SOP Permohonan SK; Superadmin alone can verify"
+  verification_queue_read_scope: "legal/SOP queue read-only across authors; template queue Admin own only; Superadmin alone can verify"
   category_scope: "categories mapped to the Admin account's unit"
   input_category_visibility: "all categories visible; unauthorized/inactive options disabled; boolean eligibility from server"
   amendment_target_scope: "own document and own active published version; enforce search, relation POST and resubmission"
@@ -119,8 +119,8 @@ admin_document_policy:
   global_menu_items_disabled: false
   global_pages_readable: true
   global_write_controls_disabled: true
-  global_write_exception: "Admin with templates.manage may upload any template/version; uploads await Superadmin verification"
-  can_manage_all_letter_templates: true
+  global_write_exception: "Admin with templates.manage may manage own templates only; approval in Antrean Verifikasi, publication separate"
+  can_manage_all_letter_templates: false
   letter_template_permission: "templates.manage"
   letter_template_verifier: "active SUPERADMIN only"
   admin_template_upload_status: "PENDING_REVIEW; both Admin and Superadmin uploads require approval then separate publication"
@@ -350,10 +350,17 @@ letter_templates:
   approval_metadata: [verified_by, approved_at]
   publish_verifies_file_checksum: true
   hard_delete_normal_history: false
-  manual_removal: "DELETE /admin/letter-templates/:id; active Admin/Superadmin with templates.manage; no archive action"
+  manual_removal: "DELETE /admin/letter-templates/:id; active owner Admin only while unpublished/unapproved; active Superadmin any owner/state with templates.manage"
   removal_transaction: "lock parent; deleted_at + active=0 + current pointer NULL + audit DELETE; preserve versions/files; no bulk purge"
   deleted_template_access: "absent from panel/public lists; downloads/review/new versions/approval/publication denied"
-  manager: "ADMIN and SUPERADMIN with templates.manage; only SUPERADMIN approves and publishes separately"
+  manager: "owner ADMIN only; SUPERADMIN any owner; templates.manage required; only SUPERADMIN approves and publishes separately"
+  approval_location: "Antrean Verifikasi: template-specific pending queue with SQL ownership filter, pagination, private review download; no approval button in template manager"
+  approved_version_admin_mutability: false
+
+master_creation:
+  kategori: false
+  jenis_dokumen: false
+  existing_master_editing: "Superadmin with master.manage; input choices preserved; no data deletion"
 
 popup_rule:
   visual_style: "white surface, subtle accent, light translucent backdrop, short motion; Radix portal with focus management"
