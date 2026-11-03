@@ -1,6 +1,12 @@
 import { createReadStream } from 'node:fs';
 import { rm } from 'node:fs/promises';
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import type { PenggunaAktif } from '@jdih/shared';
@@ -12,19 +18,23 @@ import {
   skemaUnggahTemplateAwal,
   skemaCariTemplate,
 } from '@jdih/shared';
-import { cekBacaPanel, cekIzin } from '../../identity/security.js';
+import { cekBacaPanel, cekIzin, cekSuperadmin } from '../../identity/security.js';
 import { AuditService } from '../../identity/audit.service.js';
 import { CoreBackendRepository } from '../core-backend.repository.js';
 import { StorageService } from '../storage/storage.service.js';
 import { safeOriginalName, validateIncomingFile } from '../storage/file-validation.js';
 import type { KonfigurasiApp } from '../../../config/configuration.js';
 
-interface IncomingFile { path: string; originalname: string }
+interface IncomingFile {
+  path: string;
+  originalname: string;
+}
 interface TemplateFile extends RowDataPacket {
   storage_key: string;
   nama_asli: string;
   mime_type: string;
   size_bytes: string;
+  checksum: Buffer;
   tingkat_akses: 'PUBLIK' | 'INTERNAL';
   id: string;
   template_surat_id: string;
@@ -65,22 +75,45 @@ export class LetterTemplatesService {
       return await this.repo.transaction(async (db) => {
         await this.repo.write(
           db,
-          'INSERT INTO template_surat(slug,nama,deskripsi,created_by) VALUES(?,?,?,?)',
-          [b.slug, b.nama, b.deskripsi ?? null, actor.id],
+          'INSERT INTO template_surat(slug,nama,deskripsi,created_by,aktif) VALUES(?,?,?,?,?)',
+          [b.slug, b.nama, b.deskripsi ?? null, actor.id, 0],
         );
         const templateId = await this.repo.id(db);
-        const versionId = await this.insertVersion(db, templateId, 1, b.tingkatAkses, valid, staged, actor.id);
-        await this.repo.write(db, 'UPDATE template_surat SET current_version_id=? WHERE id=?', [versionId, templateId]);
-        await this.audit.recordDomain({
-          module: 'letter-templates', action: 'CREATE', entityType: 'template_surat', entityId: templateId, actorId: actor.id,
-          after: { slug: b.slug, nama: b.nama },
-        }, db);
-        await this.audit.recordDomain({
-          module: 'letter-templates', action: 'CREATE_VERSION', entityType: 'template_surat_versi', entityId: versionId, actorId: actor.id,
-          after: { nomorVersi: 1, tingkatAkses: b.tingkatAkses },
-        }, db);
+        const status = 'PENDING_REVIEW' as const;
+        const versionId = await this.insertVersion(
+          db,
+          templateId,
+          1,
+          b.tingkatAkses,
+          status,
+          valid,
+          staged,
+          actor.id,
+        );
+        await this.audit.recordDomain(
+          {
+            module: 'letter-templates',
+            action: 'CREATE',
+            entityType: 'template_surat',
+            entityId: templateId,
+            actorId: actor.id,
+            after: { slug: b.slug, nama: b.nama, status: 'PENDING_REVIEW' as const },
+          },
+          db,
+        );
+        await this.audit.recordDomain(
+          {
+            module: 'letter-templates',
+            action: 'CREATE_VERSION',
+            entityType: 'template_surat_versi',
+            entityId: versionId,
+            actorId: actor.id,
+            after: { nomorVersi: 1, tingkatAkses: b.tingkatAkses, status },
+          },
+          db,
+        );
         await this.storage.finalize(staged);
-        return { id: templateId, versionId, slug: b.slug, nomorVersi: 1, status: 'ACTIVE' as const };
+        return { id: templateId, versionId, slug: b.slug, nomorVersi: 1, status };
       });
     } catch (error) {
       await this.storage.discard(staged);
@@ -105,12 +138,21 @@ export class LetterTemplatesService {
           )
         )[0];
         if (!template) throw new NotFoundException();
+        const pending = (
+          await this.repo.rows<RowDataPacket & { id: string; nomor_versi: number; status: string }>(
+            db,
+            "SELECT id,nomor_versi,status FROM template_surat_versi WHERE template_surat_id=? AND status IN ('PENDING_REVIEW','APPROVED') FOR UPDATE",
+            [templateId],
+          )
+        )[0];
         const old = template.current_version_id
-          ? (await this.repo.rows<RowDataPacket & { id: string; nomor_versi: number }>(
-              db,
-              "SELECT id,nomor_versi FROM template_surat_versi WHERE id=? AND template_surat_id=? AND status='ACTIVE' FOR UPDATE",
-              [template.current_version_id, templateId],
-            ))[0]
+          ? (
+              await this.repo.rows<RowDataPacket & { id: string; nomor_versi: number }>(
+                db,
+                "SELECT id,nomor_versi FROM template_surat_versi WHERE id=? AND template_surat_id=? AND status='ACTIVE' FOR UPDATE",
+                [template.current_version_id, templateId],
+              )
+            )[0]
           : undefined;
         const [lastVersion] = await this.repo.rows<RowDataPacket & { number: string }>(
           db,
@@ -118,21 +160,50 @@ export class LetterTemplatesService {
           [templateId],
         );
         const number = Number(lastVersion?.number ?? 0) + 1;
-        if (old)
+        const status = 'PENDING_REVIEW' as const;
+        if (pending) {
           await this.repo.write(
             db,
-            "UPDATE template_surat_versi SET status='ARCHIVED',archived_at=GREATEST(UTC_TIMESTAMP(6),activated_at) WHERE id=?",
-            [old.id],
+            "UPDATE template_surat_versi SET status='ARCHIVED',archived_at=UTC_TIMESTAMP(6) WHERE id=?",
+            [pending.id],
           );
-        const versionId = await this.insertVersion(db, templateId, number, b.tingkatAkses, valid, staged, actor.id);
-        await this.repo.write(db, 'UPDATE template_surat SET current_version_id=?,aktif=1 WHERE id=?', [versionId, templateId]);
-        await this.audit.recordDomain({
-          module: 'letter-templates', action: 'CREATE_VERSION', entityType: 'template_surat_versi', entityId: versionId, actorId: actor.id,
-          before: old ? { nomorVersi: Number(old.nomor_versi) } : undefined,
-          after: { nomorVersi: number, tingkatAkses: b.tingkatAkses, status: 'ACTIVE' },
-        }, db);
+          await this.audit.recordDomain(
+            {
+              module: 'letter-templates',
+              action: 'SUPERSEDE_PENDING_VERSION',
+              entityType: 'template_surat_versi',
+              entityId: pending.id,
+              actorId: actor.id,
+              before: { status: pending.status, nomorVersi: Number(pending.nomor_versi) },
+              after: { status: 'ARCHIVED', templateSuratId: templateId },
+            },
+            db,
+          );
+        }
+        const versionId = await this.insertVersion(
+          db,
+          templateId,
+          number,
+          b.tingkatAkses,
+          status,
+          valid,
+          staged,
+          actor.id,
+        );
+        await this.audit.recordDomain(
+          {
+            module: 'letter-templates',
+            action: 'CREATE_VERSION',
+            entityType: 'template_surat_versi',
+            entityId: versionId,
+            actorId: actor.id,
+            before: old ? { nomorVersi: Number(old.nomor_versi) } : undefined,
+            after: { nomorVersi: number, tingkatAkses: b.tingkatAkses, status },
+          },
+          db,
+        );
         await this.storage.finalize(staged);
-        return { id: versionId, templateSuratId: templateId, nomorVersi: number, status: 'ACTIVE' as const };
+        return { id: versionId, templateSuratId: templateId, nomorVersi: number, status };
       });
     } catch (error) {
       await this.storage.discard(staged);
@@ -147,16 +218,176 @@ export class LetterTemplatesService {
     templateId: string,
     number: number,
     access: 'PUBLIK' | 'INTERNAL',
+    status: 'PENDING_REVIEW',
     valid: Awaited<ReturnType<LetterTemplatesService['validate']>>,
     staged: Awaited<ReturnType<StorageService['stage']>>,
     actorId: string,
   ) {
     await this.repo.write(
       db,
-      "INSERT INTO template_surat_versi(template_surat_id,nomor_versi,tingkat_akses,status,storage_key,nama_asli,mime_type,size_bytes,checksum,created_by,activated_at) VALUES(?,?,?,'ACTIVE',?,?,?,?,?,?,UTC_TIMESTAMP(6))",
-      [templateId, number, access, staged.storageKey, valid.originalName, valid.mimeType, staged.byte, staged.checksum, actorId],
+      "INSERT INTO template_surat_versi(template_surat_id,nomor_versi,tingkat_akses,status,storage_key,nama_asli,mime_type,size_bytes,checksum,created_by,activated_at) VALUES(?,?,?,?,?,?,?,?,?,?,IF(?='ACTIVE',UTC_TIMESTAMP(6),NULL))",
+      [
+        templateId,
+        number,
+        access,
+        status,
+        staged.storageKey,
+        valid.originalName,
+        valid.mimeType,
+        staged.byte,
+        staged.checksum,
+        actorId,
+        status,
+      ],
     );
     return this.repo.id(db);
+  }
+
+  private async lockTemplate(db: PoolConnection, templateId: string) {
+    const [template] = await this.repo.rows<
+      RowDataPacket & { id: string; current_version_id: string | null }
+    >(
+      db,
+      'SELECT id,current_version_id FROM template_surat WHERE id=? AND deleted_at IS NULL FOR UPDATE',
+      [templateId],
+    );
+    if (!template) throw new NotFoundException();
+    return template;
+  }
+
+  private async version(db: PoolConnection, templateId: string, versionId: string) {
+    const [version] = await this.repo.rows<
+      TemplateFile & {
+        status: string;
+        nomor_versi: number;
+        verified_by: string | null;
+        approved_at: string | null;
+      }
+    >(db, 'SELECT * FROM template_surat_versi WHERE id=? AND template_surat_id=? FOR UPDATE', [
+      versionId,
+      templateId,
+    ]);
+    if (!version) throw new NotFoundException();
+    return version;
+  }
+
+  private async assertFile(version: TemplateFile) {
+    if (
+      !(await this.storage.verify(
+        version.storage_key,
+        Number(version.size_bytes),
+        version.checksum,
+      ))
+    )
+      throw new UnprocessableEntityException('Berkas format tidak tersedia atau checksum berubah');
+  }
+
+  /** Persetujuan tidak mengaktifkan file maupun mengganti pointer versi terbit. */
+  async verify(actor: PenggunaAktif, templateId: string, versionId: string, raw: unknown) {
+    cekSuperadmin(actor);
+    cekIzin(actor, ['templates.manage']);
+    skemaArsipTemplate.parse(raw);
+    return this.repo.transaction(async (db) => {
+      await this.lockTemplate(db, templateId);
+      const version = await this.version(db, templateId, versionId);
+      if (version.status !== 'PENDING_REVIEW')
+        throw new ConflictException('Versi format tidak lagi menunggu persetujuan');
+      await this.assertFile(version);
+      await this.repo.write(
+        db,
+        "UPDATE template_surat_versi SET status='APPROVED',verified_by=?,approved_at=UTC_TIMESTAMP(6) WHERE id=?",
+        [actor.id, versionId],
+      );
+      await this.audit.recordDomain(
+        {
+          module: 'letter-templates',
+          action: 'APPROVE_VERSION',
+          entityType: 'template_surat_versi',
+          entityId: versionId,
+          actorId: actor.id,
+          before: { status: 'PENDING_REVIEW' },
+          after: { status: 'APPROVED', nomorVersi: Number(version.nomor_versi) },
+        },
+        db,
+      );
+      return {
+        id: versionId,
+        templateSuratId: templateId,
+        nomorVersi: Number(version.nomor_versi),
+        status: 'APPROVED' as const,
+      };
+    });
+  }
+
+  /** Hanya penerbitan yang mengarsip versi lama dan memindah pointer secara atomik. */
+  async publish(actor: PenggunaAktif, templateId: string, versionId: string, raw: unknown) {
+    cekSuperadmin(actor);
+    cekIzin(actor, ['templates.manage']);
+    skemaArsipTemplate.parse(raw);
+    return this.repo.transaction(async (db) => {
+      const template = await this.lockTemplate(db, templateId);
+      const version = await this.version(db, templateId, versionId);
+      if (version.status !== 'APPROVED' || !version.verified_by || !version.approved_at)
+        throw new ConflictException('Setujui versi format terlebih dahulu sebelum menerbitkan');
+      await this.assertFile(version);
+      if (template.current_version_id) {
+        const previous = await this.version(db, templateId, template.current_version_id);
+        if (previous.status !== 'ACTIVE')
+          throw new ConflictException('Versi terbit sebelumnya tidak valid');
+        await this.repo.write(
+          db,
+          "UPDATE template_surat_versi SET status='ARCHIVED',archived_at=GREATEST(UTC_TIMESTAMP(6),activated_at) WHERE id=?",
+          [previous.id],
+        );
+      }
+      await this.repo.write(
+        db,
+        "UPDATE template_surat_versi SET status='ACTIVE',activated_at=UTC_TIMESTAMP(6) WHERE id=?",
+        [versionId],
+      );
+      await this.repo.write(
+        db,
+        'UPDATE template_surat SET current_version_id=?,aktif=1 WHERE id=?',
+        [versionId, templateId],
+      );
+      await this.audit.recordDomain(
+        {
+          module: 'letter-templates',
+          action: 'PUBLISH_VERSION',
+          entityType: 'template_surat_versi',
+          entityId: versionId,
+          actorId: actor.id,
+          before: { status: 'APPROVED' },
+          after: { status: 'ACTIVE', nomorVersi: Number(version.nomor_versi) },
+        },
+        db,
+      );
+      return {
+        id: versionId,
+        templateSuratId: templateId,
+        nomorVersi: Number(version.nomor_versi),
+        status: 'ACTIVE' as const,
+      };
+    });
+  }
+
+  /** File belum terbit hanya melalui rute panel terautorisasi untuk tinjauan. */
+  async review(actor: PenggunaAktif, templateId: string, versionId: string) {
+    cekBacaPanel(actor, 'templates.manage');
+    const [version] = await this.repo.rows<TemplateFile>(
+      this.repo.pool,
+      'SELECT v.* FROM template_surat_versi v JOIN template_surat t ON t.id=v.template_surat_id WHERE v.id=? AND t.id=? AND t.deleted_at IS NULL',
+      [versionId, templateId],
+    );
+    if (!version) throw new NotFoundException();
+    await this.audit.recordDomain({
+      module: 'letter-templates',
+      action: 'REVIEW_VERSION',
+      entityType: 'template_surat_versi',
+      entityId: versionId,
+      actorId: actor.id,
+    });
+    return this.openAuthorized(version, actor);
   }
 
   async archive(actor: PenggunaAktif, templateId: string, raw: unknown) {
@@ -164,24 +395,47 @@ export class LetterTemplatesService {
     skemaArsipTemplate.parse(raw);
     return this.repo.transaction(async (db) => {
       const template = (
-        await this.repo.rows<RowDataPacket & { id: string; current_version_id: string | null; aktif: number }>(
+        await this.repo.rows<
+          RowDataPacket & { id: string; current_version_id: string | null; aktif: number }
+        >(
           db,
           'SELECT id,current_version_id,aktif FROM template_surat WHERE id=? AND deleted_at IS NULL FOR UPDATE',
           [templateId],
         )
       )[0];
       if (!template) throw new NotFoundException();
-      if (!template.current_version_id) throw new ConflictException('Template tidak memiliki versi aktif');
+      if (!template.current_version_id)
+        throw new ConflictException('Template tidak memiliki versi aktif');
       const version = (
-        await this.repo.rows<RowDataPacket & { id: string }>(db, "SELECT id FROM template_surat_versi WHERE id=? AND status='ACTIVE' FOR UPDATE", [template.current_version_id])
+        await this.repo.rows<RowDataPacket & { id: string }>(
+          db,
+          "SELECT id FROM template_surat_versi WHERE id=? AND status='ACTIVE' FOR UPDATE",
+          [template.current_version_id],
+        )
       )[0];
       if (!version) throw new ConflictException('Versi aktif template tidak ditemukan');
-      await this.repo.write(db, "UPDATE template_surat_versi SET status='ARCHIVED',archived_at=GREATEST(UTC_TIMESTAMP(6),activated_at) WHERE id=?", [version.id]);
-      await this.repo.write(db, 'UPDATE template_surat SET current_version_id=NULL,aktif=0 WHERE id=?', [templateId]);
-      await this.audit.recordDomain({
-        module: 'letter-templates', action: 'ARCHIVE', entityType: 'template_surat', entityId: templateId, actorId: actor.id,
-        before: { status: 'ACTIVE' }, after: { status: 'ARCHIVED' },
-      }, db);
+      await this.repo.write(
+        db,
+        "UPDATE template_surat_versi SET status='ARCHIVED',archived_at=GREATEST(UTC_TIMESTAMP(6),activated_at) WHERE id=?",
+        [version.id],
+      );
+      await this.repo.write(
+        db,
+        'UPDATE template_surat SET current_version_id=NULL,aktif=0 WHERE id=?',
+        [templateId],
+      );
+      await this.audit.recordDomain(
+        {
+          module: 'letter-templates',
+          action: 'ARCHIVE',
+          entityType: 'template_surat',
+          entityId: templateId,
+          actorId: actor.id,
+          before: { status: 'ACTIVE' },
+          after: { status: 'ARCHIVED' },
+        },
+        db,
+      );
       return { id: templateId, archived: true };
     });
   }
@@ -189,9 +443,13 @@ export class LetterTemplatesService {
   async list(rawQuery: unknown, actor?: PenggunaAktif) {
     const page = { ...parseTemplatePage(rawQuery), q: skemaCariTemplate.parse(rawQuery ?? {}).q };
     const includeInternal = actor?.status === 'AKTIF' && actor.peran.includes('DOSEN_STAF');
-    const visible = includeInternal ? "v.tingkat_akses IN ('PUBLIK','INTERNAL')" : "v.tingkat_akses='PUBLIK'";
+    const visible = includeInternal
+      ? "v.tingkat_akses IN ('PUBLIK','INTERNAL')"
+      : "v.tingkat_akses='PUBLIK'";
     const search = page.q ? " AND t.nama LIKE ? ESCAPE '!'" : '';
-    const values = page.q ? [`%${page.q.replaceAll('!', '!!').replaceAll('%', '!%').replaceAll('_', '!_')}%`] : [];
+    const values = page.q
+      ? [`%${page.q.replaceAll('!', '!!').replaceAll('%', '!%').replaceAll('_', '!_')}%`]
+      : [];
     const [count] = await this.repo.rows<RowDataPacket & { total: string }>(
       this.repo.pool,
       `SELECT COUNT(*) total FROM template_surat t JOIN template_surat_versi v ON v.id=t.current_version_id WHERE t.aktif=1 AND t.deleted_at IS NULL AND v.status='ACTIVE' AND ${visible}${search}`,
@@ -199,7 +457,12 @@ export class LetterTemplatesService {
     );
     const offset = (page.halaman - 1) * page.perHalaman;
     const rows = await this.repo.rows<
-      RowDataPacket & { id: string; slug: string; nama: string; tingkatAkses: 'PUBLIK' | 'INTERNAL' }
+      RowDataPacket & {
+        id: string;
+        slug: string;
+        nama: string;
+        tingkatAkses: 'PUBLIK' | 'INTERNAL';
+      }
     >(
       this.repo.pool,
       `SELECT CAST(t.id AS CHAR) id,t.slug,t.nama,v.tingkat_akses tingkatAkses FROM template_surat t JOIN template_surat_versi v ON v.id=t.current_version_id WHERE t.aktif=1 AND t.deleted_at IS NULL AND v.status='ACTIVE' AND ${visible}${search} ORDER BY t.nama,t.id LIMIT ? OFFSET ?`,
@@ -214,17 +477,27 @@ export class LetterTemplatesService {
     }));
     const total = Number(count?.total ?? 0);
     const response = {
-      sukses: true as const, data,
-      meta: { halaman: page.halaman, perHalaman: page.perHalaman, totalButir: total, totalHalaman: Math.ceil(total / page.perHalaman), adaSebelumnya: page.halaman > 1, adaBerikutnya: offset + data.length < total },
+      sukses: true as const,
+      data,
+      meta: {
+        halaman: page.halaman,
+        perHalaman: page.perHalaman,
+        totalButir: total,
+        totalHalaman: Math.ceil(total / page.perHalaman),
+        adaSebelumnya: page.halaman > 1,
+        adaBerikutnya: offset + data.length < total,
+      },
     };
-    return includeInternal ? skemaDaftarTemplateAuthorized.parse(response) : skemaDaftarTemplatePublik.parse(response);
+    return includeInternal
+      ? skemaDaftarTemplateAuthorized.parse(response)
+      : skemaDaftarTemplatePublik.parse(response);
   }
 
   async adminList(actor: PenggunaAktif) {
     cekBacaPanel(actor, 'templates.manage');
     return this.repo.rows(
       this.repo.pool,
-      'SELECT CAST(t.id AS CHAR) id,t.slug,t.nama,t.aktif,CAST(t.current_version_id AS CHAR) currentVersionId,CAST(v.nomor_versi AS UNSIGNED) nomorVersi,v.tingkat_akses tingkatAkses,v.status FROM template_surat t LEFT JOIN template_surat_versi v ON v.id=t.current_version_id WHERE t.deleted_at IS NULL ORDER BY t.updated_at DESC',
+      "SELECT CAST(t.id AS CHAR) id,t.slug,t.nama,t.aktif,CAST(t.current_version_id AS CHAR) currentVersionId,CAST(v.nomor_versi AS UNSIGNED) nomorVersi,v.tingkat_akses tingkatAkses,v.status,CAST(p.id AS CHAR) pendingVersionId,CAST(p.nomor_versi AS UNSIGNED) pendingNomorVersi,p.tingkat_akses pendingTingkatAkses,p.status pendingStatus FROM template_surat t LEFT JOIN template_surat_versi v ON v.id=t.current_version_id LEFT JOIN template_surat_versi p ON p.template_surat_id=t.id AND p.status IN ('PENDING_REVIEW','APPROVED') WHERE t.deleted_at IS NULL ORDER BY t.updated_at DESC",
     );
   }
 
@@ -237,7 +510,10 @@ export class LetterTemplatesService {
       )
     )[0];
     if (!file) throw new NotFoundException();
-    if (file.tingkat_akses === 'INTERNAL' && !(actor?.status === 'AKTIF' && actor.peran.includes('DOSEN_STAF')))
+    if (
+      file.tingkat_akses === 'INTERNAL' &&
+      !(actor?.status === 'AKTIF' && actor.peran.includes('DOSEN_STAF'))
+    )
       throw new NotFoundException();
     return file;
   }
@@ -247,9 +523,18 @@ export class LetterTemplatesService {
     if (object.size !== Number(file.size_bytes)) throw new NotFoundException();
     if (file.tingkat_akses === 'INTERNAL' && actor)
       await this.audit.recordDomain({
-        module: 'letter-templates', action: 'DOWNLOAD_INTERNAL', entityType: 'template_surat_versi', entityId: file.id, actorId: actor.id,
+        module: 'letter-templates',
+        action: 'DOWNLOAD_INTERNAL',
+        entityType: 'template_surat_versi',
+        entityId: file.id,
+        actorId: actor.id,
       });
-    return { stream: object.stream, size: object.size, mimeType: file.mime_type, originalName: safeOriginalName(file.nama_asli) };
+    return {
+      stream: object.stream,
+      size: object.size,
+      mimeType: file.mime_type,
+      originalName: safeOriginalName(file.nama_asli),
+    };
   }
 
   async open(slug: string, actor?: PenggunaAktif) {
@@ -258,10 +543,16 @@ export class LetterTemplatesService {
 }
 
 function parseTemplatePage(raw: unknown) {
-  const value = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
+  const value = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const halaman = Number(value.halaman ?? 1);
   const perHalaman = Number(value.perHalaman ?? 20);
-  if (!Number.isSafeInteger(halaman) || halaman < 1 || !Number.isSafeInteger(perHalaman) || perHalaman < 1 || perHalaman > 100)
+  if (
+    !Number.isSafeInteger(halaman) ||
+    halaman < 1 ||
+    !Number.isSafeInteger(perHalaman) ||
+    perHalaman < 1 ||
+    perHalaman > 100
+  )
     throw new ConflictException('Parameter halaman tidak sah');
   return { halaman, perHalaman };
 }

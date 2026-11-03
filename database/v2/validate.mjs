@@ -81,6 +81,12 @@ for (const field of ['nomor','pic']) {
   assert.ok(versionDefinition.includes(`${field} IS NOT NULL AND CHAR_LENGTH(TRIM(${field})) > 0`));
 }
 assert.ok(versionDefinition.includes('tanggal_penetapan IS NOT NULL'));
+const templateVersionDefinition = schema.match(/CREATE TABLE template_surat_versi \(\n([\s\S]*?)\n\) ENGINE=InnoDB;/)[1];
+assert.match(templateVersionDefinition, /status ENUM\('PENDING_REVIEW','APPROVED','ACTIVE','ARCHIVED'\) NOT NULL/);
+assert.match(templateVersionDefinition, /activated_at DATETIME\(6\) NULL/);
+assert.match(templateVersionDefinition, /pending_slot TINYINT GENERATED ALWAYS AS \(CASE WHEN status IN \('PENDING_REVIEW','APPROVED'\) THEN 1 ELSE NULL END\) STORED/);
+assert.match(templateVersionDefinition, /UNIQUE KEY uq_template_versi_pending \(template_surat_id, pending_slot\)/);
+assert.match(templateVersionDefinition, /status = 'PENDING_REVIEW' AND activated_at IS NULL AND archived_at IS NULL/);
 const sample = readFileSync(resolve(directory, 'sample.sql'), 'utf8');
 // Parse only the literal VALUES fixtures for document versions; reject unknown syntax.
 let sampleVersions = 0;
@@ -217,6 +223,8 @@ expectError('null origin cannot bypass transition check', "INSERT INTO dokumen_w
 expectError('cross-template pointer', "UPDATE template_surat SET current_version_id=9521 WHERE id=951",1452);
 expectError('template access rejects RAHASIA', "UPDATE template_surat_versi SET tingkat_akses='RAHASIA' WHERE id=9512",1265);
 expectError('only one ACTIVE template version', "UPDATE template_surat_versi SET status='ACTIVE',archived_at=NULL WHERE id=9511",1062);
+expectError('only one pending template version', "INSERT INTO template_surat_versi(template_surat_id,nomor_versi,tingkat_akses,status,storage_key,nama_asli,mime_type,size_bytes,checksum,created_by,activated_at) VALUES (951,3,'PUBLIK','PENDING_REVIEW','tests/pending-1','pending-1.docx','application/vnd.openxmlformats-officedocument.wordprocessingml.document',1,UNHEX(SHA2('pending-1',256)),9001,NULL); INSERT INTO template_surat_versi(template_surat_id,nomor_versi,tingkat_akses,status,storage_key,nama_asli,mime_type,size_bytes,checksum,created_by,activated_at) VALUES (951,4,'PUBLIK','PENDING_REVIEW','tests/pending-2','pending-2.docx','application/vnd.openxmlformats-officedocument.wordprocessingml.document',1,UNHEX(SHA2('pending-2',256)),9001,NULL)",1062);
+expectError('pending template version cannot be marked active', "INSERT INTO template_surat_versi(template_surat_id,nomor_versi,tingkat_akses,status,storage_key,nama_asli,mime_type,size_bytes,checksum,created_by,activated_at) VALUES (951,3,'PUBLIK','PENDING_REVIEW','tests/pending-active','pending.docx','application/vnd.openxmlformats-officedocument.wordprocessingml.document',1,UNHEX(SHA2('pending-active',256)),9001,UTC_TIMESTAMP(6))",3819);
 expectError('template archive timestamp required', "UPDATE template_surat_versi SET status='ARCHIVED',archived_at=NULL WHERE id=9512",3819);
 expectError('duplicate session hash', "INSERT INTO sesi_pengguna(pengguna_id,token_hash,expires_at) VALUES (9003,UNHEX(SHA2('fixture-token-not-for-login',256)),UTC_TIMESTAMP(6)+INTERVAL 1 DAY)",1062);
 expectError('session expiry must follow creation', "INSERT INTO sesi_pengguna(pengguna_id,token_hash,created_at,expires_at) VALUES (9003,UNHEX(SHA2('test',256)),'2026-01-02','2026-01-01')",3819);
@@ -237,6 +245,12 @@ expectValue('same-owner publish pointer swap and preserved history',
 expectValue('pointer swap rollback kept old publication', "SELECT current_published_version_id FROM dokumen WHERE id=901", '9011');
 expectValue('nullable audit actor', "INSERT INTO audit_log(actor_id,module,action,entity_type,request_id) VALUES(NULL,'test','TEST','test','phase1-test'); SELECT COUNT(*) FROM audit_log WHERE request_id='phase1-test'", '1');
 expectValue('archived template history preserved', "SELECT CONCAT(t.current_version_id,':',v.status) FROM template_surat t JOIN template_surat_versi v ON v.id=9511 WHERE t.id=951", '9512:ARCHIVED');
+expectValue('pending template version leaves current active pointer unchanged',
+  "INSERT INTO template_surat_versi(template_surat_id,nomor_versi,tingkat_akses,status,storage_key,nama_asli,mime_type,size_bytes,checksum,created_by,activated_at) VALUES(951,3,'PUBLIK','PENDING_REVIEW','tests/pending-current','pending.docx','application/vnd.openxmlformats-officedocument.wordprocessingml.document',1,UNHEX(SHA2('pending-current',256)),9001,NULL); SELECT CONCAT(current_version_id,':',(SELECT status FROM template_surat_versi WHERE template_surat_id=951 AND nomor_versi=3)) FROM template_surat WHERE id=951",
+  '9512:PENDING_REVIEW');
+expectValue('replaced pending template retains history without activation time',
+  "INSERT INTO template_surat_versi(template_surat_id,nomor_versi,tingkat_akses,status,storage_key,nama_asli,mime_type,size_bytes,checksum,created_by,activated_at) VALUES(951,3,'PUBLIK','PENDING_REVIEW','tests/pending-archive','pending.docx','application/vnd.openxmlformats-officedocument.wordprocessingml.document',1,UNHEX(SHA2('pending-archive',256)),9001,NULL); UPDATE template_surat_versi SET status='ARCHIVED',archived_at=UTC_TIMESTAMP(6) WHERE template_surat_id=951 AND nomor_versi=3; SELECT CONCAT(status,':',activated_at IS NULL,':',archived_at IS NOT NULL) FROM template_surat_versi WHERE template_surat_id=951 AND nomor_versi=3",
+  'ARCHIVED:1:1');
 expectValue('draft permits missing PIC and date', "SELECT COUNT(*) FROM dokumen_versi WHERE id=9012 AND pic IS NULL AND tanggal_penetapan IS NULL AND status_workflow='DRAF'",'1');
 expectValue('PIC and date differ between versions', "SELECT COUNT(DISTINCT pic),COUNT(DISTINCT tanggal_penetapan) FROM dokumen_versi WHERE dokumen_id=904",'2\t2');
 // These transactions demonstrate the required future service sequence, not DB triggers.

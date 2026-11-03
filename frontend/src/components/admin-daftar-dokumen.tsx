@@ -62,6 +62,8 @@ type FormatSurat = {
   aktif: boolean | number;
   nomorVersi: number | null;
   tingkatAkses: string;
+  pendingVersionId?: string | null;
+  pendingStatus?: string | null;
 };
 
 /** Lencana tahap; versi lama yang sudah digantikan tidak disebut "Terbit". */
@@ -375,7 +377,7 @@ export function DaftarDokumenAdmin({
             : pengajuan
               ? 'Draf, pengajuan yang menunggu verifikasi, dan dokumen yang perlu diperbaiki.'
               : formatDipilih
-                ? 'Format surat aktif dan arsip. Buka pengelolaan format untuk mengunggah atau memperbarui berkas.'
+                ? 'Format surat terbit, menunggu persetujuan, disetujui dan arsip. Buka pengelolaan format untuk tindakan berikutnya.'
                 : 'Dokumen yang sudah diverifikasi Superadmin, termasuk yang siap terbit dan riwayat penerbitannya.'
         }
         action={
@@ -580,7 +582,7 @@ export function DaftarDokumenAdmin({
                     </p>
                   </div>
                   <Badge color={format.aktif ? 'green' : 'slate'}>
-                    {format.aktif ? 'Aktif' : 'Arsip'}
+                    {format.aktif ? 'Terbit' : format.pendingStatus === 'APPROVED' ? 'Disetujui, belum terbit' : format.pendingVersionId ? 'Menunggu persetujuan' : 'Arsip'}
                   </Badge>
                   <Link
                     href="/admin/format-persuratan"

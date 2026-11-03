@@ -62,6 +62,17 @@ Jangan membangun berdasarkan asumsi legacy berikut:
 - Workflow dokumen tidak memiliki state `ditolak`.
 - Status hukum hanya `berlaku`, `diubah`, `dicabut`.
 
+## REVISI WORKFLOW - 2026-11-04
+
+Persetujuan dan penerbitan terpisah untuk SEMUA dokumen termasuk SOP Permohonan
+SK dan Format Persuratan. Unggahan Superadmin juga harus disetujui dirinya
+sendiri dahulu, kemudian diterbitkan melalui tindakan tersendiri. Format memakai
+PENDING_REVIEW -> APPROVED -> ACTIVE; hanya Superadmin yang menyetujui dan
+menerbitkan, Admin mengunggah untuk diperiksa. Dokumen hukum/SOP tetap memakai
+DRAF/DIAJUKAN -> DISETUJUI -> TERBIT. Versi lama tidak diganti saat approval.
+Ini menggantikan aturan SOP otomatis terbit dan template langsung aktif di bawah.
+Semua pemeriksaan server, CSRF, audit, konfirmasi dan validasi file tetap wajib.
+
 ## REVISI PEMBUATAN ADMIN - 2026-10-30
 
 Superadmin aktif dapat menambahkan Admin lewat tombol Tambah Admin di Pengguna.

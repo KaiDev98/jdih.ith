@@ -14,7 +14,7 @@ export const JENIS_RELASI = ['MENGUBAH', 'MENCABUT', 'DASAR_HUKUM', 'TERKAIT'] a
 export const STATUS_PENGGUNA = ['MENUNGGU_VERIFIKASI', 'AKTIF', 'DITOLAK', 'NONAKTIF'] as const;
 export const JENIS_BERKAS = ['UTAMA', 'LAMPIRAN'] as const;
 export const AKSES_TEMPLATE = ['PUBLIK', 'INTERNAL'] as const;
-export const STATUS_VERSI_TEMPLATE = ['ACTIVE', 'ARCHIVED'] as const;
+export const STATUS_VERSI_TEMPLATE = ['PENDING_REVIEW', 'APPROVED', 'ACTIVE', 'ARCHIVED'] as const;
 export const EFEK_IZIN = ['ALLOW', 'DENY'] as const;
 export const AKSI_WORKFLOW = [
   'CREATE',

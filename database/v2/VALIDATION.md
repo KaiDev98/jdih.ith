@@ -1,5 +1,12 @@
 # Hasil Final Runtime Validation Phase 1 — 2026-10-04
 
+Revisi 2026-11-04: schema template menambah APPROVED, verified_by/approved_at dan
+FK verifikator. Validator statis lulus: 29 tabel, 49 FK, 33 CHECK. Patch-022 dan
+patch-023 diuji berulang pada DB uji terisolasi. Integrasi approval/publish,
+checksum, audit rollback, riwayat versi dan publikasi bersamaan lulus. Detail
+ada di docs/WORKFLOW_APPROVAL_PUBLICATION_2026-11-04.md (dari root repo).
+
+
 Branch: niyato. HEAD: 5000a81db2d02d1b3704d45512aab2a5d36ca207.
 Status: **PASS — import schema/seed/sample dan seluruh 61 skenario runtime**.
 Tidak ada commit/push, binding Drizzle, backend/frontend, atau pekerjaan Phase 2.
@@ -71,3 +78,11 @@ melalui instance lokal ini. Hasil ini menggantikan status runtime PENDING sebelu
 Phase 1 siap diajukan untuk commit setelah persetujuan user; belum siap dianggap
 implementasi aplikasi/production. Auth, policy akses, transaksi service, UI confirmation,
 file fisik, dan concurrency tetap berada di luar Phase 1.
+
+## Pemeriksaan schema setelah aturan verifikasi template — 2026-10-30
+
+`node database/v2/validate.mjs --static` PASS setelah penambahan status
+`PENDING_REVIEW` dan indeks antrean: 29 tabel/PK, 48 FK, 33 CHECK,
+25 UNIQUE sekunder, dan 81 indeks sekunder. Runtime MySQL belum dijalankan untuk
+patch 022 pada database; lakukan hanya pada database V2 terisolasi, bukan database
+legacy atau production.

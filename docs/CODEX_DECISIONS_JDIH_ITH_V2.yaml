@@ -28,6 +28,9 @@ public_navigation:
 public_home:
   statistics: false
   latest_public_document: true
+  session_visibility: "anonymous/pending/inactive/invalid session: Public only; active staff and authorized managers: Public + Internal, across units"
+  latest_and_counts_visibility: "same access predicate before ranking/counts/categories/years; current TERBIT only; special SOP collection remains separate"
+  snapshot_privacy: "SSR forwards cookie with no-store; API private/no-store and Vary Cookie; separate in-flight coalescing by Public/Internal scope"
   profile_scope: "Tentang ITH"
   profile_source: "https://ith.ac.id/about; institutional introduction, 2014/2021 history, JDIH purpose and access guidance"
   footer_visits: "actual MySQL daily aggregates; browser/day WITA; server cookie and bot filter; no-store SSR; visible-tab refresh and day rollover; shared requests/Web Locks; unavailable state instead of invented zero"
@@ -116,9 +119,11 @@ admin_document_policy:
   global_menu_items_disabled: false
   global_pages_readable: true
   global_write_controls_disabled: true
-  global_write_exception: "Format Persuratan: all templates, including other accounts' uploads"
+  global_write_exception: "Admin with templates.manage may upload any template/version; uploads await Superadmin verification"
   can_manage_all_letter_templates: true
   letter_template_permission: "templates.manage"
+  letter_template_verifier: "active SUPERADMIN only"
+  admin_template_upload_status: "PENDING_REVIEW; both Admin and Superadmin uploads require approval then separate publication"
   document_input_options_unit_scoped: true
   account_email_visibility: "own email visible by session/target ID; other accounts masked in UI and API; Superadmin sees all"
   mask_own_email_in_admin_session_response: false
@@ -190,7 +195,7 @@ document_workflow:
     - "DITARIK"
   rejected_state: false
   author_can_approve_own_version: "only active Superadmin with workflow.approve, owning both document and version"
-  sop_permohonan_sk_approval: "APPROVE and PUBLISH in one transaction; reviewed impact confirmation and both permissions required; ordinary document approval unchanged"
+  sop_permohonan_sk_approval: "APPROVE -> DISETUJUI only; separate PUBLISH -> TERBIT with reviewed impact confirmation; includes own Superadmin uploads"
   sop_permohonan_sk_access: [publik, internal]
   own_superadmin_draft_flow: "DRAF/REVISI -> DISETUJUI, without SUBMIT/verification queue; full readiness and audit required"
   return_revision_requires_note: true
@@ -335,8 +340,17 @@ letter_templates:
     - "INTERNAL"
   versioning: true
   old_version_behavior: "ARCHIVED"
+  version_statuses: [PENDING_REVIEW, APPROVED, ACTIVE, ARCHIVED]
+  admin_upload_requires_verification: true
+  verifier: "active SUPERADMIN only"
+  pending_versions_per_template: 1
+  active_version_kept_until_publication: true
+  approval_publishes_automatically: false
+  superadmin_upload_requires_own_approval: true
+  approval_metadata: [verified_by, approved_at]
+  publish_verifies_file_checksum: true
   hard_delete_normal_history: false
-  manager: "SUPERADMIN"
+  manager: "ADMIN and SUPERADMIN with templates.manage; only SUPERADMIN approves and publishes separately"
 
 popup_rule:
   visual_style: "white surface, subtle accent, light translucent backdrop, short motion; Radix portal with focus management"

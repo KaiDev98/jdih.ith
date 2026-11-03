@@ -1,5 +1,21 @@
 # Physical Database JDIH ITH V2 — Phase 1
 
+Revisi 2026-11-04: pada DB lama, jalankan patch-022 kemudian
+`patch-023-persetujuan-penerbitan-terpisah.sql` sebelum memakai backend terbaru.
+Seluruh unggahan Format Persuratan (termasuk Superadmin) menunggu persetujuan,
+lalu diterbitkan melalui tindakan terpisah. Patch-023 menambah APPROVED dan
+metadata persetujuan, mempertahankan publikasi/riwayat serta tidak mereset data.
+Schema fresh sudah memuat keduanya. SOP SK memakai persetujuan dan penerbitan
+terpisah; tidak memerlukan perubahan schema workflow dokumen.
+
+
+Revisi Format Persuratan 2026-10-30: jalankan
+`patch-022-verifikasi-format-persuratan.sql` sekali pada database V2 lama.
+Patch idempoten menambah status `PENDING_REVIEW`, slot antrean tunggal per
+template, nullable `activated_at`, dan CHECK status versi; versi aktif saat ini
+tidak berubah. Unggahan Admin menunggu verifikasi Superadmin aktif. Instalasi baru memakai
+`schema.sql` yang sudah mencakup perubahan tersebut.
+
 Revisi 2026-10-30: terapkan `patch-021-staff-password-recovery.sql` pada database
 V2 yang sudah ada sebelum menjalankan backend pemulihan password. Patch idempoten
 menambah tabel token/antrean dan audit penerapan; tidak mereset data. Instalasi
@@ -186,7 +202,7 @@ Jangan menjalankan `npm run db:reset`, `db:import` legacy, `db:pull`, atau bindi
 Drizzle untuk menguji proposal ini. Image tag 8.4 dapat bergerak ke patch baru;
 catat versi/digest aktual pada validasi dan pin digest ketika deployment disetujui.
 
-## 23 tabel dan kepemilikan data
+## 29 tabel dan kepemilikan data
 
 | Kelompok | Tabel |
 | --- | --- |
@@ -194,6 +210,9 @@ catat versi/digest aktual pada validasi dan pin digest ketika deployment disetuj
 | Master produk | `jenis_dokumen`, `kategori`, `tag` |
 | Produk hukum | `dokumen`, `dokumen_versi`, `dokumen_versi_kategori`, `dokumen_versi_tag`, `dokumen_berkas`, `dokumen_relasi`, `dokumen_akses_rahasia`, `dokumen_workflow`, `dokumen_status_hukum_riwayat` |
 | Persuratan/audit | `template_surat`, `template_surat_versi`, `audit_log` |
+| Operasional/pelengkap | `password_reset_tokens`, `password_reset_emails`, `kontak_kantor_butir`, `kunjungan_harian`, `dokumen_statistik`, `notifikasi_dihapus` |
+
+23 tabel inti domain dilengkapi enam tabel operasional/pelengkap.
 
 PK memakai BIGINT UNSIGNED; tabel penghubung memakai PK komposit. Identitas stabil
 dan user memiliki `deleted_at`; master lain dinonaktifkan melalui `aktif` bila relevan.
@@ -261,19 +280,20 @@ ke daftar V1; backend versioning/arsip tetap digunakan.
 | Berkas | `UTAMA`, `LAMPIRAN` |
 | Workflow action | `CREATE`, `SUBMIT`, `RETURN`, `APPROVE`, `PUBLISH`, `WITHDRAW` |
 | Akses template | `PUBLIK`, `INTERNAL` |
-| Status versi template | `ACTIVE`, `ARCHIVED` |
+| Status versi template | `PENDING_REVIEW`, `ACTIVE`, `ARCHIVED` |
 
 33 CHECK mencakup boolean, nama/judul/alasan tidak kosong, nomor versi positif,
 tahun empat digit bila diisi, expiry/revocation waktu yang valid, size positif,
 larangan self-approval pada data versi, field approval/publish/withdraw yang wajib
-sesuai state, dan archive timestamp template. CHECK workflow history membatasi
+sesuai state, dan archive timestamp versi template (versi tertunda dapat diarsipkan
+tanpa pernah diaktifkan). CHECK workflow history membatasi
 pasangan action/status asal/tujuan, termasuk melarang NULL sebagai celah transisi.
 ENUM berlaku dengan strict SQL mode; aplikasi tidak boleh menonaktifkan strict mode
 atau menggunakan INSERT IGNORE untuk menghindari pelanggaran.
 
 ## FK, UNIQUE, dan indeks
 
-Semua **41 FK** eksplisit memakai `ON DELETE RESTRICT ON UPDATE RESTRICT`.
+Semua **48 FK** eksplisit memakai `ON DELETE RESTRICT ON UPDATE RESTRICT`.
 Tidak ada CASCADE/SET NULL yang menghapus/memutus history secara diam-diam. ID
 immutable; akun dinonaktifkan/soft-delete sehingga atribusi audit tetap tersedia.
 Actor audit boleh NULL untuk system/anonymous/provisioning, tetapi actor yang sudah
@@ -295,13 +315,14 @@ Dua FK pointer ditambahkan sesudah tabel versi terbentuk; insert parent dengan
 pointer NULL dahulu. Composite UNIQUE pada sisi versi merupakan candidate key
 eksplisit sehingga tidak bergantung pada nonstandard FK MySQL.
 
-**23 PK + 22 UNIQUE sekunder**: Google sub/email; kode master/role/permission;
+**29 PK + 25 UNIQUE sekunder**: Google sub/email; kode master/role/permission;
 nama tag; kode/slug dokumen; `(dokumen_id,nomor_versi)`; owner key versi;
 storage key; slot file utama; pasangan relasi; slot grant; slug template;
-nomor versi template, owner key, slot ACTIVE dan storage key; session token hash.
+nomor versi template, owner key, slot ACTIVE/PENDING_REVIEW dan storage key;
+session token hash.
 PK penghubung mencegah role/permission/kategori/tag duplikat.
 
-Ada **70 indeks sekunder bernama (22 UNIQUE + 48 non-unique)**, selain PK:
+Ada **81 indeks sekunder bernama (25 UNIQUE + 56 non-unique)**, selain PK:
 
 | Kebutuhan | Indeks utama |
 | --- | --- |
@@ -313,7 +334,7 @@ Ada **70 indeks sekunder bernama (22 UNIQUE + 48 non-unique)**, selain PK:
 | Secret grants | `uq_secret_open_grant`, `idx_secret_user`, `idx_secret_expiry` |
 | Sessions | `uq_sesi_token`, `idx_sesi_user`, `idx_sesi_expiry` |
 | Audit | `idx_audit_actor_date`, `idx_audit_entity_date`, `idx_audit_date`, `idx_audit_request` |
-| Template | `uq_template_slug`, `idx_template_current`, `idx_template_visibility`, `uq_template_versi_active` |
+| Template | `uq_template_slug`, `idx_template_current`, `idx_template_visibility`, `uq_template_versi_active`, `uq_template_versi_pending` |
 
 Indeks judul adalah prefix B-tree, bukan full-text PDF. Ia membantu prefix/equality,
 tidak menjamin percepatan `LIKE '%kata%'`. Search metadata lintas kategori/tag tetap
@@ -331,7 +352,7 @@ publik atau view yang otomatis mengekspos Internal/Rahasia.
 | Self-approval | CHECK `verified_by <> created_by` bila verifier diisi | Cocokkan verifier dengan actor sesi dan izin; jangan izinkan request memalsukan ID |
 | Workflow | ENUM + CHECK event transisi dan catatan | Kunci row versi; event harus cocok dengan state aktual dan actor; state update + event + audit atomik |
 | Legal impact | FK relasi, status enum, alasan/history | Preview lalu konfirmasi manusia; hitung ulang under lock; target status/history/audit bersama publish |
-| Arsip template | Maksimum satu ACTIVE, tanggal arsip wajib | Arsip versi lama + aktifkan baru + pindah pointer dalam satu transaksi |
+| Versi template | Maksimum satu ACTIVE dan satu PENDING_REVIEW; pending tanpa timestamp aktivasi | Unggahan Admin menunggu Superadmin; versi aktif lama tetap current sampai verifikasi atomik |
 | History/audit terjaga | FK RESTRICT menghalangi delete parent yang masih direferensikan | Append-only, larang direct UPDATE/DELETE normal pada history/versi; DB user production least privilege |
 | Login/akses | Unique identity/session hash; tidak menyimpan password/raw token | Verifikasi Google issuer/audience/sub/email/domain, approval, session revocation, RBAC dan visibility |
 
@@ -384,7 +405,8 @@ Komisi Etik tetap tersendiri. Kedua patch idempoten dan mencatat perubahan dalam
 Seed memasang tiga role canonical; PENGUNJUNG virtual. Admin biasa hanya dapat
 menginput, mengubah dokumennya sendiri, dan mengajukannya. Sebagai pengecualian,
 semua Admin juga mendapat `templates.manage` untuk mengelola seluruh Format
-Persuratan, termasuk template milik akun lain. Database V2 yang sudah terpasang
+Persuratan, termasuk template milik akun lain. Unggahan Admin berstatus
+`PENDING_REVIEW`; hanya Superadmin aktif yang dapat mengaktifkannya. Database V2 yang sudah terpasang
 memakai patch `patch-015-admin-format-persuratan.sql` setelah patch sebelumnya;
 patch hanya menambahkan izin template dan mencatat perubahan role dalam audit.
 Pilihan kategori dokumen hukum Admin

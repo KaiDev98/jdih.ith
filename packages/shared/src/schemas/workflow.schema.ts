@@ -8,8 +8,6 @@ export const skemaAjukanDokumen = z.strictObject({
 export const skemaKembalikanRevisi = z.strictObject({ catatan: teksWajib(2000, 'Catatan revisi') });
 export const skemaSetujuiDokumen = z.strictObject({
   catatan: z.string().trim().max(2000).transform((value) => value || undefined).optional(),
-  /** SOP Permohonan SK disetujui dan diterbitkan dalam satu transaksi. */
-  konfirmasi: skemaKonfirmasiDampakPublikasi.optional(),
 });
 export const skemaNotifikasiDokumen = z.strictObject({
   id: skemaId,

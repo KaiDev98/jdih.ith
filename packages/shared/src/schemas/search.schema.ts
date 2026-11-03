@@ -96,7 +96,7 @@ export type HasilCariAnonim = z.infer<typeof skemaHasilCariAnonim>;
 export type HasilCariAuthorized = z.infer<typeof skemaHasilCariAuthorized>;
 export type TahunTersedia = z.infer<typeof skemaTahunTersedia>;
 
-/** Satu snapshot beranda; hanya dokumen PUBLIK yang sedang TERBIT. */
+/** Snapshot beranda sesuai akses sesi; hanya versi TERBIT aktif yang boleh dibaca. */
 export const skemaBerandaPublik = z.strictObject({
   jenis: z.array(
     z.strictObject({

@@ -1,6 +1,46 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
 **Dokumen ini adalah konteks lengkap yang harus dipahami Codex sebelum mengerjakan project.**  
+Revisi persetujuan dan penerbitan TERBARU 2026-11-04 menggantikan semua aturan
+langsung aktif/terbit pada revisi lama di bawah. Semua dokumen, termasuk SOP
+Permohonan SK, harus DISETUJUI dahulu lalu TERBIT melalui tindakan terpisah.
+Admin membuat/mengunggah/mengajukan; hanya Superadmin menyetujui/menerbitkan.
+Draf milik Superadmin dapat disetujui dirinya sendiri, tetapi tidak otomatis
+terbit. Tinjauan dampak hanya tersedia setelah DISETUJUI, kemudian konfirmasi
+Terbitkan. Persetujuan tidak memindah pointer atau mengarsip versi publik lama.
+
+Format Persuratan memakai PENDING_REVIEW -> APPROVED -> ACTIVE, dengan dua
+tombol Setujui/Terbitkan dan dua audit berbeda. Unggahan Admin DAN Superadmin
+selalu PENDING_REVIEW; Superadmin dapat menyetujui unggahannya sendiri.
+APPROVED menyimpan verified_by/approved_at, belum tersedia di portal. Hanya
+publish memindah pointer, mengaktifkan template dan mengarsip versi terbit lama
+secara atomik. Berkas/checksum diperiksa ulang saat setujui dan terbitkan.
+Penggantian file tertunda/disetujui membuat versi baru yang harus disetujui ulang;
+riwayat dan versi terbit lama dipertahankan. File tinjauan hanya di rute panel
+terautorisasi. Jalankan patch-022 lalu patch-023 pada DB lama sebelum backend baru;
+patch tidak menarik/menghapus publikasi yang sudah ada. Tidak reset schema/seed.
+
+Revisi Format Persuratan 2026-10-30: Admin aktif dengan izin `templates.manage`
+dapat membuat format dan mengunggah versi lintas pemilik, tetapi unggahannya
+menunggu verifikasi dan tidak langsung ditayangkan. Hanya Superadmin aktif yang
+dapat memverifikasi. Pergantian versi aktif dilakukan atomik setelah persetujuan;
+versi aktif sebelumnya tetap tersedia selama menunggu. Unggahan pengganti
+mengarsipkan kandidat tertunda sebelumnya tanpa menghapus riwayat. Audit, CSRF,
+konfirmasi, dan akses PUBLIK/INTERNAL tetap berlaku.
+
+Revisi beranda berdasarkan sesi terakhir 2026-10-30: panel Regulasi terbaru,
+jumlah Produk Hukum per jenis, kategori SOP dan pilihan tahun mengikuti sesi.
+Anonim, akun pending/nonaktif dan sesi tidak valid hanya menerima versi Publik.
+Dosen/Staf aktif serta Admin/Superadmin aktif dengan documents.read_admin
+menerima Publik + Internal lintas unit. Penyaringan SQL dilakukan sebelum
+ranking terbaru dan COUNT; hanya versi TERBIT yang ditunjuk current pointer,
+bukan draf/revisi, versi superseded, ditarik atau dokumen dihapus. Pemisahan
+koleksi SOP Permohonan SK tetap berlaku. Halaman beranda meneruskan cookie
+melalui ambilDariPeladen (no-store); API memakai private, no-store dan Vary Cookie.
+Penggabungan request serentak dipisahkan menurut cakupan Publik/Internal; hasil
+privat tidak boleh dipakai request anonim. Kebijakan akses beranda, pencarian
+dan detail memakai pemeriksaan Internal yang sama di backend.
+
 Revisi akun pengelola terakhir 2026-10-30: Superadmin aktif dengan users.read
 mempunyai tombol Tambah Admin pada kelompok Admin di Pengguna. Formulir memuat
 nama, email, unit aktif dan password awal kuat, lalu ringkasan konfirmasi.
@@ -345,10 +385,11 @@ menggantikan aturan lama yang memberi Admin kewenangan verifikasi dan pengelolaa
 global: Admin hanya memasukkan/mengubah dokumen miliknya; Superadmin memverifikasi
 semua dokumen dan mengelola SOP Permohonan SK serta pengaturan global.
 
-Pengecualian Format Persuratan terbaru: semua Admin dan Superadmin dapat mengelola
-seluruh template lintas pembuat/unit (membuat, mengunggah dan mengaktifkan versi
-baru, mengarsipkan). Izin `templates.manage` diberikan pada role Admin; akun aktif,
-konfirmasi, dan audit tetap diwajibkan. Fitur global lain mengikuti batas semula.
+Pengecualian Format Persuratan: semua Admin dan Superadmin dapat membuat format,
+mengunggah versi lintas pembuat/unit, serta mengarsipkan dengan izin
+`templates.manage`. Unggahan Admin menunggu verifikasi sebelum aktif; hanya
+Superadmin aktif dapat memverifikasi. Akun aktif, konfirmasi, CSRF, dan audit
+tetap diwajibkan. Fitur global lain mengikuti batas semula.
 
 > Catatan struktur: snapshot awal di bawah berasal dari sebelum implementasi dan refactor repository. Path aplikasi pada dokumen ini dinormalisasi ke layout terkini: NestJS di `backend/`, Next.js di `frontend/`, dan shared contracts tetap di `packages/shared/`.
 
@@ -614,7 +655,9 @@ Can only:
 - select categories mapped to their own unit;
 - submit their own versions for verification;
 - view their own documents and the administrative dashboard.
-- manage all letter templates, including templates created by other accounts.
+- create and upload versions for any letter template with `templates.manage`;
+  Admin uploads remain pending until an active Superadmin verifies them.
+- archive active letter templates with `templates.manage`.
 
 Admin cannot verify, approve, return, publish, withdraw, delete another user's
 document, manage users, manage master data, or manage
@@ -625,9 +668,10 @@ panel: hide its Admin menu, shortcuts and command search entries, deny direct Ad
 page/API access and exclude its documents from Admin lists and queues. Published
 SOP remains accessible through the public portal.
 Letter templates are an explicit exception to global read-only access: all Admin
-accounts with `templates.manage` may create, replace versions, activate and archive
-any template. The law-document ownership and verification rules do not apply to
-this template management exception.
+accounts with `templates.manage` may create and upload versions for any template.
+Admin uploads wait for verification; only Superadmin can activate them. Admin may
+archive an active template with the required permission. The law-document
+ownership rules do not apply to this template management exception.
 
 ## 6.4 Admin Verifikator
 
@@ -1300,9 +1344,9 @@ This is a separate module from Product Law.
 Concept:
 - Superadmin creates a letter template outside the system.
 - Usually `.docx`.
-- Superadmin uploads the file.
+- Admin/Superadmin uploads the file.
 - Users download it.
-- When format changes, Superadmin uploads a new version.
+- Admin uploads and new versions wait for Superadmin verification. Superadmin uploads may activate directly.
 - Old version is archived, not destroyed.
 
 V1 access levels for letter templates only:
@@ -1318,6 +1362,9 @@ UI V1 hanya daftar Judul + Download (misalnya Surat Tugas, Surat Undangan).
 Judul berasal dari `template_surat.nama`; file dari `current_version_id`.
 Tidak ada halaman detail template, Preview, status hukum, atau metadata Produk Hukum.
 Versioning backend tetap digunakan; akses PUBLIK/INTERNAL tetap berlaku.
+Versi berstatus `PENDING_REVIEW` tidak dapat diunduh dan tidak menggantikan current
+version. Verifikasi Superadmin mengaktifkan versi baru, mengarsipkan versi aktif
+sebelumnya, dan memperbarui pointer dalam satu transaksi.
 
 ## 19.1 PUBLIK template
 
@@ -1349,11 +1396,14 @@ Template Surat Tugas
 +-- v1 ARCHIVED
 |
 +-- v2 ACTIVE
+|
++-- v3 PENDING_REVIEW (Admin upload; v2 remains current)
 ```
 
 Stable template has `current_version_id`.
 
-Old file remains stored.
+Old file remains stored. Pending Admin versions are unavailable for download and
+do not replace `current_version_id` until an active Superadmin verifies them.
 
 ---
 
@@ -1374,6 +1424,7 @@ Examples:
 - Change legal status.
 - Upload revision.
 - Archive/replace template version.
+- Verify an Admin-uploaded letter template version (active Superadmin only).
 - Approve account.
 - Reject account.
 - Grant secret access.
@@ -1802,14 +1853,14 @@ Suggested:
 - `template_surat_id`
 - `nomor_versi`
 - `tingkat_akses`
-- `status` = ACTIVE/ARCHIVED
+- `status` = PENDING_REVIEW/ACTIVE/ARCHIVED
 - `storage_path`
 - `nama_asli`
 - `mime_type`
 - `size_bytes`
 - `checksum`
 - `created_by`
-- `activated_at`
+- `activated_at` (NULL until verified/activated)
 - `archived_at`
 - timestamp
 
@@ -1929,6 +1980,7 @@ POST  /api/v1/admin/letter-templates
 GET   /api/v1/admin/letter-templates/:id
 PATCH /api/v1/admin/letter-templates/:id
 POST  /api/v1/admin/letter-templates/:id/versions
+POST  /api/v1/admin/letter-templates/:id/versions/:versionId/verify
 ```
 
 ## Master
@@ -2437,9 +2489,11 @@ Core flows were structurally checked:
 
 **BR-033** Only Superadmin can verify, return, approve, publish, or withdraw a document.
 
-**BR-034** Only Superadmin can manage SOP Permohonan SK, templates, accounts, categories,
-units, and other global settings. Admin may open those pages to read information;
-write controls are disabled. Panel paths are `/admin` and `/superadmin` by role.
+**BR-034** Only Superadmin can manage SOP Permohonan SK, accounts, categories, units,
+and other global settings. Admin may open those pages to read information; write
+controls are disabled. Admin may create/upload Format Persuratan with
+`templates.manage`, but those uploads require verification; only Superadmin can
+verify. Panel paths are `/admin` and `/superadmin` by role.
 
 ---
 

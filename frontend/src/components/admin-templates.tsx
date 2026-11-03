@@ -27,8 +27,12 @@ type Template = {
   aktif: boolean | number;
   currentVersionId: string | null;
   nomorVersi: number | null;
-  tingkatAkses: 'PUBLIK' | 'INTERNAL';
+  tingkatAkses: 'PUBLIK' | 'INTERNAL' | null;
   status: string | null;
+  pendingVersionId: string | null;
+  pendingStatus?: 'PENDING_REVIEW' | 'APPROVED' | null;
+  pendingNomorVersi: number | null;
+  pendingTingkatAkses: 'PUBLIK' | 'INTERNAL' | null;
 };
 
 export function AdminTemplates() {
@@ -37,13 +41,20 @@ export function AdminTemplates() {
     pengguna?.status === 'AKTIF' &&
     pengguna.peran.some((peran) => peran === 'ADMIN' || peran === 'SUPERADMIN') &&
     pengguna.izin.includes('templates.manage');
+  const bolehVerifikasi =
+    pengguna?.status === 'AKTIF' &&
+    pengguna.peran.includes('SUPERADMIN') &&
+    pengguna.izin.includes('templates.manage');
+  const bolehGantiVersiTertunda = bolehKelola;
   const [rows, setRows] = useState<Template[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [refresh, setRefresh] = useState(0);
   const [selected, setSelected] = useState<Template>();
-  const [filter, setFilter] = useState<'SEMUA' | 'AKTIF' | 'ARSIP'>('SEMUA');
+  const [filter, setFilter] = useState<
+    'SEMUA' | 'AKTIF' | 'MENUNGGU_VERIFIKASI' | 'DISETUJUI' | 'ARSIP'
+  >('SEMUA');
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [slugManual, setSlugManual] = useState(false);
@@ -106,11 +117,35 @@ export function AdminTemplates() {
     );
     setNotice(
       selected
-        ? `Versi baru ${selected.nama} berhasil diaktifkan.`
-        : 'Format persuratan berhasil ditambahkan.',
+        ? `Versi baru ${selected.nama} diunggah dan menunggu persetujuan Superadmin.`
+        : 'Format diunggah dan menunggu persetujuan Superadmin.',
     );
     reset();
     setRefresh((x) => x + 1);
+  }
+  async function verify(row: Template) {
+    if (!bolehVerifikasi || !row.pendingVersionId)
+      throw new Error('Hanya Superadmin aktif yang dapat memverifikasi format persuratan.');
+    await ambilApi(`/admin/letter-templates/${row.id}/versions/${row.pendingVersionId}/verify`, {
+      method: 'POST',
+      headers: csrfHeaders(csrfToken),
+      muatan: {},
+    });
+    setNotice(
+      `Versi ${row.pendingNomorVersi} ${row.nama} berhasil disetujui. Terbitkan secara terpisah agar tersedia di portal.`,
+    );
+    setRefresh((x) => x + 1);
+  }
+  async function publish(row: Template) {
+    if (!bolehVerifikasi || !row.pendingVersionId || row.pendingStatus !== 'APPROVED')
+      throw new Error('Setujui format terlebih dahulu sebelum menerbitkan.');
+    await ambilApi(`/admin/letter-templates/${row.id}/versions/${row.pendingVersionId}/publish`, {
+      method: 'POST',
+      headers: csrfHeaders(csrfToken),
+      muatan: {},
+    });
+    setNotice(`Versi ${row.pendingNomorVersi} ${row.nama} berhasil diterbitkan.`);
+    setRefresh((value) => value + 1);
   }
   async function archive(row: Template) {
     await ambilApi(`/admin/letter-templates/${row.id}/archive`, {
@@ -123,8 +158,20 @@ export function AdminTemplates() {
     setRefresh((x) => x + 1);
   }
   const aktif = rows.filter((row) => row.aktif).length;
+  const menungguVerifikasi = rows.filter(
+    (row) => row.pendingVersionId && row.pendingStatus !== 'APPROVED',
+  ).length;
+  const disetujui = rows.filter((row) => row.pendingStatus === 'APPROVED').length;
+  const arsip = rows.filter((row) => !row.aktif && !row.pendingVersionId).length;
   const tampil = rows.filter(
-    (row) => filter === 'SEMUA' || (filter === 'AKTIF' ? !!row.aktif : !row.aktif),
+    (row) =>
+      filter === 'SEMUA' ||
+      (filter === 'AKTIF' && !!row.aktif) ||
+      (filter === 'MENUNGGU_VERIFIKASI' &&
+        !!row.pendingVersionId &&
+        row.pendingStatus !== 'APPROVED') ||
+      (filter === 'DISETUJUI' && row.pendingStatus === 'APPROVED') ||
+      (filter === 'ARSIP' && !row.aktif && !row.pendingVersionId),
   );
 
   return (
@@ -186,7 +233,9 @@ export function AdminTemplates() {
                 [
                   ['SEMUA', 'Semua', rows.length],
                   ['AKTIF', 'Aktif', aktif],
-                  ['ARSIP', 'Arsip', rows.length - aktif],
+                  ['MENUNGGU_VERIFIKASI', 'Menunggu persetujuan', menungguVerifikasi],
+                  ['DISETUJUI', 'Disetujui', disetujui],
+                  ['ARSIP', 'Arsip', arsip],
                 ] as const
               ).map(([id, label, count]) => (
                 <button
@@ -226,28 +275,87 @@ export function AdminTemplates() {
                   <div className={styles.fileInfo}>
                     <h3>{row.nama}</h3>
                     <div className={styles.meta}>
-                      <span>Versi {row.nomorVersi ?? '—'}</span>
+                      <span>Versi {row.nomorVersi ?? row.pendingNomorVersi ?? '—'}</span>
                       <span aria-hidden>·</span>
-                      <span>{row.tingkatAkses === 'INTERNAL' ? 'Dosen/Staf' : 'Publik'}</span>
-                      <Badge color={row.aktif ? 'green' : 'slate'}>
-                        {row.aktif ? 'Aktif' : 'Arsip'}
-                      </Badge>
+                      <span>
+                        {(row.tingkatAkses ?? row.pendingTingkatAkses) === 'INTERNAL'
+                          ? 'Dosen/Staf'
+                          : 'Publik'}
+                      </span>
+                      {row.aktif ? (
+                        <Badge color="green">Aktif</Badge>
+                      ) : row.pendingVersionId ? (
+                        <Badge color={row.pendingStatus === 'APPROVED' ? 'blue' : 'amber'}>
+                          {row.pendingStatus === 'APPROVED'
+                            ? 'Disetujui, belum terbit'
+                            : 'Menunggu persetujuan'}
+                        </Badge>
+                      ) : (
+                        <Badge color="slate">Arsip</Badge>
+                      )}
+                      {!!row.aktif && row.pendingVersionId && (
+                        <Badge color={row.pendingStatus === 'APPROVED' ? 'blue' : 'amber'}>
+                          Versi {row.pendingNomorVersi}{' '}
+                          {row.pendingStatus === 'APPROVED'
+                            ? 'disetujui, belum terbit'
+                            : 'menunggu persetujuan'}
+                        </Badge>
+                      )}
                     </div>
                   </div>
                   <div className={styles.actions}>
                     <Button
                       tone="secondary"
                       ukuran="kecil"
-                      disabled={!bolehKelola || !row.aktif}
+                      disabled={
+                        !bolehKelola ||
+                        (!row.aktif && !row.pendingVersionId) ||
+                        (!!row.pendingVersionId && !bolehGantiVersiTertunda)
+                      }
                       onClick={() => {
                         reset();
                         setSelected(row);
-                        setAccess(row.tingkatAkses);
+                        setAccess(row.pendingTingkatAkses ?? row.tingkatAkses ?? 'PUBLIK');
                         fokusEditor();
                       }}
                     >
-                      <FileUp aria-hidden className="size-3.5" /> Versi baru
+                      <FileUp aria-hidden className="size-3.5" />
+                      {row.pendingVersionId && bolehGantiVersiTertunda
+                        ? 'Unggah perbaikan'
+                        : 'Versi baru'}
                     </Button>
+                    {row.pendingVersionId && (
+                      <a
+                        className="text-xs font-semibold text-institusi-700 underline underline-offset-4"
+                        href={`/api/v1/admin/letter-templates/${row.id}/versions/${row.pendingVersionId}/download`}
+                      >
+                        Unduh untuk ditinjau
+                      </a>
+                    )}
+                    {bolehVerifikasi &&
+                      row.pendingVersionId &&
+                      row.pendingStatus !== 'APPROVED' && (
+                        <ConfirmAction
+                          label="Setujui"
+                          tone="secondary"
+                          ukuran="kecil"
+                          title="Setujui format persuratan?"
+                          description={`${row.nama} versi ${row.pendingNomorVersi} akan disetujui. Penerbitan dilakukan melalui tombol Terbitkan setelahnya; versi terbit sebelumnya tetap tersedia.`}
+                          disabled={!bolehVerifikasi}
+                          onConfirm={() => verify(row)}
+                        />
+                      )}
+                    {bolehVerifikasi &&
+                      row.pendingVersionId &&
+                      row.pendingStatus === 'APPROVED' && (
+                        <ConfirmAction
+                          label="Terbitkan"
+                          ukuran="kecil"
+                          title="Terbitkan format persuratan?"
+                          description={`${row.nama} versi ${row.pendingNomorVersi} akan tersedia sesuai aksesnya dan menggantikan versi terbit sebelumnya.`}
+                          onConfirm={() => publish(row)}
+                        />
+                      )}
                     {!!row.aktif && (
                       <ConfirmAction
                         label="Arsipkan"
@@ -279,9 +387,9 @@ export function AdminTemplates() {
             </div>
             <fieldset disabled={!bolehKelola} className={styles.fields}>
               <p className="text-xs leading-6 text-slate-500">
-                {selected
-                  ? 'Berkas baru langsung aktif. Versi sebelumnya disimpan sebagai arsip.'
-                  : 'Siapkan berkas surat yang siap diisi dan digunakan.'}
+                Setiap unggahan, termasuk milik Superadmin, menunggu persetujuan. Setelah disetujui,
+                Superadmin menerbitkannya melalui tindakan terpisah. Versi terbit tetap tersedia
+                sampai penggantinya diterbitkan.
               </p>
               {!selected && (
                 <>
@@ -370,12 +478,10 @@ export function AdminTemplates() {
               )}
               <ConfirmAction
                 label={selected ? 'Unggah versi' : 'Buat template'}
-                title={selected ? 'Unggah dan aktifkan versi baru?' : 'Buat template?'}
-                description={
-                  selected
-                    ? `Berkas baru untuk ${selected.nama} langsung aktif; versi sebelumnya diarsipkan.`
-                    : `${name || 'Format surat'} akan tersedia sesuai akses yang dipilih.`
+                title={
+                  selected ? 'Unggah versi untuk disetujui?' : 'Unggah format untuk disetujui?'
                 }
+                description={`${selected?.nama || name || 'Format surat'} menunggu persetujuan Superadmin. File baru hanya tersedia setelah disetujui dan diterbitkan melalui tindakan terpisah.`}
                 disabled={
                   !bolehKelola ||
                   !file ||

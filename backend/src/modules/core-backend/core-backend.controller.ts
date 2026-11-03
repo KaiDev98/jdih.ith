@@ -173,7 +173,7 @@ export class WorkflowController {
     @Aktor() actor: PenggunaAktif,
   ) {
     const data = skemaSetujuiDokumen.parse(body);
-    return this.core.transition(actor, id, 'APPROVE', data.catatan, data.konfirmasi);
+    return this.core.transition(actor, id, 'APPROVE', data.catatan);
   }
   @Get('versions/:versionId/legal-impact') @Izin('workflow.publish') impact(
     @Param('versionId') id: string,

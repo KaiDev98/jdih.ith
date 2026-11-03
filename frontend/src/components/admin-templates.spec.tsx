@@ -26,6 +26,9 @@ const rows = [
     aktif: 1,
     nomorVersi: 2,
     tingkatAkses: 'PUBLIK',
+    pendingVersionId: null,
+    pendingNomorVersi: null,
+    pendingTingkatAkses: null,
   },
   {
     id: '2',
@@ -34,6 +37,9 @@ const rows = [
     aktif: 0,
     nomorVersi: 1,
     tingkatAkses: 'INTERNAL',
+    pendingVersionId: null,
+    pendingNomorVersi: null,
+    pendingTingkatAkses: null,
   },
 ];
 beforeEach(() => {
@@ -85,5 +91,102 @@ describe('pustaka Format Persuratan', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'Ya, lanjutkan' })).toBeEnabled(),
     );
+  });
+  it('Admin mengirim format untuk verifikasi dan tidak dapat menyetujui format tertunda', async () => {
+    state.api.mockResolvedValue([
+      { ...rows[0], pendingVersionId: 'v3', pendingNomorVersi: 3, pendingTingkatAkses: 'PUBLIK' },
+      rows[1],
+    ]);
+    render(<AdminTemplates />);
+    await screen.findByText('Surat Tugas');
+    expect(screen.getByRole('button', { name: 'Menunggu persetujuan 1' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Setujui' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Unggah perbaikan' })).toBeEnabled();
+
+    fireEvent.change(screen.getByLabelText('Nama'), { target: { value: 'Surat Izin' } });
+    fireEvent.change(screen.getByLabelText(/^Berkas/), {
+      target: { files: [new File(['data'], 'izin.docx')] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Buat template' }));
+    expect(screen.getAllByText(/menunggu persetujuan Superadmin/).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Batal' }));
+    expect(state.api.mock.calls.some(([, options]) => options?.method)).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Buat template' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
+    await screen.findByText(/diunggah dan menunggu persetujuan Superadmin/);
+    expect(state.api).toHaveBeenCalledWith(
+      '/admin/letter-templates',
+      expect.objectContaining({ method: 'POST', headers: { 'X-CSRF-Token': 'csrf' } }),
+    );
+  });
+  it('hanya Superadmin yang melihat aksi verifikasi dan mengirim konfirmasi ber-CSRF', async () => {
+    state.role = 'SUPERADMIN';
+    const pending = [
+      {
+        ...rows[0],
+        pendingVersionId: 'v3',
+        pendingNomorVersi: 3,
+        pendingTingkatAkses: 'INTERNAL',
+      },
+    ];
+    state.api.mockResolvedValue(pending);
+    render(<AdminTemplates />);
+    await screen.findByText('Surat Tugas');
+    fireEvent.click(screen.getByRole('button', { name: 'Setujui' }));
+    expect(screen.getByText(/akan disetujui/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
+    await screen.findByText(/berhasil disetujui/);
+    expect(state.api).toHaveBeenCalledWith(
+      '/admin/letter-templates/1/versions/v3/verify',
+      expect.objectContaining({ method: 'POST', headers: { 'X-CSRF-Token': 'csrf' } }),
+    );
+  });
+  it('Terbitkan hanya muncul setelah disetujui dan tetap perlu konfirmasi tersendiri', async () => {
+    state.role = 'SUPERADMIN';
+    state.api.mockResolvedValue([
+      { ...rows[0], pendingVersionId: '3', pendingNomorVersi: 3, pendingStatus: 'APPROVED' },
+    ]);
+    render(<AdminTemplates />);
+    await screen.findByText('Surat Tugas');
+    expect(screen.queryByRole('button', { name: 'Setujui' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Unduh untuk ditinjau' })).toHaveAttribute(
+      'href',
+      '/api/v1/admin/letter-templates/1/versions/3/download',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Terbitkan' }));
+    expect(state.api.mock.calls.some(([, options]) => options?.method)).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
+    await screen.findByText(/berhasil diterbitkan/);
+    expect(state.api).toHaveBeenCalledWith(
+      '/admin/letter-templates/1/versions/3/publish',
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
+  it.each(['ADMIN', 'SUPERADMIN'])(
+    'unggahan %s selalu menunggu persetujuan, tanpa penerbitan otomatis',
+    async (role) => {
+      state.role = role;
+      render(<AdminTemplates />);
+      await screen.findByText('Surat Tugas');
+      fireEvent.change(screen.getByLabelText('Nama'), { target: { value: 'Surat Izin' } });
+      fireEvent.change(screen.getByLabelText(/^Berkas/), {
+        target: { files: [new File(['data'], 'izin.docx')] },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Buat template' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
+      await screen.findByText(/diunggah dan menunggu persetujuan Superadmin/);
+      expect(state.api.mock.calls.some(([url]) => /\/(verify|publish)$/.test(String(url)))).toBe(
+        false,
+      );
+    },
+  );
+  it('Admin tidak mendapat tombol keputusan meskipun format sudah disetujui', async () => {
+    state.api.mockResolvedValue([
+      { ...rows[0], pendingVersionId: '3', pendingNomorVersi: 3, pendingStatus: 'APPROVED' },
+    ]);
+    render(<AdminTemplates />);
+    await screen.findByText('Surat Tugas');
+    expect(screen.queryByRole('button', { name: 'Setujui' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Terbitkan' })).not.toBeInTheDocument();
   });
 });

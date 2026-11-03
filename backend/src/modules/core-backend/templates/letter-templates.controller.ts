@@ -1,8 +1,25 @@
-import { Controller, Get, Param, Post, Query, Req, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  Req,
+  Res,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { rm } from 'node:fs/promises';
-import { Aktor, Izin, IzinSalahSatu, Publik, type PermintaanBerpengguna } from '../../../common/decorators/otorisasi.decorator.js';
+import {
+  Aktor,
+  Izin,
+  IzinSalahSatu,
+  Publik,
+  type PermintaanBerpengguna,
+} from '../../../common/decorators/otorisasi.decorator.js';
 import type { PenggunaAktif } from '@jdih/shared';
+import { skemaId } from '@jdih/shared';
 import { IdentityService } from '../../identity/identity.service.js';
 import { cookie, SESSION_COOKIE } from '../../identity/identity.guard.js';
 import { UploadInterceptor } from '../storage/upload.interceptor.js';
@@ -14,29 +31,104 @@ import { DownloadRateLimitService } from '../download-rate-limit.service.js';
 export class AdminLetterTemplatesController {
   constructor(private readonly templates: LetterTemplatesService) {}
 
-  @Get() @IzinSalahSatu('templates.manage', 'documents.read_admin') list(@Aktor() actor: PenggunaAktif) {
+  @Get() @IzinSalahSatu('templates.manage', 'documents.read_admin') list(
+    @Aktor() actor: PenggunaAktif,
+  ) {
     return this.templates.adminList(actor);
   }
 
-  @Post() @Izin('templates.manage') @UseInterceptors(UploadInterceptor)
-  async create(@UploadedFile() file: Express.Multer.File, @Req() req: PermintaanBerpengguna, @Aktor() actor: PenggunaAktif) {
-    try { return await this.templates.create(actor, file, req.body); }
-    finally { await rm(file.path, { force: true }); }
+  @Post()
+  @Izin('templates.manage')
+  @UseInterceptors(UploadInterceptor)
+  async create(
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: PermintaanBerpengguna,
+    @Aktor() actor: PenggunaAktif,
+  ) {
+    try {
+      return await this.templates.create(actor, file, req.body);
+    } finally {
+      await rm(file.path, { force: true });
+    }
   }
 
-  @Post(':templateId/versions') @Izin('templates.manage') @UseInterceptors(UploadInterceptor)
+  @Post(':templateId/versions')
+  @Izin('templates.manage')
+  @UseInterceptors(UploadInterceptor)
   async newVersion(
     @Param('templateId') id: string,
     @UploadedFile() file: Express.Multer.File,
     @Req() req: PermintaanBerpengguna,
     @Aktor() actor: PenggunaAktif,
   ) {
-    try { return await this.templates.newVersion(actor, id, file, req.body); }
-    finally { await rm(file.path, { force: true }); }
+    try {
+      return await this.templates.newVersion(actor, id, file, req.body);
+    } finally {
+      await rm(file.path, { force: true });
+    }
   }
 
-  @Post(':templateId/archive') @Izin('templates.manage')
-  archive(@Param('templateId') id: string, @Req() req: PermintaanBerpengguna, @Aktor() actor: PenggunaAktif) {
+  @Post(':templateId/versions/:versionId/verify')
+  @Izin('templates.manage')
+  verify(
+    @Param('templateId') templateId: string,
+    @Param('versionId') versionId: string,
+    @Req() req: PermintaanBerpengguna,
+    @Aktor() actor: PenggunaAktif,
+  ) {
+    return this.templates.verify(
+      actor,
+      skemaId.parse(templateId),
+      skemaId.parse(versionId),
+      req.body,
+    );
+  }
+
+  @Post(':templateId/versions/:versionId/publish')
+  @Izin('templates.manage')
+  publish(
+    @Param('templateId') templateId: string,
+    @Param('versionId') versionId: string,
+    @Req() req: PermintaanBerpengguna,
+    @Aktor() actor: PenggunaAktif,
+  ) {
+    return this.templates.publish(
+      actor,
+      skemaId.parse(templateId),
+      skemaId.parse(versionId),
+      req.body,
+    );
+  }
+
+  @Get(':templateId/versions/:versionId/download')
+  @IzinSalahSatu('templates.manage', 'documents.read_admin')
+  async review(
+    @Param('templateId') templateId: string,
+    @Param('versionId') versionId: string,
+    @Aktor() actor: PenggunaAktif,
+    @Res() res: Response,
+  ) {
+    const file = await this.templates.review(
+      actor,
+      skemaId.parse(templateId),
+      skemaId.parse(versionId),
+    );
+    res.setHeader('Content-Type', file.mimeType);
+    res.setHeader('Content-Length', String(file.size));
+    res.setHeader('Content-Disposition', contentDisposition(file.originalName, 'attachment'));
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    file.stream.on('error', () => res.destroy());
+    file.stream.pipe(res);
+  }
+
+  @Post(':templateId/archive')
+  @Izin('templates.manage')
+  archive(
+    @Param('templateId') id: string,
+    @Req() req: PermintaanBerpengguna,
+    @Aktor() actor: PenggunaAktif,
+  ) {
     return this.templates.archive(actor, id, req.body);
   }
 }
@@ -53,15 +145,25 @@ export class PublicLetterTemplatesController {
     return this.identity.optionalUser(token);
   }
 
-  @Get() @Publik()
-  async list(@Query() query: unknown, @Req() req: PermintaanBerpengguna, @Res({ passthrough: true }) res: Response) {
+  @Get()
+  @Publik()
+  async list(
+    @Query() query: unknown,
+    @Req() req: PermintaanBerpengguna,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     res.setHeader('Cache-Control', 'private, no-store');
     res.vary('Cookie');
     return this.templates.list(query, await this.actor(req));
   }
 
-  @Get(':slug/download') @Publik()
-  async download(@Param('slug') slug: string, @Req() req: PermintaanBerpengguna, @Res() res: Response) {
+  @Get(':slug/download')
+  @Publik()
+  async download(
+    @Param('slug') slug: string,
+    @Req() req: PermintaanBerpengguna,
+    @Res() res: Response,
+  ) {
     const actor = await this.actor(req);
     // Keep Internal-template denial indistinguishable from a missing template.
     const authorized = await this.templates.authorizeOpen(slug, actor);

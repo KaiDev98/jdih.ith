@@ -1,8 +1,8 @@
 ﻿import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, Download, Eye } from 'lucide-react';
-import type { HasilCariAnonim, BerandaPublik } from '@jdih/shared';
-import { ambilPublik } from '@/lib/api-peladen';
+import type { BerandaPublik } from '@jdih/shared';
+import { ambilDariPeladen } from '@/lib/api-peladen';
 import { BilahCari } from '@/components/bilah-cari';
 import { LatarFotoHero } from '@/components/latar-foto-hero';
 import { TandaStatus } from '@/components/tanda-status';
@@ -18,15 +18,15 @@ export const metadata = {
 };
 
 type Jenis = { id: string; kode: string; nama: string };
-type Terbaru = { jenis: Jenis; dokumen: HasilCariAnonim | null; jumlah: number | null };
+type Terbaru = { jenis: Jenis; dokumen: BerandaPublik['jenis'][number]['dokumen']; jumlah: number | null };
 type UnitSop = { id: string; kode: string; nama: string };
 type UnitBerjumlah = UnitSop & { jumlah: number | null };
 const tautanJenis = (kode: string) => `/produk-hukum?jenis=${encodeURIComponent(kode)}`;
 
 export default async function Beranda() {
-  // Satu snapshot, tiga query tetap. Tanpa kuki dan tanpa cache hasil dokumen:
-  // publikasi/penarikan langsung terlihat pada permintaan berikutnya.
-  const snapshot = await ambilPublik<BerandaPublik>('/public/home', { cache: 'no-store', next: undefined }).catch(() => null);
+  // Teruskan sesi untuk pemilihan dokumen sesuai akses. Helper selalu no-store
+  // agar snapshot akun Internal tidak tersimpan sebagai halaman publik.
+  const snapshot = await ambilDariPeladen<BerandaPublik>('/public/home').catch(() => null);
   const tipe: Jenis[] = snapshot?.jenis ?? [];
   const tahun = snapshot?.tahun ?? [];
   const terbaruPerJenis: Terbaru[] = (snapshot?.jenis ?? []).map(({ id, kode, nama, jumlah, dokumen }) => ({ jenis: { id, kode, nama }, jumlah, dokumen }));

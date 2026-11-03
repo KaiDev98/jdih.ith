@@ -64,8 +64,9 @@ describe('pengajuan dokumen pada panel', () => {
     fireEvent.click(screen.getByRole('radio', { name: 'Dosen/Staf' }));
     expect(screen.getByRole('radio', { name: 'Dosen/Staf' })).toBeChecked();
   });
-  it('SOP ditinjau dan dikonfirmasi sebelum satu permintaan persetujuan sekaligus terbit', async () => {
+  it('SOP milik Superadmin disetujui sendiri sebelum tinjauan dan penerbitan terpisah', async () => {
     state.role = 'SUPERADMIN';
+    let statusWorkflow = 'DRAF';
     state.api.mockImplementation((url: string, options?: { method?: string }) => {
       if (url.endsWith('/legal-impact'))
         return Promise.resolve({
@@ -74,7 +75,10 @@ describe('pengajuan dokumen pada panel', () => {
           dampak: [],
           perluKonfirmasi: true,
         });
-      if (options?.method) return Promise.resolve({ statusWorkflow: 'TERBIT' });
+      if (options?.method) {
+        statusWorkflow = url.endsWith('/approve') ? 'DISETUJUI' : 'TERBIT';
+        return Promise.resolve({ statusWorkflow });
+      }
       if (url.endsWith('/files'))
         return Promise.resolve([
           {
@@ -93,7 +97,7 @@ describe('pengajuan dokumen pada panel', () => {
           judul: 'SOP khusus',
           peruntukan: 'PERMOHONAN_SK',
           nomorVersi: 1,
-          statusWorkflow: 'DRAF',
+          statusWorkflow,
           statusHukum: 'BERLAKU',
           tingkatAkses: 'internal',
           bolehUbah: true,
@@ -111,25 +115,30 @@ describe('pengajuan dokumen pada panel', () => {
       });
     });
     render(<AdminDocumentDetail id="5" />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Setujui dan terbitkan' }));
-    await screen.findByText('Tidak ada dokumen lain yang ikut berubah status.');
-    expect(state.api.mock.calls.filter(([, options]) => options?.method)).toHaveLength(0);
-    fireEvent.click(screen.getAllByRole('button', { name: 'Setujui dan terbitkan' })[1]!);
-    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Setujui' }));
+    expect(screen.queryByRole('button', { name: 'Terbitkan sekarang' })).not.toBeInTheDocument();
     expect(state.api.mock.calls.filter(([, options]) => options?.method)).toHaveLength(0);
     fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
     await waitFor(() =>
       expect(state.api).toHaveBeenCalledWith(
         '/admin/documents/versions/50/approve',
-        expect.objectContaining({
-          method: 'POST',
-          muatan: expect.objectContaining({
-            konfirmasi: { tokenKonfirmasi: 'preview', dampak: [], disetujui: true },
-          }),
-        }),
+        expect.objectContaining({ method: 'POST' }),
       ),
     );
     expect(state.api.mock.calls.some(([url]) => String(url).endsWith('/publish'))).toBe(false);
+    fireEvent.click(await screen.findByRole('button', { name: 'Tinjau lalu terbitkan' }));
+    await screen.findByText('Tidak ada dokumen lain yang ikut berubah status.');
+    fireEvent.click(screen.getByRole('button', { name: 'Terbitkan sekarang' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
+    await waitFor(() =>
+      expect(state.api).toHaveBeenCalledWith(
+        '/admin/documents/versions/50/publish',
+        expect.objectContaining({
+          method: 'POST',
+          muatan: { konfirmasi: { tokenKonfirmasi: 'preview', dampak: [], disetujui: true } },
+        }),
+      ),
+    );
   });
   it('semua unit kerja terlihat, tetapi pilihan di luar hak Admin nonaktif', async () => {
     state.api.mockImplementation((url: string) =>
@@ -288,7 +297,11 @@ describe('pengajuan dokumen pada panel', () => {
     await waitFor(() => expect(state.daftar).toHaveBeenCalledTimes(3));
   });
   it('Admin membuka unggahan SOP Permohonan SK dengan jenis SOP dan verifikasi Superadmin', async () => {
-    state.api.mockImplementation((url: string) => Promise.resolve(url.endsWith('/kategori') ? [] : [{ id: '1', kode: 'SOP', nama: 'SOP', aktif: true }]));
+    state.api.mockImplementation((url: string) =>
+      Promise.resolve(
+        url.endsWith('/kategori') ? [] : [{ id: '1', kode: 'SOP', nama: 'SOP', aktif: true }],
+      ),
+    );
     render(<AdminDocumentCreate mode="permohonan-sk" />);
     await screen.findByRole('option', { name: 'SOP' });
     expect(screen.getByRole('heading', { name: 'Unggah SOP Permohonan SK' })).toBeInTheDocument();
@@ -426,9 +439,7 @@ describe('dropdown koleksi Semua Dokumen', () => {
       key: 'ArrowDown',
     });
     await screen.findByRole('menu');
-    expect(
-      screen.queryByRole('menuitemradio', { name: 'SOP Permohonan SK' }),
-    ).toBeInTheDocument();
+    expect(screen.queryByRole('menuitemradio', { name: 'SOP Permohonan SK' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('menuitemradio', { name: 'SOP' }));
     await waitFor(() =>
       expect(state.daftar).toHaveBeenLastCalledWith(

@@ -632,6 +632,10 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
       await incomingFile('surat.docx', minimalDocx()),
       { slug: `format-${suffix}`, nama: 'Format Surat', tingkatAkses: 'PUBLIK' },
     );
+    await expect(templates.publish(actor, first.id, first.versionId, {})).rejects.toThrow('Setujui');
+    await templates.verify(actor, first.id, first.versionId, {});
+    await expect(templates.open(`format-${suffix}`)).rejects.toThrow();
+    await templates.publish(actor, first.id, first.versionId, {});
     const publicList = await templates.list({ halaman: 1, perHalaman: 20 });
     expect(publicList.data).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: first.id, slug: `format-${suffix}`, kemampuan: { download: true } }),
@@ -661,6 +665,9 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
       await incomingFile('surat-internal.docx', minimalDocx()),
       { tingkatAkses: 'INTERNAL' },
     );
+    await templates.verify(actor, first.id, next.id, {});
+    expect((await templates.authorizeOpen(`format-${suffix}`)).id).toBe(first.versionId);
+    await templates.publish(actor, first.id, next.id, {});
     const [versions] = await pool.query<RowDataPacket[]>(
       'SELECT status FROM template_surat_versi WHERE template_surat_id=? ORDER BY nomor_versi', [first.id],
     );
@@ -688,10 +695,89 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     expect(next.templateSuratId).toBe(first.id);
     const reactivated = await templates.newVersion(actor, first.id, await incomingFile('surat-reactivated.docx', minimalDocx()), { tingkatAkses: 'PUBLIK' });
     expect(reactivated.nomorVersi).toBe(3);
+    await templates.verify(actor, first.id, reactivated.id, {});
+    await templates.publish(actor, first.id, reactivated.id, {});
     const anonim = (await templates.list({ halaman: 1, perHalaman: 20 })).data;
     expect(anonim).toEqual(expect.arrayContaining([expect.objectContaining({ id: first.id })]));
     // Tanggapan anonim tidak boleh menyiratkan adanya tingkat akses lain.
     for (const item of anonim) expect(item).not.toHaveProperty('tingkatAkses');
+  });
+
+  it('keeps Admin template uploads pending until an active Superadmin verifies them', async () => {
+    const suffix = uid();
+    const admin = await addAdmin('ADMIN');
+    const template = await templates.create(
+      actor,
+      await incomingFile('surat-awal.docx', minimalDocx()),
+      { slug: `review-${suffix}`, nama: `Review ${suffix}`, tingkatAkses: 'PUBLIK' },
+    );
+    await templates.verify(actor, template.id, template.versionId, {});
+    await templates.publish(actor, template.id, template.versionId, {});
+    const pending = await templates.newVersion(
+      admin,
+      template.id,
+      await incomingFile('surat-admin.docx', minimalDocx()),
+      { tingkatAkses: 'PUBLIK' },
+    );
+    expect(pending.status).toBe('PENDING_REVIEW');
+    const [beforeApproval] = await pool.query<RowDataPacket[]>(
+      'SELECT CAST(current_version_id AS CHAR) current FROM template_surat WHERE id=?',
+      [template.id],
+    );
+    expect(beforeApproval[0]?.current).toBe(template.versionId);
+    await expect(templates.verify(admin, template.id, pending.id, {})).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(templates.open(`review-${suffix}`)).resolves.toMatchObject({
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    });
+
+    await templates.verify(actor, template.id, pending.id, {});
+    expect((await templates.authorizeOpen(`review-${suffix}`)).id).toBe(template.versionId);
+    await expect(templates.publish(admin, template.id, pending.id, {})).rejects.toBeInstanceOf(ForbiddenException);
+    await templates.publish(actor, template.id, pending.id, {});
+    const [afterApproval] = await pool.query<RowDataPacket[]>(
+      'SELECT CAST(current_version_id AS CHAR) current FROM template_surat WHERE id=?',
+      [template.id],
+    );
+    expect(afterApproval[0]?.current).toBe(pending.id);
+    const [versions] = await pool.query<RowDataPacket[]>(
+      'SELECT status FROM template_surat_versi WHERE template_surat_id=? ORDER BY nomor_versi',
+      [template.id],
+    );
+    expect(versions.map((row) => String(row.status))).toEqual(['ARCHIVED', 'ACTIVE']);
+
+    const newTemplate = await templates.create(
+      admin,
+      await incomingFile('surat-tertunda.docx', minimalDocx()),
+      { slug: `review-new-${suffix}`, nama: `Review Baru ${suffix}`, tingkatAkses: 'PUBLIK' },
+    );
+    expect(newTemplate.status).toBe('PENDING_REVIEW');
+    expect((await templates.list({ halaman: 1, perHalaman: 100 })).data).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ slug: `review-new-${suffix}` })]),
+    );
+    await templates.verify(actor, newTemplate.id, newTemplate.versionId, {});
+    await expect(templates.open(`review-new-${suffix}`)).rejects.toThrow();
+    await expect(templates.verify(actor, newTemplate.id, newTemplate.versionId, {})).rejects.toThrow();
+    const [original] = await pool.query<RowDataPacket[]>('SELECT checksum FROM template_surat_versi WHERE id=?', [newTemplate.versionId]);
+    await pool.execute('UPDATE template_surat_versi SET checksum=? WHERE id=?', [Buffer.alloc(32), newTemplate.versionId]);
+    await expect(templates.publish(actor, newTemplate.id, newTemplate.versionId, {})).rejects.toThrow('checksum');
+    await pool.execute('UPDATE template_surat_versi SET checksum=? WHERE id=?', [original[0]!.checksum, newTemplate.versionId]);
+    const auditFailure = vi.spyOn(audit, 'recordDomain').mockRejectedValueOnce(new Error('Publish audit rollback'));
+    await expect(templates.publish(actor, newTemplate.id, newTemplate.versionId, {})).rejects.toThrow('Publish audit rollback');
+    auditFailure.mockRestore();
+    const [unpublished] = await pool.query<RowDataPacket[]>('SELECT status,activated_at FROM template_surat_versi WHERE id=?', [newTemplate.versionId]);
+    expect(unpublished[0]!.status).toBe('APPROVED');
+    expect(unpublished[0]!.activated_at).toBeNull();
+    await expect(templates.open(`review-new-${suffix}`)).rejects.toThrow();
+    const concurrent = await Promise.allSettled([templates.publish(actor, newTemplate.id, newTemplate.versionId, {}), templates.publish(actor, newTemplate.id, newTemplate.versionId, {})]);
+    expect(concurrent.map(result => result.status).sort()).toEqual(['fulfilled', 'rejected']);
+    expect((await templates.list({ halaman: 1, perHalaman: 100 })).data).toEqual(
+      expect.arrayContaining([expect.objectContaining({ slug: `review-new-${suffix}` })]),
+    );
+    const [verificationAudit] = await pool.query<RowDataPacket[]>(
+      "SELECT COUNT(*) total FROM audit_log WHERE module='letter-templates' AND action='APPROVE_VERSION' AND entity_id=? AND actor_id=?",
+      [pending.id, actor.id],
+    );
+    expect(Number(verificationAudit[0]?.total)).toBe(1);
   });
 
   it('searches current published versions, redacts anonymous Internal results and omits Secret from counts until grant', async () => {
@@ -830,8 +916,10 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     expect((await service.notifications(owner)).some(row => row.versionId === d.versionId && row.action === 'RETURN')).toBe(true);
     await service.updateVersion(owner, d.versionId, { deskripsi: 'Prosedur diperbaiki sesuai catatan Superadmin' });
     await service.transition(owner, d.versionId, 'SUBMIT');
-    const preview = await service.impact(actor, d.versionId);
-    await expect(service.transition(actor, d.versionId, 'APPROVE', undefined, { tokenKonfirmasi: preview.tokenKonfirmasi, dampak: preview.dampak as never, disetujui: true })).resolves.toMatchObject({ statusWorkflow: 'TERBIT' });
+    await expect(service.impact(actor, d.versionId)).rejects.toThrow();
+    await expect(service.transition(actor, d.versionId, 'APPROVE')).resolves.toMatchObject({ statusWorkflow: 'DISETUJUI' });
+    expect((await search.permohonanSk({ q: marker }, await addStaff())).data).toHaveLength(0);
+    await publish(d.versionId);
     expect((await service.notifications(owner)).some(row => row.versionId === d.versionId && row.action === 'APPROVE')).toBe(true);
     expect((await service.notifications(actor)).some(row => row.versionId === d.versionId)).toBe(false);
     expect((await search.permohonanSk({ q: marker })).data).toHaveLength(level === 'publik' ? 1 : 0);
@@ -840,7 +928,7 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     expect(events.map(row => String(row.action))).toEqual(['CREATE', 'SUBMIT', 'RETURN', 'SUBMIT', 'APPROVE', 'PUBLISH']);
   });
 
-  it.each(['publik', 'internal'] as const)('SOP Permohonan SK %s terbit saat disetujui, mempertahankan versi dan akses', async (level) => {
+  it.each(['publik', 'internal'] as const)('SOP Permohonan SK %s disetujui dahulu lalu diterbitkan, mempertahankan versi dan akses', async (level) => {
     const marker = uid();
     const [types] = await pool.query<RowDataPacket[]>("SELECT id FROM jenis_dokumen WHERE kode='SOP' AND aktif=1 LIMIT 1");
     // Jenis dasar dan kata kunci sama; hanya peruntukan yang membedakan koleksi.
@@ -854,10 +942,10 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     const tahunSebelum = await home.years();
     const d = await service.createDocument(actor, { kodeDokumen: marker, slug: `sop-${marker}`, jenisDokumenId: String(types[0]!.id), peruntukan: 'PERMOHONAN_SK', versi: ready(`SOP SK ${marker}`, level) });
     await addFileMetadata(d.versionId, 'UTAMA');
-    await expect(approve(d.versionId)).rejects.toThrow(/konfirmasi/i);
-    const preview = await service.impact(actor, d.versionId);
-    const konfirmasi = { tokenKonfirmasi: preview.tokenKonfirmasi, dampak: preview.dampak as never, disetujui: true as const };
-    await expect(service.transition(actor, d.versionId, 'APPROVE', undefined, konfirmasi)).resolves.toMatchObject({ statusWorkflow: 'TERBIT' });
+    await expect(service.impact(actor, d.versionId)).rejects.toThrow();
+    await approve(d.versionId);
+    expect((await search.permohonanSk({ q: marker }, actor)).data).toHaveLength(0);
+    await publish(d.versionId);
     const staff = await addStaff();
     const pending = await addPendingStaff();
     expect((await search.permohonanSk({ q: marker }, staff)).data).toHaveLength(1);
@@ -878,15 +966,15 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     await addFileMetadata(revision.id, 'UTAMA');
     const [before] = await pool.query<RowDataPacket[]>('SELECT current_published_version_id FROM dokumen WHERE id=?', [d.id]);
     expect(String(before[0]!.current_published_version_id)).toBe(d.versionId);
-    const next = await service.impact(actor, revision.id);
+    await approve(revision.id);
     const fail = vi.spyOn(files, 'assertPublishReady').mockRejectedValueOnce(new Error('Simulasi storage gagal'));
-    await expect(service.transition(actor, revision.id, 'APPROVE', undefined, { tokenKonfirmasi: next.tokenKonfirmasi, dampak: next.dampak as never, disetujui: true })).rejects.toThrow('Simulasi storage gagal');
+    await expect(publish(revision.id)).rejects.toThrow('Simulasi storage gagal');
     fail.mockRestore();
     const [rolledBack] = await pool.query<RowDataPacket[]>('SELECT status_workflow FROM dokumen_versi WHERE id=?', [revision.id]);
-    expect(rolledBack[0]!.status_workflow).toBe('DRAF');
+    expect(rolledBack[0]!.status_workflow).toBe('DISETUJUI');
     const [current] = await pool.query<RowDataPacket[]>('SELECT current_published_version_id FROM dokumen WHERE id=?', [d.id]);
     expect(String(current[0]!.current_published_version_id)).toBe(d.versionId);
-    await service.transition(actor, revision.id, 'APPROVE', undefined, { tokenKonfirmasi: next.tokenKonfirmasi, dampak: next.dampak as never, disetujui: true });
+    await publish(revision.id);
     const [history] = await pool.query<RowDataPacket[]>('SELECT superseded_at FROM dokumen_versi WHERE id=?', [d.versionId]);
     expect(history[0]!.superseded_at).not.toBeNull();
     const [events] = await pool.query<RowDataPacket[]>('SELECT action FROM dokumen_workflow WHERE dokumen_versi_id=? ORDER BY id', [revision.id]);

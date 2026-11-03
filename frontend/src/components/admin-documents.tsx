@@ -261,13 +261,13 @@ export function AdminDocumentCreate({
       },
       {
         teks: khusus
-          ? superadminAktif(pengguna) ? 'Tinjau, setujui dan langsung terbitkan SOP' : 'Ajukan ke Superadmin untuk verifikasi dan penerbitan'
+          ? superadminAktif(pengguna) ? 'Setujui draf, lalu terbitkan SOP' : 'Ajukan ke Superadmin untuk verifikasi'
           : superadminAktif(pengguna)
             ? 'Setujui draf tanpa antrean verifikasi'
             : 'Ajukan untuk diverifikasi',
         selesai: false,
       },
-      ...(!khusus ? [{ teks: 'Terbitkan ke portal', selesai: false }] : []),
+      { teks: 'Terbitkan ke portal setelah disetujui', selesai: false },
     ];
     return (
       <div className="mx-auto max-w-xl">
@@ -354,7 +354,7 @@ export function AdminDocumentCreate({
         title={khusus ? 'Unggah SOP Permohonan SK' : 'Upload dokumen hukum'}
         description={
           khusus
-            ? 'Pilih akses Publik atau Dosen/Staf. Ajukan draf untuk ditinjau Superadmin; SOP terbit setelah disetujui.'
+            ? 'Pilih akses Publik atau Dosen/Staf. Ajukan draf untuk ditinjau Superadmin; Setelah disetujui, Superadmin menerbitkan SOP melalui tindakan terpisah.'
             : superadminAktif(pengguna)
               ? 'Simpan sebagai draf, tinjau dan setujui langsung dari halaman detail tanpa antrean verifikasi.'
               : 'Simpan sebagai draf, lalu ajukan verifikasi dari halaman detail.'

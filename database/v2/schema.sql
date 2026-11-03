@@ -399,30 +399,38 @@ CREATE TABLE template_surat_versi (
   template_surat_id BIGINT UNSIGNED NOT NULL,
   nomor_versi INT UNSIGNED NOT NULL,
   tingkat_akses ENUM('PUBLIK','INTERNAL') NOT NULL,
-  status ENUM('ACTIVE','ARCHIVED') NOT NULL,
+  status ENUM('PENDING_REVIEW','APPROVED','ACTIVE','ARCHIVED') NOT NULL,
   storage_key VARCHAR(512) COLLATE utf8mb4_bin NOT NULL,
   nama_asli VARCHAR(255) NOT NULL,
   mime_type VARCHAR(150) CHARACTER SET ascii NOT NULL,
   size_bytes BIGINT UNSIGNED NOT NULL,
   checksum BINARY(32) NOT NULL,
   created_by BIGINT UNSIGNED NOT NULL,
-  activated_at DATETIME(6) NOT NULL,
+  verified_by BIGINT UNSIGNED NULL,
+  approved_at DATETIME(6) NULL,
+  activated_at DATETIME(6) NULL,
   archived_at DATETIME(6) NULL,
   active_slot TINYINT GENERATED ALWAYS AS (CASE WHEN status = 'ACTIVE' THEN 1 ELSE NULL END) STORED,
+  pending_slot TINYINT GENERATED ALWAYS AS (CASE WHEN status IN ('PENDING_REVIEW','APPROVED') THEN 1 ELSE NULL END) STORED,
   created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   UNIQUE KEY uq_template_versi_nomor (template_surat_id, nomor_versi),
   UNIQUE KEY uq_template_versi_owner (id, template_surat_id),
   UNIQUE KEY uq_template_versi_active (template_surat_id, active_slot),
+  UNIQUE KEY uq_template_versi_pending (template_surat_id, pending_slot),
   UNIQUE KEY uq_template_versi_storage (storage_key),
   KEY idx_template_visibility (status, tingkat_akses, activated_at),
   KEY idx_template_versi_author (created_by),
+  KEY idx_template_versi_verifier (verified_by),
   CONSTRAINT ck_template_versi_nomor CHECK (nomor_versi > 0),
   CONSTRAINT ck_template_versi_size CHECK (size_bytes > 0),
   CONSTRAINT ck_template_versi_archive CHECK (
-    (status = 'ACTIVE' AND archived_at IS NULL) OR
-    (status = 'ARCHIVED' AND archived_at IS NOT NULL AND archived_at >= activated_at)
+    (status = 'PENDING_REVIEW' AND activated_at IS NULL AND archived_at IS NULL) OR
+    (status = 'APPROVED' AND activated_at IS NULL AND archived_at IS NULL AND verified_by IS NOT NULL AND approved_at IS NOT NULL) OR
+    (status = 'ACTIVE' AND activated_at IS NOT NULL AND archived_at IS NULL) OR
+    (status = 'ARCHIVED' AND archived_at IS NOT NULL AND (activated_at IS NULL OR archived_at >= activated_at))
   ),
   CONSTRAINT fk_template_versi_owner FOREIGN KEY (template_surat_id) REFERENCES template_surat (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_template_versi_verifier FOREIGN KEY (verified_by) REFERENCES pengguna (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT fk_template_versi_author FOREIGN KEY (created_by) REFERENCES pengguna (id) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB;
 

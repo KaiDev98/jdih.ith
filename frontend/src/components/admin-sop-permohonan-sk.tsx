@@ -21,7 +21,7 @@ import { LencanaTahap, TabelDokumen, type BarisDokumen } from './admin-daftar-do
  * Tempat tersendiri untuk SOP Permohonan SK, terpisah dari unggahan produk
  * hukum biasa. Dokumen di sini ditandai berperuntukan PERMOHONAN_SK; setelah
  * terbit, dokumen tampil di /permohonan-sk sesuai akses Publik/Dosen-Staf.
- * Persetujuan sekaligus menerbitkan khusus SOP ini; dokumen biasa tetap beralur terpisah.
+ * Persetujuan dan penerbitan dilakukan terpisah seperti dokumen lainnya.
  */
 export function AdminSopPermohonanSk() {
   const { pengguna, csrfToken } = useSession();
@@ -136,7 +136,7 @@ export function AdminSopPermohonanSk() {
             <div className="min-w-0 flex-1">
               <h2 className="text-sm font-semibold">SOP Publik dan Dosen/Staf</h2>
               <p className="mt-1 text-xs text-slate-500">
-                Admin mengajukan draf. Setelah disetujui Superadmin, SOP langsung terbit sesuai akses yang dipilih.
+                Admin mengajukan draf. Superadmin menyetujui terlebih dahulu, lalu menerbitkan SOP sesuai akses yang dipilih.
               </p>
             </div>
           </div>

@@ -42,7 +42,8 @@ function setup(overrides: Record<string, unknown> = {}) {
     rows: vi.fn((_db: unknown, sql: string) => {
       if (sql.includes('SELECT v.*') || sql.includes('SELECT v.id,v.status_workflow'))
         return Promise.resolve([version]);
-      if (sql === 'SELECT dokumen_id FROM dokumen_versi WHERE id=?') return Promise.resolve([{ dokumen_id: '5' }]);
+      if (sql === 'SELECT dokumen_id FROM dokumen_versi WHERE id=?')
+        return Promise.resolve([{ dokumen_id: '5' }]);
       if (sql.includes('SELECT id,current_published_version_id'))
         return Promise.resolve([{ id: '5', current_published_version_id: '49' }]);
       if (sql.includes('FROM dokumen_versi_kategori')) return Promise.resolve([{ id: '3' }]);
@@ -50,7 +51,11 @@ function setup(overrides: Record<string, unknown> = {}) {
     }),
     write: vi.fn().mockResolvedValue({ affectedRows: 1 }),
   };
-  const audit = { recordDomain: vi.fn<(event: { action: string }, connection: unknown) => Promise<void>>().mockResolvedValue(undefined) };
+  const audit = {
+    recordDomain: vi
+      .fn<(event: { action: string }, connection: unknown) => Promise<void>>()
+      .mockResolvedValue(undefined),
+  };
   const files = {
     assertSubmissionReady: vi.fn().mockResolvedValue(undefined),
     assertPublishReady: vi.fn().mockResolvedValue(undefined),
@@ -65,84 +70,52 @@ function setup(overrides: Record<string, unknown> = {}) {
   return { service, repo, audit, files, db };
 }
 
-describe('SOP Permohonan SK disetujui sekaligus terbit', () => {
-  it('memindah versi aktif, menyimpan dua workflow dan audit dalam transaksi yang sama', async () => {
-    const { service, repo, audit, files, db } = setup();
-    const preview = await service.impact(actor, '50');
-    expect(repo.write).not.toHaveBeenCalled();
+describe('SOP Permohonan SK: persetujuan terpisah dari penerbitan', () => {
+  it.each([null, 'PERMOHONAN_SK'])(
+    'persetujuan peruntukan %s hanya DISETUJUI, tanpa pointer atau audit publish',
+    async (peruntukan) => {
+      const { service, repo, files, audit, db } = setup({ peruntukan });
+      await expect(service.transition(actor, '50', 'APPROVE')).resolves.toMatchObject({
+        statusWorkflow: 'DISETUJUI',
+      });
+      expect(files.assertSubmissionReady).toHaveBeenCalledWith(db, '50');
+      expect(files.assertPublishReady).not.toHaveBeenCalled();
+      expect(
+        repo.write.mock.calls.some(([, sql]) =>
+          String(sql).includes('current_published_version_id'),
+        ),
+      ).toBe(false);
+      expect(audit.recordDomain.mock.calls.map(([event]) => event.action)).toEqual(['APPROVE']);
+    },
+  );
+  it('Superadmin dapat menyetujui dirinya sendiri tanpa izin terbit; tetap butuh penerbitan kemudian', async () => {
+    const { service, files } = setup();
     await expect(
-      service.transition(actor, '50', 'APPROVE', 'Sesuai', {
-        tokenKonfirmasi: preview.tokenKonfirmasi,
-        dampak: preview.dampak as never,
-        disetujui: true,
-      }),
-    ).resolves.toMatchObject({ statusWorkflow: 'TERBIT', currentPublishedVersionId: '50' });
-    expect(repo.transaction).toHaveBeenCalledOnce();
-    expect(files.assertSubmissionReady).toHaveBeenCalledWith(db, '50');
-    expect(files.assertPublishReady).toHaveBeenCalledWith(db, '50');
-    expect(repo.write).toHaveBeenCalledWith(
-      db,
-      expect.stringContaining('superseded_at=?'),
-      expect.arrayContaining(['49']),
-    );
-    expect(repo.write).toHaveBeenCalledWith(
-      db,
-      'UPDATE dokumen SET current_published_version_id=? WHERE id=?',
-      ['50', '5'],
-    );
-    expect(audit.recordDomain.mock.calls.map(([event]) => event.action)).toEqual([
-      'APPROVE',
-      'PUBLISH',
-    ]);
-    expect(audit.recordDomain.mock.calls.every(([, connection]) => connection === db)).toBe(true);
-  });
-  it('tetap memisahkan persetujuan dan penerbitan dokumen biasa', async () => {
-    const { service, repo, files } = setup({ peruntukan: null });
-    await expect(service.transition(actor, '50', 'APPROVE')).resolves.toMatchObject({
-      statusWorkflow: 'DISETUJUI',
-    });
+      service.transition({ ...actor, izin: ['workflow.approve'] }, '50', 'APPROVE'),
+    ).resolves.toMatchObject({ statusWorkflow: 'DISETUJUI' });
     expect(files.assertPublishReady).not.toHaveBeenCalled();
-    expect(
-      repo.write.mock.calls.some(([, sql]) => String(sql).includes('current_published_version_id')),
-    ).toBe(false);
   });
-  it('menolak persetujuan SOP tanpa konfirmasi publikasi', async () => {
+  it('menolak tinjauan publikasi sebelum disetujui dan payload gabungan dari UI lama', async () => {
     const { service, repo } = setup();
-    await expect(service.transition(actor, '50', 'APPROVE')).rejects.toBeInstanceOf(
-      UnprocessableEntityException,
-    );
-    expect(repo.write).not.toHaveBeenCalled();
-  });
-  it('menolak token palsu dan Admin meskipun memiliki izin langsung', async () => {
-    const { service, repo } = setup();
+    await expect(service.impact(actor, '50')).rejects.toBeInstanceOf(ConflictException);
     await expect(
       service.transition(actor, '50', 'APPROVE', undefined, {
-        tokenKonfirmasi: 'palsu',
-        disetujui: true,
+        tokenKonfirmasi: 'lama',
         dampak: [],
+        disetujui: true,
       }),
-    ).rejects.toBeInstanceOf(ConflictException);
+    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+    expect(repo.write).not.toHaveBeenCalled();
+  });
+  it('Admin tetap tidak bisa menyetujui dan file tidak valid tetap ditolak', async () => {
+    const { service, files, repo } = setup();
     await expect(
       service.transition({ ...actor, peran: ['ADMIN'] }, '50', 'APPROVE'),
     ).rejects.toBeInstanceOf(ForbiddenException);
-    expect(repo.write).not.toHaveBeenCalled();
-  });
-  it('memerlukan izin terbit dan tetap menolak file yang tidak siap', async () => {
-    const { service, files, repo } = setup();
-    await expect(
-      service.transition({ ...actor, izin: ['workflow.approve'] }, '50', 'APPROVE'),
-    ).rejects.toBeInstanceOf(ForbiddenException);
-    const preview = await service.impact(actor, '50');
     files.assertSubmissionReady.mockRejectedValue(
       new UnprocessableEntityException('File tidak tersedia'),
     );
-    await expect(
-      service.transition(actor, '50', 'APPROVE', undefined, {
-        tokenKonfirmasi: preview.tokenKonfirmasi,
-        dampak: preview.dampak as never,
-        disetujui: true,
-      }),
-    ).rejects.toThrow('File tidak tersedia');
+    await expect(service.transition(actor, '50', 'APPROVE')).rejects.toThrow('File tidak tersedia');
     expect(repo.write).not.toHaveBeenCalled();
   });
 });

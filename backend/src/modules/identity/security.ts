@@ -81,16 +81,22 @@ export interface ResourceDokumen {
   current: boolean;
   deleted: boolean;
 }
+/** Akses Internal lintas unit; status aktif dan hak baca pengelola tetap wajib. */
+export function bolehBacaInternal(user?: PenggunaAktif): boolean {
+  return Boolean(user?.status === 'AKTIF' && (
+    user.peran.includes('DOSEN_STAF') || (
+      user.peran.some((role) => role === 'ADMIN' || role === 'SUPERADMIN') &&
+      user.izin.includes('documents.read_admin')
+    )
+  ));
+}
 /** Input resource must come from a trusted repository, never request body. */
 export function cekAksesDokumen(resource: ResourceDokumen, user?: PenggunaAktif) {
   if (!resource.published || !resource.current || resource.deleted) throw new NotFoundException();
   if (resource.tingkatAkses === 'publik') return;
-  const active = user?.status === 'AKTIF';
-  const staff = active && user.peran.includes('DOSEN_STAF');
-  const admin = active && user.peran.some((r) => r === 'ADMIN' || r === 'SUPERADMIN');
   // Dibandingkan sebagai string agar nilai di luar tipe tetap jatuh ke penolakan.
   if (String(resource.tingkatAkses) === 'internal') {
-    if (staff || (admin && user.izin.includes('documents.read_admin'))) return;
+    if (bolehBacaInternal(user)) return;
     // 404, bukan 403: jawaban 403 membedakan "ada tetapi tertutup" dari "tidak
     // ada", sehingga keberadaan dokumen Internal dapat ditebak dari luar.
     throw new NotFoundException();

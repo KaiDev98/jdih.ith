@@ -2,6 +2,31 @@
 
 This file tells Codex how to move from the current foundation to the agreed V2 without losing design intent.
 
+## Persetujuan dan penerbitan terpisah - 2026-11-04
+
+Hilangkan jalur otomatis SOP Permohonan SK: approve hanya DISETUJUI; publish
+terpisah memakai preview dampak setelah persetujuan. Draf Superadmin tetap
+memerlukan approve miliknya sendiri dan publish terpisah.
+
+Format Persuratan: semua unggahan PENDING_REVIEW, hanya Superadmin setujui ke
+APPROVED (verified_by/approved_at) lalu publish ke ACTIVE. Tinjauan file panel,
+CSRF/izin, konfirmasi, loading dan feedback wajib. File/checksum diperiksa ulang.
+Uji versi lama tetap current selama pending/approved, larangan publish sebelum
+approve, Admin tidak dapat mengambil keputusan, self-approval Superadmin,
+rollback audit/storage dan publish bersamaan. Gunakan patch-022 lalu patch-023;
+pertahankan seluruh unggahan/publikasi, jangan impor ulang schema/seed.
+
+## Beranda berdasarkan sesi - 2026-10-30
+
+Teruskan cookie SSR ke snapshot home. Terapkan akses Publik/Internal sebelum
+ROW_NUMBER dan COUNT supaya panel terbaru dan jumlah konsisten. Aktif lintas
+unit boleh membaca Internal; pending, nonaktif, revoked/expired dan anonim hanya
+Publik. Pisahkan request serentak menurut cakupan, jangan cache lintas pengguna.
+Uji HTTP dengan cookie sesi dan MySQL rollback: tiga peran aktif, penolakan
+sesi tidak sah, hitungan/tahun, pemisahan SOP khusus, draf/ditarik/superseded/
+dihapus dan request campuran serentak. Uji SSR memakai helper penerusan sesi.
+Tidak memerlukan perubahan schema atau data unggahan.
+
 ## Tambah Admin oleh Superadmin - 2026-10-30
 
 Aktifkan formulir yang sudah ada dari kelompok Admin di Pengguna. Uji peran dan
@@ -486,10 +511,20 @@ Admin menus, dashboard shortcuts and command search; block direct Admin page/API
 access and exclude SOP from Admin document lists and verification queues. Keep
 published SOP available in the public portal.
 Format Persuratan is editable by every active Admin and Superadmin with
-`templates.manage`, including templates uploaded by another account. Enable create,
-new version activation and archive controls, preserve confirmation and audit, and
-apply patch-015-admin-format-persuratan.sql to existing V2 databases. No ownership
-or unit restriction applies to templates; law-document rules remain unchanged.
+`templates.manage`, including templates uploaded by another account. Admin-created
+templates and versions must wait for verification by an active Superadmin; pending
+versions must not replace the current active version. Keep confirmation and audit,
+and apply patch-022-verifikasi-format-persuratan.sql to existing V2 databases.
+Only one version per template may wait for verification. No ownership or unit
+restriction applies to templates; law-document rules remain unchanged.
+An Admin replacement upload archives the previous pending candidate without
+deleting its history.
+
+Verification acceptance: Admin is denied even with a direct `templates.manage`
+override; Superadmin approval atomically activates the pending version, archives
+the previous active version, updates the current pointer, and records audit.
+Failed verification rolls back all database changes and leaves the previous
+version downloadable.
 
 ## Definition of Done per Task
 

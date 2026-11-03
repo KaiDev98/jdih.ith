@@ -11,6 +11,7 @@ import {
   skemaFasetCari,
 } from '@jdih/shared';
 import { CoreBackendRepository } from '../core-backend.repository.js';
+import { bolehBacaInternal } from '../../identity/security.js';
 
 interface Filter { where: string[]; values: (string | number)[] }
 const like = (value: string) => `%${value.replaceAll('!', '!!').replaceAll('%', '!%').replaceAll('_', '!_')}%`;
@@ -66,9 +67,7 @@ export class SearchService {
 
   /** Yang tidak berhak hanya melihat dokumen publik — Internal tidak muncul dan tidak dihitung. */
   private visibilitas(actor?: PenggunaAktif) {
-    const authorized = Boolean(actor?.status === 'AKTIF' && (
-      actor.peran.includes('DOSEN_STAF') || actor.izin.includes('documents.read_admin')
-    ));
+    const authorized = bolehBacaInternal(actor);
     return {
       anonymous: !authorized,
       visibility: authorized

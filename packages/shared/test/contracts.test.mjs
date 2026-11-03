@@ -70,7 +70,7 @@ const cases = [
   ],
   ['file', c.skemaJenisBerkas, ['UTAMA', 'LAMPIRAN'], ['abstrak', 'dokumen_utama']],
   ['template access', c.skemaAksesTemplate, ['PUBLIK', 'INTERNAL'], ['RAHASIA', 'publik']],
-  ['template status', c.skemaStatusVersiTemplate, ['ACTIVE', 'ARCHIVED'], ['DRAF', 'active']],
+  ['template status', c.skemaStatusVersiTemplate, ['PENDING_REVIEW', 'APPROVED', 'ACTIVE', 'ARCHIVED'], ['DRAF', 'active']],
   [
     'role',
     c.skemaPeran,
@@ -244,6 +244,7 @@ test('impact requires explicit confirmation of a reviewed snapshot', () => {
     dampak: [impact],
   };
   ok(c.skemaTerbitkanDokumen, { konfirmasi });
+  bad(c.skemaSetujuiDokumen, { konfirmasi });
   bad(c.skemaTerbitkanDokumen, {});
   bad(c.skemaTerbitkanDokumen, { konfirmasi: { ...konfirmasi, disetujui: false } });
   bad(c.skemaTerbitkanDokumen, { konfirmasi: { ...konfirmasi, tokenKonfirmasi: '' } });

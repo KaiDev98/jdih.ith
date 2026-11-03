@@ -106,24 +106,18 @@ function JejakAlur({
   tahap,
   diganti,
   langsung = false,
-  otomatis = false,
 }: {
   tahap: string;
   diganti: boolean;
   langsung?: boolean;
-  otomatis?: boolean;
 }) {
-  const langkah = otomatis
-    ? ['Draf', 'Terbit']
-    : langsung
-      ? ['Draf', 'Disetujui', 'Terbit']
-      : ['Draf', 'Diajukan', 'Disetujui', 'Terbit'];
+  const langkah = langsung
+    ? ['Draf', 'Disetujui', 'Terbit']
+    : ['Draf', 'Diajukan', 'Disetujui', 'Terbit'];
   const posisi =
-    (otomatis
-      ? { DRAF: 0, REVISI: 0, DIAJUKAN: 0, DISETUJUI: 0, TERBIT: 1, DITARIK: 1 }
-      : langsung
-        ? { DRAF: 0, REVISI: 0, DIAJUKAN: 0, DISETUJUI: 1, TERBIT: 2, DITARIK: 2 }
-        : { DRAF: 0, REVISI: 1, DIAJUKAN: 1, DISETUJUI: 2, TERBIT: 3, DITARIK: 3 })[tahap] ?? 0;
+    (langsung
+      ? { DRAF: 0, REVISI: 0, DIAJUKAN: 0, DISETUJUI: 1, TERBIT: 2, DITARIK: 2 }
+      : { DRAF: 0, REVISI: 1, DIAJUKAN: 1, DISETUJUI: 2, TERBIT: 3, DITARIK: 3 })[tahap] ?? 0;
   const selesaiSemua = tahap === 'TERBIT' || tahap === 'DITARIK';
   return (
     <ol aria-label="Alur dokumen" className="flex items-center">
@@ -269,10 +263,7 @@ function DetailDokumen({
 
   async function publish() {
     if (!versionId || !preview) throw new Error('Tinjau dulu sebelum menerbitkan.');
-    const langsungTerbit =
-      document?.peruntukan === 'PERMOHONAN_SK' && document.statusWorkflow !== 'DISETUJUI';
-    await post(`/admin/documents/versions/${versionId}/${langsungTerbit ? 'approve' : 'publish'}`, {
-      ...(langsungTerbit ? { catatan: note } : {}),
+    await post(`/admin/documents/versions/${versionId}/publish`, {
       konfirmasi: {
         tokenKonfirmasi: preview.tokenKonfirmasi,
         disetujui: true,
@@ -435,18 +426,15 @@ function DetailDokumen({
               tahap={tahap}
               diganti={diganti}
               langsung={jalurLangsung && tahap !== 'DIAJUKAN'}
-              otomatis={psk}
             />
           </div>
           <p className="alur-pesan mt-3 text-sm leading-relaxed text-slate-700">
             {bisaDiubah &&
-              (psk
-                ? 'Lengkapi data dan file, tinjau dampaknya, lalu setujui untuk langsung menerbitkan SOP sesuai aksesnya.'
-                : jalurLangsung
-                  ? 'Draf milik Anda dapat disetujui langsung setelah data dan file lengkap, tanpa masuk antrean verifikasi.'
-                  : tahap === 'REVISI'
-                    ? 'Dokumen dikembalikan untuk diperbaiki. Ubah draf sesuai catatan, lalu ajukan lagi.'
-                    : 'Lengkapi data dan unggah dokumen utama, lalu ajukan untuk diverifikasi.')}
+              (jalurLangsung
+                ? 'Draf milik Anda dapat disetujui langsung setelah data dan file lengkap, tanpa masuk antrean verifikasi.'
+                : tahap === 'REVISI'
+                  ? 'Dokumen dikembalikan untuk diperbaiki. Ubah draf sesuai catatan, lalu ajukan lagi.'
+                  : 'Lengkapi data dan unggah dokumen utama, lalu ajukan untuk diverifikasi.')}
             {tahap === 'DIAJUKAN' &&
               (izin.includes('workflow.approve')
                 ? 'Periksa ulang data dan berkas. Setujui bila sudah benar, atau kembalikan dengan catatan perbaikan.'
@@ -485,7 +473,7 @@ function DetailDokumen({
                 onConfirm={() => post(`/admin/documents/versions/${document.versionId}/submit`, {})}
               />
             )}
-            {(tahap === 'DIAJUKAN' || setujuiLangsung) && !psk && (
+            {(tahap === 'DIAJUKAN' || setujuiLangsung) && (
               <ConfirmAction
                 label="Setujui"
                 disabled={
@@ -501,20 +489,6 @@ function DetailDokumen({
               >
                 {kolomCatatan('Alasan persetujuan (opsional)', 'alasan-setuju')}
               </ConfirmAction>
-            )}
-            {psk && (tahap === 'DIAJUKAN' || setujuiLangsung) && (
-              <Button
-                disabled={
-                  previewBusy ||
-                  !superadmin ||
-                  !izin.includes('workflow.approve') ||
-                  !izin.includes('workflow.publish') ||
-                  kekurangan.length > 0
-                }
-                onClick={() => void loadPreview()}
-              >
-                {previewBusy ? 'Memuat tinjauan…' : 'Setujui dan terbitkan'}
-              </Button>
             )}
             {tahap === 'DIAJUKAN' && (
               <ConfirmAction
@@ -611,21 +585,11 @@ function DetailDokumen({
             )}
             <div className="mt-4 flex flex-wrap gap-3">
               <ConfirmAction
-                label={
-                  psk && tahap !== 'DISETUJUI' ? 'Setujui dan terbitkan' : 'Terbitkan sekarang'
-                }
-                title={
-                  psk && tahap !== 'DISETUJUI'
-                    ? 'Setujui dan terbitkan SOP ini?'
-                    : 'Terbitkan dokumen ini?'
-                }
+                label="Terbitkan sekarang"
+                title="Terbitkan dokumen ini?"
                 description="Dokumen akan tampil di portal sesuai aksesnya dan menjadi versi yang berlaku."
                 onConfirm={publish}
-              >
-                {psk &&
-                  tahap !== 'DISETUJUI' &&
-                  kolomCatatan('Alasan persetujuan (opsional)', 'alasan-setuju-terbit')}
-              </ConfirmAction>
+              />
               <Button tone="secondary" onClick={() => setPreview(undefined)}>
                 Batal
               </Button>

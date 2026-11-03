@@ -996,23 +996,12 @@ export class CoreBackendService {
     this.allow(actor, permission[action]);
     if (action !== 'SUBMIT') cekSuperadmin(actor);
     if (action === 'APPROVE') {
-      const data = skemaSetujuiDokumen.parse({ catatan: note, konfirmasi: confirmation });
+      const data = skemaSetujuiDokumen.parse({ catatan: note });
       note = data.catatan;
-      confirmation = data.konfirmasi;
     }
-    const preview = confirmation ? await this.impact(actor, id) : undefined;
-    if (confirmation && (confirmation.tokenKonfirmasi !== preview?.tokenKonfirmasi || JSON.stringify(confirmation.dampak) !== JSON.stringify(preview.dampak)))
-      throw new ConflictException('Dampak berubah; muat ulang preview');
+    if (confirmation)
+      throw new UnprocessableEntityException('Persetujuan dan penerbitan harus dilakukan terpisah');
     return this.repo.transaction(async (db) => {
-      // Persetujuan SOP mengunci dokumen lebih dahulu, sama seperti penerbitan biasa.
-      let publicationDocument: any;
-      if (preview) {
-        const hint = (await this.repo.rows(db, 'SELECT dokumen_id FROM dokumen_versi WHERE id=?', [id]))[0];
-        if (!hint) throw new NotFoundException();
-        publicationDocument = (await this.repo.rows(db,
-          'SELECT id,current_published_version_id FROM dokumen WHERE id=? FOR UPDATE', [hint.dokumen_id]))[0];
-        if (!publicationDocument) throw new NotFoundException();
-      }
       const v = (
         await this.repo.rows(
           db,
@@ -1022,15 +1011,7 @@ export class CoreBackendService {
       )[0] as any;
       if (!v) throw new NotFoundException();
       cekPeruntukanPanel(actor, v.peruntukan);
-      if (action === 'APPROVE' && v.peruntukan === 'PERMOHONAN_SK') {
-        this.allow(actor, 'workflow.publish');
-        if (!preview || !publicationDocument)
-          throw new UnprocessableEntityException('Tinjau dan konfirmasi penerbitan SOP sebelum menyetujui');
-        if (!['publik', 'internal'].includes(v.tingkat_akses))
-          throw new UnprocessableEntityException('Akses SOP Permohonan SK harus Publik atau Dosen/Staf');
-      } else if (preview) {
-        throw new ConflictException('Persetujuan sekaligus terbit hanya untuk SOP Permohonan SK');
-      }
+      cekAksesSop(v.peruntukan, v.tingkat_akses);
       if (action === 'SUBMIT') {
         cekPemilikAtauSuperadmin(actor, v.document_created_by);
         if (
@@ -1103,8 +1084,6 @@ export class CoreBackendService {
         },
         db,
       );
-      if (preview && action === 'APPROVE')
-        return this.publishApprovedVersion(db, actor, id, publicationDocument, v, preview);
       return { id, statusWorkflow: to };
     });
   }
@@ -1246,10 +1225,7 @@ export class CoreBackendService {
       )
     )[0] as any;
     if (!v) throw new NotFoundException();
-    if (v.status_workflow !== 'DISETUJUI') {
-      if (v.peruntukan !== 'PERMOHONAN_SK' || !['DRAF', 'REVISI', 'DIAJUKAN'].includes(v.status_workflow)) throw new ConflictException();
-      this.allow(actor, 'workflow.approve');
-    }
+    if (v.status_workflow !== 'DISETUJUI') throw new ConflictException('Setujui dokumen sebelum meninjau penerbitan');
     const rows = (await this.repo.rows(
       this.repo.pool,
       "SELECT CAST(d.id AS CHAR) targetDocumentId,d.status_hukum statusSaatIni,r.jenis_relasi FROM dokumen_relasi r JOIN dokumen d ON d.id=r.target_document_id WHERE r.source_version_id=? AND r.jenis_relasi IN ('MENGUBAH','MENCABUT') ORDER BY d.id",

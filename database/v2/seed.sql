@@ -56,9 +56,9 @@ WHERE p.kode = 'ADMIN'
   )
 ON DUPLICATE KEY UPDATE izin_id = peran_izin.izin_id;
 
--- Format Persuratan dapat dikelola semua Admin dan Superadmin.
--- Verifikasi, publikasi dokumen, pengaturan global lainnya, dan SOP Permohonan SK hanya
--- dapat dikelola Superadmin.
+-- Admin dapat mengunggah Format Persuratan untuk verifikasi Superadmin.
+-- Hanya Superadmin menyetujui dan menerbitkan, termasuk Format/SOP SK.
+-- Admin boleh mengunggah SOP SK miliknya untuk verifikasi.
 INSERT INTO peran_izin (peran_id, izin_id)
 SELECT p.id, i.id FROM peran p CROSS JOIN izin i
 WHERE p.kode = 'SUPERADMIN'
