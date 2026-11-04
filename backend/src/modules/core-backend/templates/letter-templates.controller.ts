@@ -115,14 +115,62 @@ export class AdminLetterTemplatesController {
     @Aktor() actor: PenggunaAktif,
     @Res() res: Response,
   ) {
+    return this.reviewFile(actor, templateId, versionId, res, false, false);
+  }
+
+  @Get(':templateId/versions/:versionId/preview')
+  @IzinSalahSatu('templates.manage', 'documents.read_admin')
+  preview(
+    @Param('templateId') templateId: string,
+    @Param('versionId') versionId: string,
+    @Aktor() actor: PenggunaAktif,
+    @Res() res: Response,
+  ) {
+    return this.reviewFile(actor, templateId, versionId, res, false, true);
+  }
+
+  @Get('verification-queue/:templateId/versions/:versionId/preview')
+  @IzinSalahSatu('templates.manage', 'documents.read_admin')
+  previewQueued(
+    @Param('templateId') templateId: string,
+    @Param('versionId') versionId: string,
+    @Aktor() actor: PenggunaAktif,
+    @Res() res: Response,
+  ) {
+    return this.reviewFile(actor, templateId, versionId, res, true, true);
+  }
+
+  @Get('verification-queue/:templateId/versions/:versionId/download')
+  @IzinSalahSatu('templates.manage', 'documents.read_admin')
+  downloadQueued(
+    @Param('templateId') templateId: string,
+    @Param('versionId') versionId: string,
+    @Aktor() actor: PenggunaAktif,
+    @Res() res: Response,
+  ) {
+    return this.reviewFile(actor, templateId, versionId, res, true, false);
+  }
+
+  private async reviewFile(
+    actor: PenggunaAktif,
+    templateId: string,
+    versionId: string,
+    res: Response,
+    queue: boolean,
+    preview: boolean,
+  ) {
     const file = await this.templates.review(
       actor,
       skemaId.parse(templateId),
       skemaId.parse(versionId),
+      { queue, preview },
     );
     res.setHeader('Content-Type', file.mimeType);
     res.setHeader('Content-Length', String(file.size));
-    res.setHeader('Content-Disposition', contentDisposition(file.originalName, 'attachment'));
+    res.setHeader(
+      'Content-Disposition',
+      contentDisposition(file.originalName, preview ? 'inline' : 'attachment'),
+    );
     res.setHeader('Cache-Control', 'private, no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     file.stream.on('error', () => res.destroy());
@@ -171,15 +219,33 @@ export class PublicLetterTemplatesController {
     @Req() req: PermintaanBerpengguna,
     @Res() res: Response,
   ) {
+    return this.sendFile(slug, req, res, false);
+  }
+
+  @Get(':slug/preview')
+  @Publik()
+  preview(@Param('slug') slug: string, @Req() req: PermintaanBerpengguna, @Res() res: Response) {
+    return this.sendFile(slug, req, res, true);
+  }
+
+  private async sendFile(
+    slug: string,
+    req: PermintaanBerpengguna,
+    res: Response,
+    preview: boolean,
+  ) {
     const actor = await this.actor(req);
     // Keep Internal-template denial indistinguishable from a missing template.
     const authorized = await this.templates.authorizeOpen(slug, actor);
     this.downloadLimits.consume({ penggunaId: actor?.id, ip: req.ip });
-    const file = await this.templates.openAuthorized(authorized, actor);
+    const file = await this.templates.openAuthorized(authorized, actor, preview);
     res.status(200);
     res.setHeader('Content-Type', file.mimeType);
     res.setHeader('Content-Length', String(file.size));
-    res.setHeader('Content-Disposition', contentDisposition(file.originalName, 'attachment'));
+    res.setHeader(
+      'Content-Disposition',
+      contentDisposition(file.originalName, preview ? 'inline' : 'attachment'),
+    );
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Cache-Control', 'private, no-store');
     file.stream.on('error', () => res.destroy());

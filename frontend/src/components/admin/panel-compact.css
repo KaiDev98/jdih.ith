@@ -154,12 +154,13 @@
 }
 
 @media (min-width: 1024px) {
-  .ruang-kerja-panel .area-isi-panel:has(.halaman-semua-dokumen) {
+  .ruang-kerja-panel .area-isi-panel:has(.halaman-semua-dokumen, .halaman-master-panel) {
     display: flex;
     overflow: hidden;
     padding-bottom: 20px;
   }
   .area-isi-panel:has(.halaman-semua-dokumen) > .isi-panel,
+  .area-isi-panel:has(.halaman-master-panel) > .isi-panel,
   .panel-admin .halaman-semua-dokumen {
     display: flex;
     flex-direction: column;
@@ -167,6 +168,7 @@
     height: 100%;
   }
   .halaman-semua-dokumen > .panel-title,
+  .halaman-master-panel > .panel-title,
   .koleksi-dokumen-panel > :not(.isi-koleksi-dokumen) {
     flex-shrink: 0;
   }

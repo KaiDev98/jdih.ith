@@ -1,0 +1,78 @@
+.page {
+  min-width: 0;
+}
+.workspace {
+  display: grid;
+  min-width: 0;
+  gap: 20px;
+  align-items: start;
+}
+.workspace > * {
+  min-width: 0;
+}
+.collection {
+  overflow: hidden;
+}
+.table {
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+.table table {
+  width: 100%;
+}
+.table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #fafaf9;
+}
+.table td:nth-child(2) {
+  overflow-wrap: anywhere;
+}
+.table :is(button, th),
+.table td:last-child {
+  white-space: nowrap;
+}
+.table td:last-child {
+  width: 1%;
+}
+.editor {
+  min-width: 0;
+}
+@media (min-width: 1024px) {
+  .page {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+  }
+  .workspace {
+    flex: 1;
+    min-height: 0;
+    align-items: stretch;
+    overflow: hidden;
+  }
+  .workspace[data-editing] {
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 23rem);
+  }
+  .collection {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .collection > :first-child {
+    flex-shrink: 0;
+  }
+  .table {
+    flex: 1;
+    min-height: 0;
+  }
+  .editor {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+}

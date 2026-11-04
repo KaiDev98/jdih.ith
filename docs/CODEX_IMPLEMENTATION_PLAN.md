@@ -2,6 +2,18 @@
 
 This file tells Codex how to move from the current foundation to the agreed V2 without losing design intent.
 
+## Pratinjau dan baca antrean lintas pemilik - 2026-11-04 (terbaru)
+
+Tambahkan pratinjau PDF lokal terotorisasi di panel, antrean dan portal untuk
+format yang terbit. Office memakai unduh; hindari pengiriman berkas ke penampil
+eksternal. Uji MIME, inline/nosniff/cache, lifecycle blob/abort, galat dan retry.
+Antrean format terbaca lintas Admin, namun file lintas pemilik hanya pada rute
+antrean PENDING_REVIEW; seluruh write tetap memeriksa pemilik/role. Tinjauan SOP
+Permohonan SK lintas pemilik terbatas DIAJUKAN. Uji akses sesudah keputusan,
+penggantian/penghapusan dan penolakan semua perubahan akun lain.
+Master desktop memenuhi lebar/tinggi area kerja, tabel/editor bergulir sendiri;
+uji daftar panjang, editor terbuka, desktop pendek dan ponsel. Tanpa migrasi.
+
 ## Kepemilikan dan Antrean Verifikasi - 2026-11-04 (terbaru)
 
 Format Persuratan Admin dibatasi pemilik di SQL dan service untuk list, queue,

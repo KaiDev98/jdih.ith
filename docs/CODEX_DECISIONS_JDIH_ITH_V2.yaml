@@ -111,7 +111,7 @@ admin_document_policy:
   can_view_sop_permohonan_sk_in_panel: true
   can_view_audit: false
   sop_permohonan_sk_menu_visible: true
-  verification_queue_read_scope: "legal/SOP queue read-only across authors; template queue Admin own only; Superadmin alone can verify"
+  verification_queue_read_scope: "legal/SOP and pending template queue read-only across authors; management remains owner-scoped; Superadmin alone can verify"
   category_scope: "categories mapped to the Admin account's unit"
   input_category_visibility: "all categories visible; unauthorized/inactive options disabled; boolean eligibility from server"
   amendment_target_scope: "own document and own active published version; enforce search, relation POST and resubmission"
@@ -147,6 +147,7 @@ panel_layout:
   desktop_header_height_px: 56
   detail_preview_before_history: true
   bounded_history_and_table_scroll: true
+  master_desktop_layout: "full workspace width; fixed viewport; table and editor scroll internally; mobile normal page scroll"
   touch_target_minimum_px: 44
   respects_reduced_motion: true
   animations_without_extra_dependencies: true
@@ -329,10 +330,10 @@ letter_templates:
   public_layout: "three desktop columns, server search, 12 items per page; access-filtered totals"
   module: "Format Persuratan"
   primary_format_v1: ".docx"
-  ui_columns: [Judul, Download]
+  ui_columns: [Judul, Pratinjau, Download]
   title_source: "template_surat.nama"
   detail_page_v1: false
-  preview_v1: false
+  preview_v1: "native PDF via authorized inline API/blob dialog; unsupported Office uses download; no third-party viewer"
   legal_metadata_v1: false
   internal_requires_active_staff: true
   access_levels:
@@ -354,7 +355,8 @@ letter_templates:
   removal_transaction: "lock parent; deleted_at + active=0 + current pointer NULL + audit DELETE; preserve versions/files; no bulk purge"
   deleted_template_access: "absent from panel/public lists; downloads/review/new versions/approval/publication denied"
   manager: "owner ADMIN only; SUPERADMIN any owner; templates.manage required; only SUPERADMIN approves and publishes separately"
-  approval_location: "Antrean Verifikasi: template-specific pending queue with SQL ownership filter, pagination, private review download; no approval button in template manager"
+  approval_location: "Antrean Verifikasi: pending queue visible across authors with pagination and preview/download; no approval button in template manager"
+  cross_owner_review: "active panel readers may use queue-specific preview/download while PENDING_REVIEW only; normal management API remains owner-scoped"
   approved_version_admin_mutability: false
 
 master_creation:

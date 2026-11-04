@@ -572,9 +572,11 @@ export class CoreBackendService {
     );
     if (!rows.length) throw new NotFoundException();
     cekPeruntukanPanel(actor, rows[0]?.peruntukan);
+    const foreignSop = rows[0]?.peruntukan === 'PERMOHONAN_SK' && !actor.peran.includes('SUPERADMIN') && String(rows[0]?.documentCreatedBy) !== actor.id;
+    const visibleRows = foreignSop ? rows.filter(row => row.statusWorkflow === 'DIAJUKAN') : rows;
     const selected = requestedVersionId
-      ? (rows as any[]).find((row) => row.versionId === requestedVersionId)
-      : rows[0];
+      ? (visibleRows as any[]).find((row) => row.versionId === requestedVersionId)
+      : visibleRows[0];
     if (!selected) throw new NotFoundException();
     const ownVersion = String(selected.documentCreatedBy) === actor.id && String(selected.versionCreatedBy) === actor.id;
     const current = rows.find((r) => r.versionId === selected.currentPublishedVersionId);
@@ -595,7 +597,7 @@ export class CoreBackendService {
           ),
         }),
       },
-      versions: (rows as any[]).filter((row) => row.versionId !== selected.versionId),
+      versions: (visibleRows as any[]).filter((row) => row.versionId !== selected.versionId),
       kategoriId: (await this.repo.rows(this.repo.pool,
         'SELECT CAST(kategori_id AS CHAR) id FROM dokumen_versi_kategori WHERE dokumen_versi_id=?',
         [selected.versionId])).map((r) => String(r.id)),

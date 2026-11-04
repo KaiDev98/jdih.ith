@@ -28,6 +28,8 @@ export const skemaItemAntreanTemplate = z.strictObject({
   status: z.literal('PENDING_REVIEW'),
   pengunggah: teksWajib(255, 'Pengunggah'),
   diajukanPada: z.string(),
+  mimeType: z.string().optional(),
+  namaAsli: z.string().optional(),
 });
 export const skemaAntreanTemplate = skemaTanggapanHalaman(skemaItemAntreanTemplate);
 export const skemaVersiTemplateAdmin = z.strictObject({
@@ -41,7 +43,7 @@ const item = {
   id: skemaId,
   slug: skemaSlug,
   nama: teksWajib(200, 'Nama'),
-  kemampuan: z.strictObject({ download: z.literal(true) }),
+  kemampuan: z.strictObject({ download: z.literal(true), preview: z.boolean().optional() }),
 };
 /**
  * Tampilan untuk pengunjung anonim sengaja TIDAK memuat `tingkatAkses`. Ruas

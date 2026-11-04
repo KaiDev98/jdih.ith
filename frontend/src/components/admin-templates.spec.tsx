@@ -135,7 +135,7 @@ describe('pustaka Format Persuratan', () => {
     render(<AdminTemplates />);
     await screen.findByText('Surat Tugas');
     expect(screen.queryByRole('button', { name: 'Setujui' })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Lihat di Antrean Verifikasi' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Antrean Verifikasi' })).toHaveAttribute(
       'href',
       '/superadmin/dokumen/verifikasi',
     );

@@ -176,10 +176,16 @@
   font-size: 0.7rem;
 }
 .actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
   gap: 8px;
 }
+.actions > * { min-width: 0; }
+.actions > :last-child { grid-column: 1 / -1; border-top: 1px solid #edf0ed; padding-top: 10px; margin-top: 2px; }
+.actions > a { text-align: center; justify-content: center; }
+.actions > .queueLink { grid-column: 1 / -1; }
+.actions button { width: 100%; }
 .listNote {
   padding: 14px 24px;
   color: #7c857d;

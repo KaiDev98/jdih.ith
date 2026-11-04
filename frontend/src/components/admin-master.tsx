@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ambilApi, GalatApi } from '@/lib/api-client';
 import { useSession, csrfHeaders } from '@/lib/sesi';
 import { superadminAktif } from '@/lib/panel';
+import styles from './admin-master.module.css';
 import {
   Badge,
   Button,
@@ -79,7 +80,7 @@ export function AdminMaster({ table }: { table: Table }) {
     setRefresh((x) => x + 1);
   }
   return (
-    <fieldset disabled={!bolehKelola} className="halaman-panel mx-auto min-w-0 w-full">
+    <div className={`halaman-panel halaman-master-panel mx-auto min-w-0 w-full ${styles.page}`}>
       <PageTitle title={labels[table]} description={deskripsi[table]} />
       {error && (
         <div className="mb-4">
@@ -88,10 +89,8 @@ export function AdminMaster({ table }: { table: Table }) {
           </StateMessage>
         </div>
       )}
-      <div
-        className={`formulir-panel grid grid-cols-[minmax(0,1fr)] items-start gap-5 [&>*]:min-w-0 ${selected ? 'lg:grid-cols-[minmax(0,1fr)_19rem]' : ''}`}
-      >
-        <Card className="p-0! sm:p-0!">
+      <div className={styles.workspace} data-editing={!!selected || undefined}>
+        <Card className={`p-0! sm:p-0! ${styles.collection}`}>
           <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 sm:px-5">
             <h2 className="text-sm font-semibold text-slate-900">Daftar {satuan[table]}</h2>
             <span className="text-xs text-slate-500 tabular-nums">{rows.length} item</span>
@@ -116,10 +115,16 @@ export function AdminMaster({ table }: { table: Table }) {
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <Button tone="secondary" ukuran="kecil" onClick={() => edit(row)}>
+                  <Button
+                    disabled={!bolehKelola}
+                    tone="secondary"
+                    ukuran="kecil"
+                    onClick={() => edit(row)}
+                  >
                     Ubah
                   </Button>
                   <ConfirmAction
+                    disabled={!bolehKelola}
                     label={row.aktif ? 'Nonaktifkan' : 'Aktifkan'}
                     tone="secondary"
                     ukuran="kecil"
@@ -138,7 +143,12 @@ export function AdminMaster({ table }: { table: Table }) {
           {rows.length === 0 && (
             <p className="px-4 py-5 text-sm text-slate-600 md:hidden">Belum ada data.</p>
           )}
-          <div className="hidden overflow-x-auto px-4 sm:px-5 md:block">
+          <div
+            className={`hidden px-4 sm:px-5 md:block ${styles.table}`}
+            tabIndex={0}
+            role="region"
+            aria-label={`Daftar ${satuan[table]}`}
+          >
             <table className="w-full min-w-[520px] text-left text-sm">
               <thead>
                 <tr className="border-b">
@@ -146,7 +156,7 @@ export function AdminMaster({ table }: { table: Table }) {
                   <th>Nama</th>
                   {table === 'jenis_dokumen' && <th className="text-right">Urutan</th>}
                   <th>Status</th>
-                  <th className="sr-only">Aksi</th>
+                  <th className="text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -177,10 +187,16 @@ export function AdminMaster({ table }: { table: Table }) {
                     </td>
                     <td>
                       <div className="flex justify-end gap-2">
-                        <Button tone="secondary" ukuran="kecil" onClick={() => edit(row)}>
+                        <Button
+                          disabled={!bolehKelola}
+                          tone="secondary"
+                          ukuran="kecil"
+                          onClick={() => edit(row)}
+                        >
                           Ubah
                         </Button>
                         <ConfirmAction
+                          disabled={!bolehKelola}
                           label={row.aktif ? 'Nonaktifkan' : 'Aktifkan'}
                           tone="secondary"
                           ukuran="kecil"
@@ -205,13 +221,14 @@ export function AdminMaster({ table }: { table: Table }) {
         </Card>
 
         {selected && (
-          <Card className="lg:sticky lg:top-4">
+          <Card className={styles.editor}>
             <h2 className="text-sm font-semibold text-slate-900">Ubah: {selected.nama}</h2>
             <p className="mt-0.5 text-xs text-slate-500">
               Simpan untuk menerapkan perubahan, atau batalkan.
             </p>
             <form className="mt-4 grid gap-3" onSubmit={(e) => e.preventDefault()}>
               <Field
+                disabled={!bolehKelola}
                 label="Kode"
                 id="master-code"
                 required
@@ -220,6 +237,7 @@ export function AdminMaster({ table }: { table: Table }) {
                 onChange={(e) => setCode(e.target.value)}
               />
               <Field
+                disabled={!bolehKelola}
                 label="Nama"
                 id="master-name"
                 required
@@ -229,6 +247,7 @@ export function AdminMaster({ table }: { table: Table }) {
               />
               {table === 'jenis_dokumen' && (
                 <Field
+                  disabled={!bolehKelola}
                   label="Urutan"
                   id="master-order"
                   type="number"
@@ -242,7 +261,7 @@ export function AdminMaster({ table }: { table: Table }) {
                   label="Simpan perubahan"
                   title="Simpan perubahan master?"
                   description="Pastikan kode dan nama sudah benar sebelum menyimpan."
-                  disabled={!name.trim() || !code.trim()}
+                  disabled={!bolehKelola || !name.trim() || !code.trim()}
                   onConfirm={save}
                 />
                 <Button type="button" tone="secondary" onClick={() => edit()}>
@@ -253,6 +272,6 @@ export function AdminMaster({ table }: { table: Table }) {
           </Card>
         )}
       </div>
-    </fieldset>
+    </div>
   );
 }

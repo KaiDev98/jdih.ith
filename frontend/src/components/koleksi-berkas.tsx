@@ -16,6 +16,7 @@ import { TandaStatus } from './tanda-status';
 import { UnduhTemplate } from './unduh-template';
 import { StateMessage } from './ui';
 import styles from './koleksi-berkas.module.css';
+import { PratinjauFormat } from './pratinjau-format';
 
 type Berkas = HasilCariAnonim | HasilCariAuthorized | ItemTemplatePublik | ItemTemplateAuthorized;
 type Jenis = 'format' | 'sk';
@@ -37,7 +38,17 @@ function KartuBerkas({ item }: { item: Berkas }) {
               ? 'Khusus Dosen/Staf aktif'
               : 'Siap digunakan'}
           </span>
-          <UnduhTemplate slug={item.slug} nama={item.nama} />
+          {item.kemampuan?.preview ? (
+            <PratinjauFormat
+              nama={item.nama}
+              canPreview
+              previewUrl={`/api/v1/letter-templates/${encodeURIComponent(item.slug)}/preview`}
+              downloadUrl={`/api/v1/letter-templates/${encodeURIComponent(item.slug)}/download`}
+              fallbackLabel="Unduh berkas"
+            />
+          ) : (
+            <UnduhTemplate slug={item.slug} nama={item.nama} />
+          )}
         </div>
       </li>
     );

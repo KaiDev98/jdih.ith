@@ -6,6 +6,7 @@ import {
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
+  UnsupportedMediaTypeException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
@@ -29,7 +30,11 @@ import {
 import { AuditService } from '../../identity/audit.service.js';
 import { CoreBackendRepository } from '../core-backend.repository.js';
 import { StorageService } from '../storage/storage.service.js';
-import { safeOriginalName, validateIncomingFile } from '../storage/file-validation.js';
+import {
+  bisaDipratinjau,
+  safeOriginalName,
+  validateIncomingFile,
+} from '../storage/file-validation.js';
 import type { KonfigurasiApp } from '../../../config/configuration.js';
 
 interface IncomingFile {
@@ -386,16 +391,25 @@ export class LetterTemplatesService {
   }
 
   /** File belum terbit hanya melalui rute panel terautorisasi untuk tinjauan. */
-  async review(actor: PenggunaAktif, templateId: string, versionId: string) {
+  async review(
+    actor: PenggunaAktif,
+    templateId: string,
+    versionId: string,
+    options: { queue?: boolean; preview?: boolean } = {},
+  ) {
     cekBacaPanel(actor, 'templates.manage');
     const [version] = await this.repo.rows<TemplateFile>(
       this.repo.pool,
-      `SELECT v.* FROM template_surat_versi v JOIN template_surat t ON t.id=v.template_surat_id WHERE v.id=? AND t.id=? AND t.deleted_at IS NULL${actor.peran.includes('SUPERADMIN') ? '' : ' AND t.created_by=?'}`,
-      actor.peran.includes('SUPERADMIN')
+      `SELECT v.* FROM template_surat_versi v JOIN template_surat t ON t.id=v.template_surat_id WHERE v.id=? AND t.id=? AND t.deleted_at IS NULL${options.queue ? " AND v.status='PENDING_REVIEW'" : actor.peran.includes('SUPERADMIN') ? '' : ' AND t.created_by=?'}`,
+      options.queue || actor.peran.includes('SUPERADMIN')
         ? [versionId, templateId]
         : [versionId, templateId, actor.id],
     );
     if (!version) throw new NotFoundException();
+    if (options.preview && !bisaDipratinjau(version.mime_type))
+      throw new UnsupportedMediaTypeException(
+        'Jenis berkas ini belum mendukung pratinjau. Silakan unduh berkas.',
+      );
     await this.audit.recordDomain({
       module: 'letter-templates',
       action: 'REVIEW_VERSION',
@@ -488,18 +502,19 @@ export class LetterTemplatesService {
         slug: string;
         nama: string;
         tingkatAkses: 'PUBLIK' | 'INTERNAL';
+        mimeType?: string;
       }
     >(
       this.repo.pool,
-      `SELECT CAST(t.id AS CHAR) id,t.slug,t.nama,v.tingkat_akses tingkatAkses FROM template_surat t JOIN template_surat_versi v ON v.id=t.current_version_id WHERE t.aktif=1 AND t.deleted_at IS NULL AND v.status='ACTIVE' AND ${visible}${search} ORDER BY t.nama,t.id LIMIT ? OFFSET ?`,
+      `SELECT CAST(t.id AS CHAR) id,t.slug,t.nama,v.tingkat_akses tingkatAkses,v.mime_type mimeType FROM template_surat t JOIN template_surat_versi v ON v.id=t.current_version_id WHERE t.aktif=1 AND t.deleted_at IS NULL AND v.status='ACTIVE' AND ${visible}${search} ORDER BY t.nama,t.id LIMIT ? OFFSET ?`,
       [...values, page.perHalaman, offset],
     );
     // Pengunjung anonim tidak menerima `tingkatAkses`: keberadaan format
     // Internal tidak boleh tersirat dari bentuk tanggapan publik.
-    const data = rows.map(({ tingkatAkses, ...row }) => ({
+    const data = rows.map(({ tingkatAkses, mimeType, ...row }) => ({
       ...row,
       ...(includeInternal ? { tingkatAkses } : {}),
-      kemampuan: { download: true as const },
+      kemampuan: { download: true as const, preview: !!mimeType && bisaDipratinjau(mimeType) },
     }));
     const total = Number(count?.total ?? 0);
     const response = {
@@ -524,7 +539,7 @@ export class LetterTemplatesService {
     const superadmin = actor.peran.includes('SUPERADMIN');
     return this.repo.rows(
       this.repo.pool,
-      `SELECT CAST(t.id AS CHAR) id,CAST(t.created_by AS CHAR) createdBy,t.slug,t.nama,t.aktif,CAST(t.current_version_id AS CHAR) currentVersionId,CAST(v.nomor_versi AS UNSIGNED) nomorVersi,v.tingkat_akses tingkatAkses,v.status,CAST(p.id AS CHAR) pendingVersionId,CAST(p.nomor_versi AS UNSIGNED) pendingNomorVersi,p.tingkat_akses pendingTingkatAkses,p.status pendingStatus FROM template_surat t LEFT JOIN template_surat_versi v ON v.id=t.current_version_id LEFT JOIN template_surat_versi p ON p.template_surat_id=t.id AND p.status IN ('PENDING_REVIEW','APPROVED') WHERE t.deleted_at IS NULL${superadmin ? '' : ' AND t.created_by=?'} ORDER BY t.updated_at DESC`,
+      `SELECT CAST(t.id AS CHAR) id,CAST(t.created_by AS CHAR) createdBy,t.slug,t.nama,t.aktif,CAST(t.current_version_id AS CHAR) currentVersionId,CAST(v.nomor_versi AS UNSIGNED) nomorVersi,v.tingkat_akses tingkatAkses,v.status,v.mime_type mimeType,v.nama_asli namaAsli,CAST(p.id AS CHAR) pendingVersionId,CAST(p.nomor_versi AS UNSIGNED) pendingNomorVersi,p.tingkat_akses pendingTingkatAkses,p.status pendingStatus,p.mime_type pendingMimeType,p.nama_asli pendingNamaAsli FROM template_surat t LEFT JOIN template_surat_versi v ON v.id=t.current_version_id LEFT JOIN template_surat_versi p ON p.template_surat_id=t.id AND p.status IN ('PENDING_REVIEW','APPROVED') WHERE t.deleted_at IS NULL${superadmin ? '' : ' AND t.created_by=?'} ORDER BY t.updated_at DESC`,
       superadmin ? [] : [actor.id],
     );
   }
@@ -532,10 +547,8 @@ export class LetterTemplatesService {
   async verificationQueue(actor: PenggunaAktif, rawQuery: unknown) {
     cekBacaPanel(actor, 'templates.manage');
     const page = skemaCariTemplate.parse(rawQuery ?? {});
-    const superadmin = actor.peran.includes('SUPERADMIN');
-    const values: (string | number)[] = superadmin ? [] : [actor.id];
+    const values: (string | number)[] = [];
     const where = ['t.deleted_at IS NULL', "v.status='PENDING_REVIEW'"];
-    if (!superadmin) where.push('t.created_by=?');
     if (page.q) {
       where.push("t.nama LIKE ? ESCAPE '!'");
       values.push(`%${page.q.replaceAll('!', '!!').replaceAll('%', '!%').replaceAll('_', '!_')}%`);
@@ -549,7 +562,7 @@ export class LetterTemplatesService {
     const offset = (page.halaman - 1) * page.perHalaman;
     const data = await this.repo.rows(
       this.repo.pool,
-      `SELECT CAST(v.id AS CHAR) id,CAST(t.id AS CHAR) templateSuratId,t.nama,v.nomor_versi nomorVersi,v.tingkat_akses tingkatAkses,v.status,u.nama pengunggah,CAST(v.created_at AS CHAR) diajukanPada ${from} ORDER BY v.created_at,v.id LIMIT ? OFFSET ?`,
+      `SELECT CAST(v.id AS CHAR) id,CAST(t.id AS CHAR) templateSuratId,t.nama,v.nomor_versi nomorVersi,v.tingkat_akses tingkatAkses,v.status,v.mime_type mimeType,v.nama_asli namaAsli,u.nama pengunggah,CAST(v.created_at AS CHAR) diajukanPada ${from} ORDER BY v.created_at,v.id LIMIT ? OFFSET ?`,
       [...values, page.perHalaman, offset],
     );
     const total = Number(count?.total ?? 0);
@@ -584,9 +597,16 @@ export class LetterTemplatesService {
     return file;
   }
 
-  async openAuthorized(file: TemplateDownloadTerotorisasi, actor?: PenggunaAktif) {
+  async openAuthorized(file: TemplateDownloadTerotorisasi, actor?: PenggunaAktif, preview = false) {
+    if (preview && !bisaDipratinjau(file.mime_type))
+      throw new UnsupportedMediaTypeException(
+        'Jenis berkas ini belum mendukung pratinjau. Silakan unduh berkas.',
+      );
     const object = await this.storage.open(file.storage_key);
-    if (object.size !== Number(file.size_bytes)) throw new NotFoundException();
+    if (object.size !== Number(file.size_bytes)) {
+      object.stream.destroy();
+      throw new NotFoundException();
+    }
     if (file.tingkat_akses === 'INTERNAL' && actor)
       await this.audit.recordDomain({
         module: 'letter-templates',

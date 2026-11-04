@@ -20,6 +20,7 @@ import {
   TextAreaField,
 } from '@/components/ui';
 import styles from './admin-templates.module.css';
+import { PratinjauFormat } from './pratinjau-format';
 
 type Template = {
   id: string;
@@ -35,6 +36,8 @@ type Template = {
   pendingStatus?: 'PENDING_REVIEW' | 'APPROVED' | null;
   pendingNomorVersi: number | null;
   pendingTingkatAkses: 'PUBLIK' | 'INTERNAL' | null;
+  mimeType?: string | null;
+  pendingMimeType?: string | null;
 };
 
 export function AdminTemplates() {
@@ -305,10 +308,7 @@ export function AdminTemplates() {
                     <Button
                       tone="secondary"
                       ukuran="kecil"
-                      disabled={
-                        !bolehGanti(row) ||
-                        (!row.aktif && !row.pendingVersionId)
-                      }
+                      disabled={!bolehGanti(row) || (!row.aktif && !row.pendingVersionId)}
                       onClick={() => {
                         reset();
                         setSelected(row);
@@ -319,20 +319,23 @@ export function AdminTemplates() {
                       <FileUp aria-hidden className="size-3.5" />
                       {row.pendingVersionId && bolehGanti(row) ? 'Unggah perbaikan' : 'Versi baru'}
                     </Button>
-                    {row.pendingVersionId && (
-                      <a
-                        className="text-xs font-semibold text-institusi-700 underline underline-offset-4"
-                        href={`/api/v1/admin/letter-templates/${row.id}/versions/${row.pendingVersionId}/download`}
-                      >
-                        Unduh untuk ditinjau
-                      </a>
+                    {(row.pendingVersionId || row.currentVersionId) && (
+                      <PratinjauFormat
+                        nama={row.nama}
+                        canPreview={
+                          (row.pendingVersionId ? row.pendingMimeType : row.mimeType) ===
+                          'application/pdf'
+                        }
+                        previewUrl={`/api/v1/admin/letter-templates/${row.id}/versions/${row.pendingVersionId ?? row.currentVersionId}/preview`}
+                        downloadUrl={`/api/v1/admin/letter-templates/${row.id}/versions/${row.pendingVersionId ?? row.currentVersionId}/download`}
+                      />
                     )}
                     {row.pendingVersionId && row.pendingStatus !== 'APPROVED' && (
                       <Link
                         href="/admin/dokumen/verifikasi"
-                        className="inline-flex min-h-11 items-center text-xs font-semibold text-institusi-700 underline underline-offset-4"
+                        className={`${styles.queueLink} inline-flex min-h-11 items-center text-xs font-semibold text-institusi-700 underline underline-offset-4`}
                       >
-                        Lihat di Antrean Verifikasi
+                        Antrean Verifikasi
                       </Link>
                     )}
                     {bolehVerifikasi &&

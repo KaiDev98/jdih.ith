@@ -62,7 +62,21 @@ Jangan membangun berdasarkan asumsi legacy berikut:
 - Workflow dokumen tidak memiliki state `ditolak`.
 - Status hukum hanya `berlaku`, `diubah`, `dicabut`.
 
-## REVISI KEPEMILIKAN DAN ANTREAN - 2026-11-04 (TERBARU)
+## REVISI PRATINJAU DAN BACA ANTREAN - 2026-11-04 (TERBARU)
+
+Format Persuratan mendukung pratinjau PDF melalui API terotorisasi dan blob
+lokal; Office yang belum didukung tetap memakai unduhan. Teks Unduh untuk
+ditinjau hanya untuk format tanpa pratinjau. Berlaku pada pengelolaan, antrean
+dan format PDF terbit di portal, dengan pemeriksaan akses setiap permintaan.
+Semua Admin dapat membaca antrean SOP dan Format Persuratan lintas pengunggah.
+Tinjauan format lintas pemilik hanya melalui rute antrean PENDING_REVIEW; setelah
+diproses akses itu tertutup. SOP Permohonan SK lintas pemilik hanya dapat ditinjau
+di panel selama DIAJUKAN. Daftar pengelolaan tetap milik sendiri; seluruh izin
+perubahan/persetujuan/penerbitan tetap mengikuti revisi kepemilikan.
+Jenis Dokumen dan Kategori SOP desktop memenuhi ruang kerja dan tetap setinggi
+viewport, dengan tabel/editor bergulir di dalam; ponsel memakai gulir normal.
+
+## REVISI KEPEMILIKAN DAN ANTREAN - 2026-11-04
 
 Persetujuan Format Persuratan dilakukan pada Antrean Verifikasi, khusus
 Superadmin aktif; penerbitan tetap terpisah. Unggahan sendiri Superadmin juga

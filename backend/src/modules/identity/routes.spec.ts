@@ -9,6 +9,7 @@ import { acak, csrfToken } from './security.js';
 import { GoogleService } from './google.service.js';
 import { AuditService } from './audit.service.js';
 import { LetterTemplatesService } from '../core-backend/templates/letter-templates.service.js';
+import { Readable } from 'node:stream';
 
 @Controller('contract-probe')
 class DefaultClosedProbe {
@@ -42,7 +43,7 @@ describe('AppModule HTTP security wiring (no database/network provider)', () => 
     loginPassword: vi.fn().mockResolvedValue({ token, expires: new Date(Date.now() + 3600000) }),
     registerWithPassword: vi.fn().mockResolvedValue({ token, expires: new Date(Date.now() + 3600000), result: { id: '9', status: 'MENUNGGU_VERIFIKASI', peran: ['DOSEN_STAF'] } }),
   };
-  const templates = { remove: vi.fn().mockResolvedValue({ id: '5', deleted: true }) };
+  const templates = { remove: vi.fn().mockResolvedValue({ id: '5', deleted: true }), review: vi.fn() };
   beforeAll(async () => {
     Object.assign(process.env, {
       NODE_ENV: 'test',
@@ -202,5 +203,22 @@ describe('AppModule HTTP security wiring (no database/network provider)', () => 
       expect((await fetch(path, { method: 'DELETE', headers: valid })).status).toBe(200);
       expect(templates.remove).toHaveBeenLastCalledWith(actor, '5', undefined);
     }
+  });
+  it('pratinjau antrean memakai rute terproteksi dengan respons PDF inline dan cache privat', async () => {
+    const pdf = Buffer.from('%PDF-1.7\nPreview transport\n%%EOF');
+    templates.review.mockImplementation(() => Promise.resolve({ stream: Readable.from([pdf]), mimeType: 'application/pdf', originalName: 'format.pdf', size: pdf.length }));
+    const path = base + '/api/v1/admin/letter-templates/verification-queue/5/versions/80/preview';
+    auth();
+    expect((await fetch(path)).status).toBe(401);
+    expect((await fetch(path, { headers: { cookie: 'jdih_session=' + token } })).status).toBe(403);
+    identity.authenticate.mockResolvedValue({ user: { ...user, peran: ['ADMIN'], izin: ['documents.read_admin'] } });
+    const response = await fetch(path, { headers: { cookie: 'jdih_session=' + token } });
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('application/pdf');
+    expect(response.headers.get('content-disposition')).toMatch(/^inline;/);
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(Buffer.from(await response.arrayBuffer())).toEqual(pdf);
+    expect(templates.review).toHaveBeenLastCalledWith(expect.anything(), '5', '80', { queue: true, preview: true });
   });
 });

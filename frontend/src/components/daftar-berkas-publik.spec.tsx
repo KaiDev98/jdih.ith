@@ -19,6 +19,15 @@ beforeEach(() => {
 });
 
 describe('koleksi berkas publik yang panjang', () => {
+  it('format PDF menyediakan pratinjau, sedangkan Office tetap menyediakan unduhan', async () => {
+    api.list.mockResolvedValue({ data: [
+      { id: '1', slug: 'surat-pdf', nama: 'Surat PDF', kemampuan: { download: true, preview: true } },
+      { id: '2', slug: 'surat-docx', nama: 'Surat DOCX', kemampuan: { download: true, preview: false } },
+    ], meta: { totalButir: 2, totalHalaman: 1 } });
+    render(await FormatPersuratan({ searchParams: Promise.resolve({}) }));
+    expect(screen.getAllByRole('button', { name: 'Pratinjau' })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: 'Download' })).toHaveLength(1);
+  });
   it('format menampilkan 12 item di area gulir dan menyediakan pemuatan lanjutan', async () => {
     api.list.mockResolvedValue({
       data: Array.from({ length: 12 }, (_, index) => ({

@@ -63,7 +63,7 @@ describe('persetujuan format melalui Antrean Verifikasi', () => {
     await screen.findByText('Surat Tugas');
     expect(screen.getByRole('link', { name: 'Unduh untuk ditinjau' })).toHaveAttribute(
       'href',
-      '/api/v1/admin/letter-templates/5/versions/80/download',
+      '/api/v1/admin/letter-templates/verification-queue/5/versions/80/download',
     );
     fireEvent.click(screen.getByRole('button', { name: 'Setujui' }));
     fireEvent.click(screen.getByRole('button', { name: 'Batal' }));

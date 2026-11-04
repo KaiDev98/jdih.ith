@@ -7,6 +7,7 @@ import Link from '@/components/admin/tautan-panel';
 import { ambilApi, ambilApiBerdaftar, GalatApi } from '@/lib/api-client';
 import { csrfHeaders, useSession } from '@/lib/sesi';
 import { Badge, Button, Card, ConfirmAction, Feedback, StateMessage } from '@/components/ui';
+import { PratinjauFormat } from './pratinjau-format';
 
 /** Antrean format terpisah dari dokumen hukum, dalam halaman verifikasi yang sama. */
 export function AdminTemplateVerificationQueue() {
@@ -92,7 +93,7 @@ export function AdminTemplateVerificationQueue() {
           <p className="mt-1 text-xs leading-5 text-slate-500">
             {bolehSetujui
               ? 'Tinjau berkas sebelum menyetujui. Penerbitan tetap tindakan terpisah.'
-              : 'Status pengajuan format milik Anda. Persetujuan hanya oleh Superadmin.'}
+              : 'Pengajuan dari seluruh Admin dapat ditinjau. Persetujuan hanya oleh Superadmin.'}
           </p>
         </div>
         <Button
@@ -146,21 +147,23 @@ export function AdminTemplateVerificationQueue() {
                   </Badge>
                 </div>
               </div>
-              <a
-                href={`/api/v1/admin/letter-templates/${row.templateSuratId}/versions/${row.id}/download`}
-                className="inline-flex min-h-11 items-center text-xs font-semibold text-institusi-700 underline underline-offset-4"
-              >
-                Unduh untuk ditinjau
-              </a>
-              {bolehSetujui && (
-                <ConfirmAction
-                  label="Setujui"
-                  ukuran="kecil"
-                  title="Setujui format persuratan?"
-                  description={`${row.nama} versi ${row.nomorVersi} akan disetujui tanpa langsung diterbitkan. Versi publik sebelumnya tetap tersedia.`}
-                  onConfirm={() => approve(row)}
+              <div className="flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto">
+                <PratinjauFormat
+                  nama={row.nama}
+                  canPreview={row.mimeType === 'application/pdf'}
+                  previewUrl={`/api/v1/admin/letter-templates/verification-queue/${row.templateSuratId}/versions/${row.id}/preview`}
+                  downloadUrl={`/api/v1/admin/letter-templates/verification-queue/${row.templateSuratId}/versions/${row.id}/download`}
                 />
-              )}
+                {bolehSetujui && (
+                  <ConfirmAction
+                    label="Setujui"
+                    ukuran="kecil"
+                    title="Setujui format persuratan?"
+                    description={`${row.nama} versi ${row.nomorVersi} akan disetujui tanpa langsung diterbitkan. Versi publik sebelumnya tetap tersedia.`}
+                    onConfirm={() => approve(row)}
+                  />
+                )}
+              </div>
             </li>
           ))}
         </ul>

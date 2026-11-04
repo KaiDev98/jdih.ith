@@ -416,7 +416,8 @@ test('template list only title and download, no public Internal', () => {
   bad(c.skemaItemTemplateAuthorized, { ...item, tingkatAkses: 'RAHASIA' });
   for (const field of ['preview', 'statusHukum', 'pic', 'detailUrl'])
     bad(c.skemaItemTemplatePublik, { ...item, [field]: 'x' });
-  bad(c.skemaItemTemplatePublik, { ...item, kemampuan: { download: true, preview: true } });
+  ok(c.skemaItemTemplatePublik, { ...item, kemampuan: { download: true, preview: true } });
+  bad(c.skemaItemTemplatePublik, { ...item, kemampuan: { download: true, preview: 'true' } });
 });
 test('template version metadata rejects actor/state/storage assignment', () => {
   ok(c.skemaBuatVersiTemplate, { tingkatAkses: 'INTERNAL' });

@@ -1,6 +1,21 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
 **Dokumen ini adalah konteks lengkap yang harus dipahami Codex sebelum mengerjakan project.**  
+Revisi TERBARU pratinjau dan baca antrean 2026-11-04: semua Admin dapat membaca
+antrean SOP dan Format Persuratan lintas pengunggah. Bukan pemberian hak ubah.
+Daftar pengelolaan format/SOP tetap milik sendiri. Tinjauan format lintas pemilik
+hanya melalui rute verification-queue saat PENDING_REVIEW; setelah persetujuan,
+penggantian atau penghapusan, rute tersebut menolak akses. SOP Permohonan SK
+lintas pemilik hanya menampilkan versi/file DIAJUKAN di panel. Hak keputusan,
+perubahan pemilik dan publikasi terpisah tetap berlaku.
+Format PDF mendapat Pratinjau lokal di dialog pada panel/antrean dan portal.
+MIME/otorisasi diverifikasi API, respons inline private/no-store/nosniff;
+DOCX/XLSX/PPTX tetap unduh tanpa layanan penampil pihak ketiga. Unduh untuk
+ditinjau hanya muncul bila berkas/peramban tidak mendukung pratinjau.
+Halaman master Jenis Dokumen dan Kategori SOP desktop memakai seluruh lebar
+ruang kerja, tinggi tetap, daftar serta editor bergulir di dalam. Header/judul
+tetap terlihat, ponsel bergulir normal; fitur tambah master tetap tidak tersedia.
+
 Revisi kepemilikan/antrean TERBARU 2026-11-04 menggantikan template lintas pemilik:
 Admin hanya mengelola format yang dibuatnya, termasuk unggah versi, hapus dan
 tinjauan file panel. ID milik akun lain ditolak 404; daftar/antrean format Admin
