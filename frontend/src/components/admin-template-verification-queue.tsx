@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { ItemAntreanTemplate } from '@jdih/shared';
-import { FileCheck2, RefreshCw } from 'lucide-react';
+import { FileCheck2, RefreshCw, Check } from 'lucide-react';
 import Link from '@/components/admin/tautan-panel';
 import { ambilApi, ambilApiBerdaftar, GalatApi } from '@/lib/api-client';
 import { csrfHeaders, useSession } from '@/lib/sesi';
@@ -156,7 +156,7 @@ export function AdminTemplateVerificationQueue() {
                 />
                 {bolehSetujui && (
                   <ConfirmAction
-                    label="Setujui"
+                    label="Setujui" icon={Check}
                     ukuran="kecil"
                     title="Setujui format persuratan?"
                     description={`${row.nama} versi ${row.nomorVersi} akan disetujui tanpa langsung diterbitkan. Versi publik sebelumnya tetap tersedia.`}

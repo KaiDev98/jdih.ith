@@ -147,7 +147,7 @@ panel_layout:
   desktop_header_height_px: 56
   detail_preview_before_history: true
   bounded_history_and_table_scroll: true
-  master_desktop_layout: "full workspace width; fixed viewport; table and editor scroll internally; mobile normal page scroll"
+  master_desktop_layout: "full workspace width; fixed viewport; Jenis Dokumen card fits content up to available height, long lists scroll internally; Kategori SOP keeps full height; mobile normal page scroll"
   touch_target_minimum_px: 44
   respects_reduced_motion: true
   animations_without_extra_dependencies: true
@@ -460,3 +460,9 @@ removal_requests:
   queue: "Antrean Verifikasi; Superadmin all, Admin own only; pending/history pagination and 30-second polling"
   direct_superadmin_action: "mark matching pending requests OBSOLETE in transaction"
   previously_published_templates: "deletion still requires Superadmin after withdrawal"
+
+panel_choice_polish:
+  fields: "Jenis Dokumen, Unit Kerja/Kategori, account verification unit and Add Admin unit use shared animated Radix radio choice menu"
+  motion: "180ms enter, 120ms exit, chevron rotation; prefers-reduced-motion removes motion; soft blue focus"
+  relation_picker: "Pilih peraturan expands/collapses with CSS grid; focus input on open, return to trigger on close"
+  action_icons: "decorative Lucide icons for edit/save/submit/approve/return/publish/revise/withdraw/delete; retain text and confirmation"

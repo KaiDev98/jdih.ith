@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Pencil, Power, Save, X } from 'lucide-react';
 import { ambilApi, GalatApi } from '@/lib/api-client';
 import { useSession, csrfHeaders } from '@/lib/sesi';
 import { superadminAktif } from '@/lib/panel';
@@ -80,7 +81,7 @@ export function AdminMaster({ table }: { table: Table }) {
     setRefresh((x) => x + 1);
   }
   return (
-    <div className={`halaman-panel halaman-master-panel mx-auto min-w-0 w-full ${styles.page}`}>
+    <div data-master={table} className={`halaman-panel halaman-master-panel mx-auto min-w-0 w-full ${styles.page}`}>
       <PageTitle title={labels[table]} description={deskripsi[table]} />
       {error && (
         <div className="mb-4">
@@ -121,11 +122,12 @@ export function AdminMaster({ table }: { table: Table }) {
                     ukuran="kecil"
                     onClick={() => edit(row)}
                   >
-                    Ubah
+                    <Pencil aria-hidden className="size-3.5" /> Ubah
                   </Button>
                   <ConfirmAction
                     disabled={!bolehKelola}
                     label={row.aktif ? 'Nonaktifkan' : 'Aktifkan'}
+                    icon={Power}
                     tone="secondary"
                     ukuran="kecil"
                     title={row.aktif ? `Nonaktifkan ${row.nama}?` : `Aktifkan kembali ${row.nama}?`}
@@ -193,11 +195,12 @@ export function AdminMaster({ table }: { table: Table }) {
                           ukuran="kecil"
                           onClick={() => edit(row)}
                         >
-                          Ubah
+                          <Pencil aria-hidden className="size-3.5" /> Ubah
                         </Button>
                         <ConfirmAction
                           disabled={!bolehKelola}
                           label={row.aktif ? 'Nonaktifkan' : 'Aktifkan'}
+                          icon={Power}
                           tone="secondary"
                           ukuran="kecil"
                           title={
@@ -259,13 +262,14 @@ export function AdminMaster({ table }: { table: Table }) {
               <div className="mt-1 grid gap-2">
                 <ConfirmAction
                   label="Simpan perubahan"
+                  icon={Save}
                   title="Simpan perubahan master?"
                   description="Pastikan kode dan nama sudah benar sebelum menyimpan."
                   disabled={!bolehKelola || !name.trim() || !code.trim()}
                   onConfirm={save}
                 />
                 <Button type="button" tone="secondary" onClick={() => edit()}>
-                  Batal
+                  <X aria-hidden className="size-4" /> Batal
                 </Button>
               </div>
             </form>

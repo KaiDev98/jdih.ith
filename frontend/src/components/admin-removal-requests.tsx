@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { PermintaanPenghapusan, SumberPermintaanPenghapusan } from '@jdih/shared';
-import { FileX2, RefreshCw } from 'lucide-react';
+import { FileX2, History, RefreshCw, Trash2, XCircle } from 'lucide-react';
 import Link from '@/components/admin/tautan-panel';
 import { ambilApi, ambilApiBerdaftar, GalatApi } from '@/lib/api-client';
 import { csrfHeaders, useSession } from '@/lib/sesi';
@@ -63,6 +63,7 @@ export function FormPermintaanPenghapusan({
         .map((jenis) => (
           <ConfirmAction
             key={jenis}
+            icon={jenis === 'WITHDRAW' ? FileX2 : Trash2}
             ukuran="kecil"
             tone={jenis === 'DELETE' ? 'danger' : 'secondary'}
             label={jenis === 'WITHDRAW' ? 'Minta penarikan' : 'Minta penghapusan'}
@@ -207,6 +208,7 @@ export function AntreanPermintaanPenghapusan({
               setPage(1);
             }}
           >
+            <History aria-hidden className="size-4" />
             {semua ? 'Menunggu saja' : 'Lihat riwayat'}
           </Button>
           <Button
@@ -298,6 +300,7 @@ export function AntreanPermintaanPenghapusan({
                     (['APPROVE', 'DECLINE'] as const).map((keputusan) => (
                       <ConfirmAction
                         key={keputusan}
+                        icon={keputusan === 'DECLINE' ? XCircle : row.jenis === 'WITHDRAW' ? FileX2 : Trash2}
                         ukuran="kecil"
                         tone={keputusan === 'APPROVE' ? 'danger' : 'secondary'}
                         label={

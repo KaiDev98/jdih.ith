@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, ArrowRight, CheckCircle2, Info, Inbox, LoaderCircle, X, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CheckCircle2, Info, Inbox, LoaderCircle, X, XCircle, type LucideIcon } from 'lucide-react';
 import { GalatApi } from '@/lib/api-client';
 import { cn } from '@/lib/cn';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -305,6 +305,7 @@ function PesanError(error: unknown) {
 
 export function ConfirmAction({
   label,
+  icon: Icon,
   title,
   description,
   confirmLabel = 'Ya, lanjutkan',
@@ -316,6 +317,7 @@ export function ConfirmAction({
   onConfirm,
 }: {
   label: string;
+  icon?: LucideIcon;
   title: string;
   description: string;
   confirmLabel?: string;
@@ -372,6 +374,7 @@ export function ConfirmAction({
           setOpen(true);
         }}
       >
+        {Icon && <Icon aria-hidden className="size-4 shrink-0" />}
         {label}
       </Button>
       {!open &&

@@ -62,6 +62,14 @@
     flex-direction: column;
     min-height: 0;
   }
+  .page[data-master='jenis_dokumen'] .collection {
+    align-self: start;
+    max-height: 100%;
+  }
+  .page[data-master='jenis_dokumen'] .editor {
+    align-self: start;
+    max-height: 100%;
+  }
   .collection > :first-child {
     flex-shrink: 0;
   }

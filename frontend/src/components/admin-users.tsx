@@ -3,16 +3,9 @@
 import { surelUntukPanel } from '@jdih/shared';
 
 import { useEffect, useState } from 'react';
-import {
-  ArrowRight,
-  CheckCircle2,
-  GraduationCap,
-  RefreshCw,
-  ShieldCheck,
-  UserCheck,
-  UserPlus,
-} from 'lucide-react';
+import { ArrowRight, Building2, X, CheckCircle2, GraduationCap, RefreshCw, ShieldCheck, UserCheck, UserPlus, Check, XCircle } from 'lucide-react';
 import { ambilApi, GalatApi } from '@/lib/api-client';
+import { PemilihIsianPanel } from './admin/pemilih-isian-panel';
 import { useSession, csrfHeaders } from '@/lib/sesi';
 import {
   Badge,
@@ -21,7 +14,6 @@ import {
   ConfirmAction,
   Feedback,
   PageTitle,
-  SelectField,
   StateMessage,
   TextAreaField,
 } from '@/components/ui';
@@ -290,20 +282,16 @@ export function AdminUsers() {
               </div>
             </dl>
             <div className="mt-4 grid gap-4">
-              <SelectField
+              <PemilihIsianPanel
                 label="Unit kerja untuk persetujuan"
                 id="approve-unit"
                 value={unitId}
                 disabled={!superadmin}
-                onChange={(e) => setUnitId(e.target.value)}
-              >
-                <option value="">Pilih unit</option>
-                {units.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.nama}
-                  </option>
-                ))}
-              </SelectField>
+                onValueChange={setUnitId}
+                ikon={Building2}
+                placeholder="Pilih unit"
+                opsi={units.map((u) => ({ value: u.id, label: u.nama }))}
+              />
               <TextAreaField
                 label="Alasan penolakan (wajib untuk menolak)"
                 id="reject-reason"
@@ -314,10 +302,11 @@ export function AdminUsers() {
               />
               <div className="flex flex-wrap justify-end gap-2">
                 <Button tone="secondary" onClick={() => setSelected(undefined)}>
+                  <X aria-hidden className="size-4" />
                   Tutup
                 </Button>
                 <ConfirmAction
-                  label="Tolak"
+                  label="Tolak" icon={XCircle}
                   tone="danger"
                   title="Tolak pendaftaran ini?"
                   description="Alasan penolakan akan dicatat pada audit."
@@ -327,7 +316,7 @@ export function AdminUsers() {
                   onConfirm={() => decide(`/admin/users/${selected.id}/reject`, { alasan: reason })}
                 />
                 <ConfirmAction
-                  label="Setujui"
+                  label="Setujui" icon={Check}
                   title="Setujui akun Dosen/Staf?"
                   description="Akun akan diaktifkan untuk mengakses dokumen khusus Dosen/Staf."
                   disabled={!superadmin || !pengguna.izin.includes('users.approve') || !unitId}

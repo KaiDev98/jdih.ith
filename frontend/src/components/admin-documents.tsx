@@ -2,7 +2,8 @@
 
 import Link from '@/components/admin/tautan-panel';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Check, FileText, Globe2, Pencil, UploadCloud, X } from 'lucide-react';
+import { ArrowLeft, Building2, Check, FileText, Globe2, Pencil, UploadCloud, X, FilePen } from 'lucide-react';
+import { PemilihIsianPanel } from './admin/pemilih-isian-panel';
 import { ambilApi, GalatApi } from '@/lib/api-client';
 import { useSession, csrfHeaders } from '@/lib/sesi';
 import { superadminAktif } from '@/lib/panel';
@@ -20,7 +21,6 @@ import {
   ConfirmAction,
   Field,
   PageTitle,
-  SelectField,
   StateMessage,
   TextAreaField,
   kelasTautanSekunder,
@@ -407,47 +407,29 @@ export function AdminDocumentCreate({
             />
 
             <div className="grid gap-4 sm:grid-cols-3">
-              <SelectField
+              <PemilihIsianPanel
                 label="Jenis dokumen *"
                 id="doc-type"
                 required
                 value={type}
                 disabled={khusus}
                 title={khusus ? 'SOP Permohonan SK selalu berjenis SOP' : undefined}
-                onChange={(e) => setType(e.target.value)}
-              >
-                <option value="">Pilih jenis</option>
-                {types
-                  .filter((x) => x.aktif !== false)
-                  .map((x) => (
-                    <option key={x.id} value={x.id}>
-                      {x.nama}
-                    </option>
-                  ))}
-              </SelectField>
-              <SelectField
+                onValueChange={setType}
+                ikon={FileText}
+                placeholder="Pilih jenis"
+                opsi={types.filter((x) => x.aktif !== false).map((x) => ({ value: x.id, label: x.nama }))}
+              />
+              <PemilihIsianPanel
                 label="Unit kerja / kategori *"
                 required
                 id="doc-category"
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              >
-                <option value="">Pilih kategori</option>
-                {categories.map((x) => (
-                  <option
-                    key={x.id}
-                    value={x.id}
-                    disabled={x.bolehPilih === false || x.aktif === false}
-                  >
-                    {x.nama}
-                    {x.aktif === false
-                      ? ' (nonaktif)'
-                      : x.bolehPilih === false
-                        ? ' (di luar hak akses)'
-                        : ''}
-                  </option>
-                ))}
-              </SelectField>
+                onValueChange={setCategory}
+                ikon={Building2}
+                placeholder="Pilih kategori"
+                opsi={categories.map((x) => ({ value: x.id, disabled: x.bolehPilih === false || x.aktif === false,
+                  label: x.nama + (x.aktif === false ? ' (nonaktif)' : x.bolehPilih === false ? ' (di luar hak akses)' : '') }))}
+              />
               <fieldset className="grid min-w-0 gap-1.5">
                 <legend className="mb-1.5 text-sm font-medium text-slate-800">Tingkat akses</legend>
                 <div className="grid grid-cols-2 rounded-lg bg-slate-100 p-1">
@@ -679,7 +661,7 @@ export function AdminDocumentCreate({
               </Button>
             ) : (
               <ConfirmAction
-                label="Buat draf"
+                label="Buat draf" icon={FilePen}
                 title="Buat draf dokumen?"
                 description={[
                   file

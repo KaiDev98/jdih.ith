@@ -9,16 +9,7 @@ import type {
   PreviewDampakPublikasi,
   StatusPeraturan,
 } from '@jdih/shared';
-import {
-  ArrowLeft,
-  Check,
-  ExternalLink,
-  FilePen,
-  FileText,
-  FileX2,
-  Paperclip,
-  Pencil,
-} from 'lucide-react';
+import { ArrowLeft, Check, ExternalLink, X, FilePen, FileText, FileX2, Paperclip, Pencil, Send, Trash2, Undo2, UploadCloud } from 'lucide-react';
 import { ambilApi, GalatApi } from '@/lib/api-client';
 import { csrfHeaders, useSession } from '@/lib/sesi';
 import { tautanDetailDokumen, type KonteksDokumen } from '@/lib/panel';
@@ -465,7 +456,7 @@ function DetailDokumen({
               )}
             {bisaDiubah && !jalurLangsung && izin.includes('workflow.submit') && (
               <ConfirmAction
-                label="Ajukan untuk diverifikasi"
+                label="Ajukan untuk diverifikasi" icon={Send}
                 disabled={!document.bolehUbah || kekurangan.length > 0}
                 title="Ajukan dokumen ini?"
                 description={
@@ -475,7 +466,7 @@ function DetailDokumen({
               />
             )}
             {bisaDiubah && document.bolehUbah && izin.includes('documents.edit') && (
-              <ConfirmAction label="Hapus draf" tone="danger" title="Hapus draf ini?"
+              <ConfirmAction label="Hapus draf" icon={Trash2} tone="danger" title="Hapus draf ini?"
                 description={`Draf versi ${document.nomorVersi} dan berkasnya akan dihapus. Versi lain, termasuk yang sedang terbit, tetap tersedia.`}
                 confirmLabel="Ya, hapus draf" onConfirm={async () => {
                   await ambilApi(`/admin/documents/${id}/drafts/${document.versionId}`, { method: 'DELETE', headers: csrfHeaders(csrfToken) });
@@ -485,7 +476,7 @@ function DetailDokumen({
             )}
             {(tahap === 'DIAJUKAN' || setujuiLangsung) && (
               <ConfirmAction
-                label="Setujui"
+                label="Setujui" icon={Check}
                 disabled={
                   !superadmin ||
                   !izin.includes('workflow.approve') ||
@@ -502,7 +493,7 @@ function DetailDokumen({
             )}
             {tahap === 'DIAJUKAN' && (
               <ConfirmAction
-                label="Kembalikan untuk diperbaiki"
+                label="Kembalikan untuk diperbaiki" icon={Undo2}
                 disabled={!superadmin || !izin.includes('workflow.return')}
                 tone="secondary"
                 title="Kembalikan dokumen ini?"
@@ -523,12 +514,13 @@ function DetailDokumen({
                 disabled={!superadmin || !izin.includes('workflow.publish')}
                 onClick={() => void loadPreview()}
               >
+                <UploadCloud aria-hidden className="size-4" />
                 Tinjau lalu terbitkan
               </Button>
             )}
             {['TERBIT', 'DITARIK'].includes(tahap) && izin.includes('documents.revise') && (
               <ConfirmAction
-                label="Buat revisi"
+                label="Buat revisi" icon={FilePen}
                 disabled={!document.bolehRevisi}
                 title="Buat revisi dokumen ini?"
                 description="Revisi baru dibuat sebagai draf dengan data yang sama. Dokumen utama perlu diunggah ulang. Versi yang tampil sekarang tetap tampil sampai revisi diterbitkan."
@@ -539,7 +531,7 @@ function DetailDokumen({
               <ConfirmAction
                 disabled={!superadmin || !izin.includes('workflow.withdraw')}
                 tone="danger"
-                label="Tarik dari portal"
+                label="Tarik dari portal" icon={FileX2}
                 title="Tarik dokumen dari portal?"
                 description={
                   // Penarikan selalu mengenai versi yang sedang tampil, yang
@@ -599,12 +591,13 @@ function DetailDokumen({
             )}
             <div className="mt-4 flex flex-wrap gap-3">
               <ConfirmAction
-                label="Terbitkan sekarang"
+                label="Terbitkan sekarang" icon={UploadCloud}
                 title="Terbitkan dokumen ini?"
                 description="Dokumen akan tampil di portal sesuai aksesnya dan menjadi versi yang berlaku."
                 onConfirm={publish}
               />
               <Button tone="secondary" onClick={() => setPreview(undefined)}>
+                <X aria-hidden className="size-4" />
                 Batal
               </Button>
             </div>

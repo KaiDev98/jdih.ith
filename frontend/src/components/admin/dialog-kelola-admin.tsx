@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   AlertCircle,
   Check,
   CheckCircle2,
-  ChevronDown,
+  Building2,
   Copy,
   LoaderCircle,
   Wand2,
@@ -30,6 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { PemilihIsianPanel } from './pemilih-isian-panel';
 import { KolomPassword, SyaratPassword } from './dialog-ganti-password';
 
 /** Password acak 14 karakter, tanpa huruf yang mudah tertukar (0/O, 1/l/I), pasti memuat huruf dan angka. */
@@ -92,64 +93,20 @@ function KotakGalat({ pesan }: { pesan: string }) {
 
 type Unit = { id: string; nama: string };
 
-/**
- * Pilihan unit kerja. Isinya sama dengan sub-menu SOP di portal publik, karena
- * unit kerja mengikuti Kategori SOP. Select bawaan peramban dipakai agar tetap
- * nyaman di papan ketik maupun layar sentuh.
- */
-function PilihUnit({
-  unit,
-  status,
-  galat,
-  ...props
-}: React.ComponentProps<'select'> & {
-  unit: readonly Unit[];
-  status: 'memuat' | 'siap' | 'gagal';
-  galat?: string;
+/** Unit dari master SOP, dengan menu beranimasi dan validasi formulir. */
+function PilihUnit({ unit, status, galat, ...props }: Omit<React.ComponentProps<typeof PemilihIsianPanel>, 'label' | 'opsi' | 'ikon'> & {
+  unit: readonly Unit[]; status: 'memuat' | 'siap' | 'gagal'; galat?: string;
 }) {
-  const kosong = !props.value;
-  return (
-    <div className="grid gap-1.5">
-      <Label htmlFor={props.id}>Unit kerja</Label>
-      <div className="relative">
-        <select
-          {...props}
-          disabled={status !== 'siap' || props.disabled}
-          aria-invalid={galat ? true : undefined}
-          className={`flex h-10 w-full min-w-0 appearance-none rounded-md border border-input bg-background pr-9 pl-3 text-sm transition-[border-color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/15 ${kosong ? 'text-muted-foreground' : 'text-foreground'}`}
-        >
-          <option value="" disabled>
-            {status === 'memuat' ? 'Memuat unit kerja…' : 'Pilih unit kerja'}
-          </option>
-          {unit.map((u) => (
-            <option key={u.id} value={u.id} className="text-foreground">
-              {u.nama}
-            </option>
-          ))}
-        </select>
-        {status === 'memuat' ? (
-          <LoaderCircle
-            aria-hidden
-            className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-muted-foreground"
-          />
-        ) : (
-          <ChevronDown
-            aria-hidden
-            className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
-          />
-        )}
-      </div>
-      {status === 'gagal' ? (
-        <p className="text-xs text-destructive">
-          Daftar unit kerja belum dapat dimuat. Tutup lalu buka lagi.
-        </p>
-      ) : galat ? (
-        <p className="text-xs text-destructive">{galat}</p>
-      ) : (
-        <p className="text-xs text-muted-foreground">Sama dengan daftar unit pada menu SOP.</p>
-      )}
-    </div>
-  );
+  const helpId = `${props.id}-help`;
+  return <div className="grid gap-1.5">
+    <PemilihIsianPanel {...props} label="Unit kerja" ikon={Building2} required
+      disabled={status !== 'siap' || props.disabled} invalid={!!galat} describedBy={helpId}
+      placeholder={status === 'memuat' ? 'Memuat unit kerja...' : 'Pilih unit kerja'}
+      opsi={unit.map((u) => ({ value: u.id, label: u.nama }))} />
+    <p id={helpId} className={`text-xs ${status === 'gagal' || galat ? 'text-destructive' : 'text-muted-foreground'}`}>
+      {status === 'gagal' ? 'Daftar unit kerja belum dapat dimuat. Tutup lalu buka lagi.' : galat ?? 'Sama dengan daftar unit pada menu SOP.'}
+    </p>
+  </div>;
 }
 
 /** Tampilan setelah berhasil: data login untuk diserahkan langsung ke Admin. */
@@ -222,7 +179,6 @@ export function DialogTambahAdmin({
     defaultValues: { nama: '', email: '', unitKerjaId: '', password: '' },
   });
   const password = useWatch({ control, name: 'password' }) ?? '';
-  const unitDipilih = useWatch({ control, name: 'unitKerjaId' }) ?? '';
 
   // Unit dimuat setiap kali dialog dibuka, supaya kategori SOP yang baru
   // ditambahkan langsung tersedia tanpa memuat ulang halaman.
@@ -377,19 +333,11 @@ export function DialogTambahAdmin({
                   </p>
                 )}
               </div>
-              <PilihUnit
-                id="admin-unit"
-                unit={unit}
-                status={statusUnit}
-                value={unitDipilih}
-                galat={
-                  errors.unitKerjaId &&
-                  (errors.unitKerjaId.type === 'server'
-                    ? errors.unitKerjaId.message
-                    : 'Pilih unit kerja')
-                }
-                {...register('unitKerjaId')}
-              />
+              <Controller control={control} name="unitKerjaId" render={({ field }) => (
+                <PilihUnit id="admin-unit" unit={unit} status={statusUnit} value={field.value}
+                  name={field.name} onValueChange={field.onChange} onBlur={field.onBlur} buttonRef={field.ref}
+                  galat={errors.unitKerjaId && (errors.unitKerjaId.type === 'server' ? errors.unitKerjaId.message : 'Pilih unit kerja')} />
+              )} />
               <div className="grid gap-2">
                 <KolomPassword
                   label="Password awal"

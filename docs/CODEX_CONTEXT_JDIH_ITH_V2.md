@@ -1,5 +1,14 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
+Revisi tampilan panel terbaru 2026-11-04: kartu Jenis Dokumen desktop mengikuti
+tinggi isi, dibatasi ruang viewport; daftar panjang tetap bergulir di dalam.
+Kategori SOP mempertahankan tinggi ruang kerjanya. Menu jenis dokumen dan unit
+pada unggah/ubah draf, verifikasi akun dan Tambah Admin memakai pemilih Radix
+beranimasi singkat, fokus biru lembut, pilihan nonaktif, keyboard dan reduced
+motion. Tombol Pilih peraturan memakai buka/tutup halus tanpa memindah layout
+secara mendadak. Ikon tindakan dekoratif tidak menggantikan label teks; izin,
+validasi, konfirmasi, loading dan feedback tetap berlaku.
+
 Revisi TERBARU 2026-11-04: Admin pemilik dan Superadmin dapat menghapus versi
 DRAF/REVISI yang dibatalkan. Hanya versi tersebut beserta file/relasi/term/workflow
 miliknya yang dibersihkan; audit DELETE_DRAFT disimpan. Versi terbit dan pointer

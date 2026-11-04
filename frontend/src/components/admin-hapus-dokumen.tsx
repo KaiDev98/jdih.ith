@@ -33,7 +33,7 @@ export function AdminHapusDokumen({ id, judul }: { id: string; judul: string }) 
       </p>
       <fieldset disabled={!bolehHapus} className="mt-4 grid min-w-0 gap-3">
         <ConfirmAction
-          label="Hapus permanen"
+          label="Hapus permanen" icon={Trash2}
           tone="danger"
           title="Hapus dokumen ini secara permanen?"
           description={`"${judul}" beserta seluruh versi dan berkasnya akan dihapus selamanya.`}

@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { FilePen, FileX2, Link2, Search, X } from 'lucide-react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { ChevronDown, FilePen, FileX2, Link2, Search, X } from 'lucide-react';
+import styles from './panel-hubungan.module.css';
 import { ambilApiBerdaftar } from '@/lib/api-client';
 import { useSession } from '@/lib/sesi';
 
@@ -45,6 +46,10 @@ export function PanelHubungan({
   const { pengguna } = useSession();
   const [cari, setCari] = useState('');
   const [hasil, setHasil] = useState<BarisCari[]>([]);
+  const panelId = useId();
+  const pemicu = useRef<HTMLButtonElement>(null);
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (buka) input.current?.focus({ preventScroll: true }); }, [buka]);
 
   useEffect(() => {
     if (!buka || cari.trim().length < 2) return;
@@ -157,22 +162,28 @@ export function PanelHubungan({
 
   return (
     <div className="rounded-lg border border-dashed border-slate-300 px-3.5 py-3">
-      {!buka ? (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="flex items-center gap-2 text-sm text-slate-600">
             <Link2 aria-hidden className="size-4 text-slate-400" />
             Dokumen ini mengubah atau mencabut peraturan lain?
           </p>
           <button
+            ref={pemicu}
             type="button"
-            onClick={() => setBuka(true)}
-            className="rounded-md px-2 py-1 text-[0.8125rem] font-semibold text-institusi-700 hover:bg-institusi-50"
+            aria-expanded={buka}
+            aria-controls={panelId}
+            data-open={buka}
+            onClick={() => { setBuka((value) => !value); setCari(''); setHasil([]); }}
+            className={styles.trigger}
           >
+            <Search aria-hidden className="size-3.5" />
             Pilih peraturan
+            <ChevronDown aria-hidden className={styles.chevron} size={15} />
           </button>
         </div>
-      ) : (
-        <div className="grid gap-2">
+      <div id={panelId} className={styles.reveal} data-open={buka} aria-hidden={!buka} inert={!buka}>
+        <div className={styles.inner}>
+        <div className="grid gap-2 pt-3">
           <label htmlFor="cari-hubungan" className="relative">
             <span className="sr-only">Cari peraturan yang diubah atau dicabut</span>
             <Search
@@ -181,7 +192,7 @@ export function PanelHubungan({
             />
             <input
               id="cari-hubungan"
-              autoFocus
+              ref={input}
               value={cari}
               onChange={(e) => setCari(e.target.value)}
               placeholder="Cari judul atau nomor peraturan yang sudah terbit"
@@ -194,6 +205,7 @@ export function PanelHubungan({
                 setBuka(false);
                 setCari('');
                 setHasil([]);
+                pemicu.current?.focus();
               }}
               className="absolute top-1/2 right-2 grid size-6 -translate-y-1/2 place-items-center rounded text-slate-400 hover:text-slate-700"
             >
@@ -243,7 +255,8 @@ export function PanelHubungan({
             </ul>
           )}
         </div>
-      )}
+        </div>
+      </div>
       {!pengguna?.peran.includes('SUPERADMIN') && <p className="mt-2 text-xs text-slate-500">Hanya dokumen dan versi terbit milik Anda sendiri yang dapat dipilih sebagai target.</p>}
     </div>
   );

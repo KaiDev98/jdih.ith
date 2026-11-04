@@ -25,6 +25,12 @@ function siapkan() {
   render(<DialogTambahAdmin buka onBukaChange={() => {}} onDibuat={() => {}} />);
 }
 
+async function bukaUnit() {
+  await waitFor(() => expect(screen.getByLabelText('Unit kerja')).toBeEnabled());
+  fireEvent.keyDown(screen.getByLabelText('Unit kerja'), { key: 'ArrowDown' });
+  return screen.findByRole('menuitemradio', { name: 'Bagian Hukum' });
+}
+
 function isiData() {
   fireEvent.change(screen.getByLabelText('Nama lengkap'), { target: { value: 'Admin Baru' } });
   fireEvent.change(screen.getByLabelText('Email'), {
@@ -38,25 +44,26 @@ function isiData() {
 describe('DialogTambahAdmin', () => {
   it('menawarkan unit kerja dari daftar unit SOP', async () => {
     siapkan();
-    expect(await screen.findByRole('option', { name: 'Bagian Hukum' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Komisi Etik' })).toBeInTheDocument();
+    expect(await bukaUnit()).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', { name: 'Komisi Etik' })).toBeInTheDocument();
     expect(ambilApi).toHaveBeenCalledWith('/public/units');
   });
 
   it('mewajibkan unit kerja sebelum akun dibuat', async () => {
     siapkan();
-    await screen.findByRole('option', { name: 'Bagian Hukum' });
+    await bukaUnit();
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
     isiData();
     fireEvent.click(screen.getByRole('button', { name: 'Buat akun Admin' }));
-    expect(await screen.findByText('Pilih unit kerja')).toBeInTheDocument();
+    expect((await screen.findAllByText('Pilih unit kerja')).length).toBeGreaterThan(0);
     expect(ambilApi).not.toHaveBeenCalledWith('/admin/users/admins', expect.anything());
   });
 
   it('mengirim unit kerja yang dipilih', async () => {
     siapkan();
-    await screen.findByRole('option', { name: 'Bagian Hukum' });
+    await bukaUnit();
     isiData();
-    fireEvent.change(screen.getByLabelText('Unit kerja'), { target: { value: '9014' } });
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Bagian Hukum' }));
     fireEvent.click(screen.getByRole('button', { name: 'Buat akun Admin' }));
     const confirm = await screen.findByRole('button', { name: 'Ya, buat Admin' });
     expect(screen.getByRole('dialog')).toHaveTextContent('Bagian Hukum');
@@ -76,9 +83,9 @@ describe('DialogTambahAdmin', () => {
 
   it('mempertahankan isian ketika kembali dari konfirmasi', async () => {
     siapkan();
-    await screen.findByRole('option', { name: 'Bagian Hukum' });
+    await bukaUnit();
     isiData();
-    fireEvent.change(screen.getByLabelText('Unit kerja'), { target: { value: '9014' } });
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Bagian Hukum' }));
     fireEvent.click(screen.getByRole('button', { name: 'Buat akun Admin' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Periksa kembali' }));
     expect(screen.getByLabelText('Nama lengkap')).toHaveValue('Admin Baru');
@@ -89,7 +96,7 @@ describe('DialogTambahAdmin', () => {
 
   it('menahan klik ganda selama pembuatan akun', async () => {
     siapkan();
-    await screen.findByRole('option', { name: 'Bagian Hukum' });
+    await bukaUnit();
     let selesai!: (value: { email: string }) => void;
     ambilApi.mockImplementation((path: string) =>
       path === '/public/units'
@@ -99,7 +106,7 @@ describe('DialogTambahAdmin', () => {
           }),
     );
     isiData();
-    fireEvent.change(screen.getByLabelText('Unit kerja'), { target: { value: '9014' } });
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Bagian Hukum' }));
     fireEvent.click(screen.getByRole('button', { name: 'Buat akun Admin' }));
     const confirm = await screen.findByRole('button', { name: 'Ya, buat Admin' });
     fireEvent.click(confirm);
@@ -113,14 +120,14 @@ describe('DialogTambahAdmin', () => {
 
   it('menampilkan kegagalan API agar formulir dapat diperbaiki', async () => {
     siapkan();
-    await screen.findByRole('option', { name: 'Bagian Hukum' });
+    await bukaUnit();
     ambilApi.mockImplementation((path: string) =>
       path === '/public/units'
         ? Promise.resolve(UNIT)
         : Promise.reject(new Error('Pembuatan gagal')),
     );
     isiData();
-    fireEvent.change(screen.getByLabelText('Unit kerja'), { target: { value: '9014' } });
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Bagian Hukum' }));
     fireEvent.click(screen.getByRole('button', { name: 'Buat akun Admin' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Ya, buat Admin' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Pembuatan gagal');

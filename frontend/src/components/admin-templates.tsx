@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { FileText, FileUp, Plus, UploadCloud, X } from 'lucide-react';
+import { FileText, FileUp, Plus, UploadCloud, X, Trash2 } from 'lucide-react';
 import Link from '@/components/admin/tautan-panel';
 import { ambilApi, GalatApi } from '@/lib/api-client';
 import { useSession, csrfHeaders } from '@/lib/sesi';
@@ -352,7 +352,7 @@ export function AdminTemplates() {
                       row.pendingVersionId &&
                       row.pendingStatus === 'APPROVED' && (
                         <ConfirmAction
-                          label="Terbitkan"
+                          label="Terbitkan" icon={UploadCloud}
                           ukuran="kecil"
                           title="Terbitkan format persuratan?"
                           description={`${row.nama} versi ${row.pendingNomorVersi} akan tersedia sesuai aksesnya dan menggantikan versi terbit sebelumnya.`}
@@ -360,7 +360,7 @@ export function AdminTemplates() {
                         />
                       )}
                     {bolehHapus(row) || !bolehUbah(row) ? <ConfirmAction
-                      label="Hapus"
+                      label="Hapus" icon={Trash2}
                       tone="danger"
                       ukuran="kecil"
                       title="Hapus format persuratan?"
@@ -481,6 +481,7 @@ export function AdminTemplates() {
               )}
               <ConfirmAction
                 label={selected ? 'Unggah versi' : 'Buat template'}
+                icon={UploadCloud}
                 title={
                   selected ? 'Unggah versi untuk disetujui?' : 'Unggah format untuk disetujui?'
                 }

@@ -59,7 +59,7 @@ describe('pengajuan dokumen pada panel', () => {
       ),
     );
     render(<AdminDocumentCreate mode="permohonan-sk" />);
-    await screen.findByRole('option', { name: 'SOP' });
+    await waitFor(() => expect(screen.getByLabelText('Jenis dokumen *')).toHaveTextContent('SOP'));
     expect(screen.getByRole('radio', { name: 'Publik' })).toBeChecked();
     fireEvent.click(screen.getByRole('radio', { name: 'Dosen/Staf' }));
     expect(screen.getByRole('radio', { name: 'Dosen/Staf' })).toBeChecked();
@@ -153,9 +153,11 @@ describe('pengajuan dokumen pada panel', () => {
       ),
     );
     render(<AdminDocumentCreate />);
-    expect(await screen.findByRole('option', { name: 'TIK' })).toBeEnabled();
-    expect(screen.getByRole('option', { name: 'Hukum (di luar hak akses)' })).toBeDisabled();
-    expect(screen.getByRole('option', { name: 'Unit lama (nonaktif)' })).toBeDisabled();
+    await waitFor(() => expect(state.api).toHaveBeenCalledWith('/admin/document-options/kategori'));
+    fireEvent.keyDown(screen.getByLabelText('Unit kerja / kategori *'), { key: 'ArrowDown' });
+    expect(await screen.findByRole('menuitemradio', { name: 'TIK' })).not.toHaveAttribute('data-disabled');
+    expect(screen.getByRole('menuitemradio', { name: 'Hukum (di luar hak akses)' })).toHaveAttribute('data-disabled');
+    expect(screen.getByRole('menuitemradio', { name: 'Unit lama (nonaktif)' })).toHaveAttribute('data-disabled');
   });
   for (const role of ['SUPERADMIN', 'ADMIN']) {
     it(`${role}: draf milik Superadmin hanya menampilkan persetujuan langsung untuk peran yang sesuai`, async () => {
@@ -303,7 +305,7 @@ describe('pengajuan dokumen pada panel', () => {
       ),
     );
     render(<AdminDocumentCreate mode="permohonan-sk" />);
-    await screen.findByRole('option', { name: 'SOP' });
+    await waitFor(() => expect(screen.getByLabelText('Jenis dokumen *')).toHaveTextContent('SOP'));
     expect(screen.getByRole('heading', { name: 'Unggah SOP Permohonan SK' })).toBeInTheDocument();
     expect(screen.getByText(/Ajukan draf untuk ditinjau Superadmin/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Buat draf' })).toBeInTheDocument();
@@ -339,7 +341,7 @@ describe('pengajuan dokumen pada panel', () => {
       Promise.resolve([{ id: '1', nama: 'SOP', kode: 'SOP', aktif: true }]),
     );
     render(<AdminDocumentCreate />);
-    await screen.findAllByRole('option', { name: 'SOP' });
+    await waitFor(() => expect(state.api).toHaveBeenCalledWith('/admin/document-options/jenis_dokumen'));
     fireEvent.click(screen.getByRole('button', { name: 'Buat draf' }));
     expect(screen.getByRole('alert')).toHaveTextContent('File dokumen utama');
     expect(screen.getByRole('alert')).toHaveTextContent('Deskripsi singkat');

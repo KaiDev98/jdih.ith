@@ -3,7 +3,8 @@
 import Link from '@/components/admin/tautan-panel';
 import { useCallback, useEffect, useState } from 'react';
 import type { KemampuanDokumenAdmin, Relasi, PilihanKategoriDokumen } from '@jdih/shared';
-import { ArrowLeft, FileText, Paperclip, Search } from 'lucide-react';
+import { ArrowLeft, Building2, FileText, Paperclip, Search, Link2, Save, Trash2, UploadCloud } from 'lucide-react';
+import { PemilihIsianPanel } from './admin/pemilih-isian-panel';
 import { ambilApi, ambilApiBerdaftar, GalatApi } from '@/lib/api-client';
 import { csrfHeaders, useSession } from '@/lib/sesi';
 import {
@@ -269,15 +270,16 @@ function BagianData({ versi, onTersimpan }: { versi: Versi; onTersimpan: () => v
           value={form.tanggalPenetapan}
           onChange={(e) => ubah('tanggalPenetapan', e.target.value)}
         />
-        <SelectField
+        <PemilihIsianPanel
           label="Unit kerja / kategori *"
           id="ubah-kategori"
           value={category}
-          onChange={(e) => setCategory(e.target.value)}
-        >
-          <option value="">Pilih kategori</option>
-          {categories.map((c) => <option key={c.id} value={c.id} disabled={c.bolehPilih === false || c.aktif === false}>{c.nama}{c.aktif === false ? ' (nonaktif)' : c.bolehPilih === false ? ' (di luar hak akses)' : ''}</option>)}
-        </SelectField>
+          onValueChange={setCategory}
+          ikon={Building2}
+          placeholder="Pilih kategori"
+          opsi={categories.map((c) => ({ value: c.id, disabled: c.bolehPilih === false || c.aktif === false,
+            label: c.nama + (c.aktif === false ? ' (nonaktif)' : c.bolehPilih === false ? ' (di luar hak akses)' : '') }))}
+        />
         {galatKategori && <p role="alert" className="text-sm text-red-700">{galatKategori}</p>}
         <SelectField
           className="sm:col-span-2"
@@ -292,7 +294,7 @@ function BagianData({ versi, onTersimpan }: { versi: Versi; onTersimpan: () => v
       </div>
       <div className="mt-5">
         <ConfirmAction
-          label="Simpan data"
+          label="Simpan data" icon={Save}
           title="Simpan perubahan data dokumen?"
           description="Perubahan hanya berlaku pada draf ini dan belum tampil di publik."
           disabled={!form.judul.trim()}
@@ -366,7 +368,7 @@ function BagianBerkas({ versionId, bolehUnggah }: { versionId: string; bolehUngg
       </span>
       {bolehUnggah && b.bolehHapus ? (
         <ConfirmAction
-          label="Hapus"
+          label="Hapus" icon={Trash2}
           tone="danger"
           title="Hapus berkas ini?"
           description={`${b.namaAsli} dihapus dari draf. Anda bisa mengunggah berkas lain setelahnya.`}
@@ -415,7 +417,7 @@ function BagianBerkas({ versionId, bolehUnggah }: { versionId: string; bolehUngg
             className={kelasInput}
           />
           <ConfirmAction
-            label="Unggah dokumen utama"
+            label="Unggah dokumen utama" icon={UploadCloud}
             title="Unggah dokumen utama?"
             description={`${utama?.name ?? ''} diunggah sebagai dokumen utama.`}
             disabled={!utama}
@@ -552,7 +554,7 @@ function BagianHubungan({
                 )}
               </span>
               <ConfirmAction
-                label="Hapus"
+                label="Hapus" icon={Trash2}
                 tone="danger"
                 title="Hapus hubungan ini?"
                 description="Hubungan dihapus dari draf ini."
@@ -664,7 +666,7 @@ function BagianHubungan({
             )}
             <div className="flex flex-wrap gap-2">
               <ConfirmAction
-                label="Tambahkan hubungan"
+                label="Tambahkan hubungan" icon={Link2}
                 title="Tambahkan hubungan ini?"
                 description={`Dokumen ini ${(LABEL_RELASI[jenis]?.teks ?? '').toLowerCase()} "${pilihan.judul}". ${LABEL_RELASI[jenis]?.akibat ?? ''}`}
                 onConfirm={tambah}

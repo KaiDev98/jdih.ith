@@ -1,0 +1,53 @@
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 7px 10px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #35577d;
+  outline: none;
+}
+.trigger:hover,
+.trigger[data-open='true'] {
+  background: #edf3fa;
+}
+.trigger:focus-visible {
+  box-shadow: 0 0 0 3px #527ba326;
+}
+.chevron {
+  color: #75889f;
+}
+.trigger[data-open='true'] .chevron {
+  transform: rotate(180deg);
+}
+.reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+.reveal[data-open='true'] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.inner {
+  min-height: 0;
+  overflow: hidden;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .reveal {
+    transition:
+      grid-template-rows 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 160ms ease;
+  }
+  .trigger {
+    transition:
+      background-color 160ms ease,
+      box-shadow 160ms ease;
+  }
+  .chevron {
+    transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
