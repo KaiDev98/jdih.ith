@@ -12,12 +12,18 @@ export function KembaliKeAtas() {
 
   useEffect(() => {
     let frame = 0;
+    const mobile =
+      typeof window.matchMedia === 'function' ? window.matchMedia('(max-width: 1023px)') : null;
     areaAktif.current = null;
     const perbarui = () => {
-      setTampil(window.scrollY > 320 || (areaAktif.current?.scrollTop ?? 0) > 160);
+      const layarMobile = mobile?.matches ?? window.innerWidth < 1024;
+      setTampil(layarMobile && (window.scrollY > 320 || (areaAktif.current?.scrollTop ?? 0) > 160));
     };
     const saatGulir = (event: Event) => {
-      if (event.target instanceof HTMLElement && event.target.hasAttribute('data-gulir-dokumen'))
+      if (
+        event.target instanceof HTMLElement &&
+        event.target.matches('[data-gulir-dokumen], [data-gulir-panel]')
+      )
         areaAktif.current = event.target;
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(perbarui);
@@ -25,10 +31,14 @@ export function KembaliKeAtas() {
     frame = requestAnimationFrame(perbarui);
     document.addEventListener('scroll', saatGulir, { capture: true, passive: true });
     window.addEventListener('scroll', saatGulir, { passive: true });
+    window.addEventListener('resize', perbarui, { passive: true });
+    mobile?.addEventListener?.('change', perbarui);
     return () => {
       cancelAnimationFrame(frame);
       document.removeEventListener('scroll', saatGulir, true);
       window.removeEventListener('scroll', saatGulir);
+      window.removeEventListener('resize', perbarui);
+      mobile?.removeEventListener?.('change', perbarui);
     };
   }, [pathname]);
 
@@ -36,7 +46,9 @@ export function KembaliKeAtas() {
     const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       ? 'instant'
       : 'smooth';
-    for (const area of document.querySelectorAll<HTMLElement>('[data-gulir-dokumen]'))
+    for (const area of document.querySelectorAll<HTMLElement>(
+      '[data-gulir-dokumen], [data-gulir-panel]',
+    ))
       area.scrollTo({ top: 0, behavior });
     window.scrollTo({ top: 0, behavior });
   }

@@ -5,7 +5,7 @@ vi.mock('next/navigation', () => ({ usePathname: () => '/produk-hukum' }));
 beforeEach(() => {
   vi.stubGlobal('scrollY', 0);
   vi.stubGlobal('scrollTo', vi.fn());
-  vi.stubGlobal('matchMedia', () => ({ matches: false }));
+  vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('max-width') }));
 });
 afterEach(() => {
   cleanup();
@@ -39,5 +39,32 @@ describe('kembali ke atas', () => {
     render(<KembaliKeAtas />);
     fireEvent.click(await screen.findByRole('button', { name: 'Kembali ke atas' }));
     expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' });
+  });
+  it('tidak tampil pada desktop meskipun halaman sudah jauh digulir', () => {
+    vi.stubGlobal('scrollY', 800);
+    vi.stubGlobal('matchMedia', () => ({ matches: false }));
+    render(<KembaliKeAtas />);
+    fireEvent.scroll(window);
+    expect(screen.queryByRole('button', { name: 'Kembali ke atas' })).not.toBeInTheDocument();
+  });
+  it('menggulir area panel pada ponsel dan menyembunyikan tombol setelah kembali ke atas', async () => {
+    const area = document.createElement('main');
+    area.dataset.gulirPanel = '';
+    area.scrollTop = 500;
+    area.scrollTo = vi.fn();
+    document.body.append(area);
+    try {
+      render(<KembaliKeAtas />);
+      fireEvent.scroll(area);
+      fireEvent.click(await screen.findByRole('button', { name: 'Kembali ke atas' }));
+      expect(area.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
+      area.scrollTop = 0;
+      fireEvent.scroll(area);
+      await vi.waitFor(() =>
+        expect(screen.queryByRole('button', { name: 'Kembali ke atas' })).not.toBeInTheDocument(),
+      );
+    } finally {
+      area.remove();
+    }
   });
 });

@@ -1,6 +1,14 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
 **Dokumen ini adalah konteks lengkap yang harus dipahami Codex sebelum mengerjakan project.**  
+Revisi tombol kembali ke atas 2026-11-04: hanya tampil pada viewport di bawah
+1024px, pada portal dan panel Admin/Superadmin. Muncul setelah halaman/daftar
+digulir; mengembalikan halaman dan area daftar/panel dengan halus, mengikuti
+reduced motion serta perubahan ukuran layar. Desktop tetap tanpa tombol ini.
+Pembersihan DEMO-A lokal adalah tindakan satu kali atas instruksi user, bukan
+migrasi: kategori id 64 dan jenis dokumen id 8 dihapus dengan audit, tanpa
+referensi dokumen. Unit nonaktif id 9001 dipertahankan karena terkait dua akun.
+
 Revisi TERBARU pratinjau dan baca antrean 2026-11-04: semua Admin dapat membaca
 antrean SOP dan Format Persuratan lintas pengunggah. Bukan pemberian hak ubah.
 Daftar pengelolaan format/SOP tetap milik sendiri. Tinjauan format lintas pemilik

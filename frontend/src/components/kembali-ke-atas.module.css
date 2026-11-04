@@ -29,6 +29,11 @@
   outline: 3px solid #94bdd9;
   outline-offset: 4px;
 }
+@media (min-width: 1024px) {
+  .button {
+    display: none;
+  }
+}
 @media (prefers-reduced-motion: no-preference) {
   .button {
     transition:
