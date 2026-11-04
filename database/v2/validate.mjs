@@ -23,7 +23,7 @@ const expected = [
   'sesi_pengguna','password_reset_tokens','password_reset_emails','jenis_dokumen','kategori','tag','dokumen','dokumen_versi',
   'dokumen_versi_kategori','dokumen_versi_tag','dokumen_berkas','dokumen_relasi',
   'dokumen_akses_rahasia','dokumen_workflow','notifikasi_dihapus','dokumen_status_hukum_riwayat',
-  'template_surat','template_surat_versi','kontak_kantor_butir','kunjungan_harian','dokumen_statistik','audit_log'
+  'template_surat','template_surat_versi','kontak_kantor_butir','kunjungan_harian','dokumen_statistik','audit_log','permintaan_penghapusan'
 ].sort();
 const fks = [...schema.matchAll(/CONSTRAINT (\w+) FOREIGN KEY/g)].map(m => m[1]).sort();
 const checks = [...schema.matchAll(/CONSTRAINT (\w+) CHECK/g)].map(m => m[1]).sort();

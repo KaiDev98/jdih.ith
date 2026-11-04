@@ -25,6 +25,9 @@ import { SearchService } from './search/search.service.js';
 import { HomeRepository } from './search/home.repository.js';
 import { KunjunganService } from './kunjungan/kunjungan.service.js';
 import { LetterTemplatesService } from './templates/letter-templates.service.js';
+import { DokumenAdminService } from './documents/dokumen-admin.service.js';
+import { RemovalRequestsService } from './documents/removal-requests.service.js';
+import { RemovalRequestsRepository } from './documents/removal-requests.repository.js';
 
 const enabled = Boolean(process.env.IDENTITY_TEST_ENV);
 function minimalDocx() {
@@ -263,6 +266,133 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     const [rows] = await pool.query<RowDataPacket[]>('SELECT slug FROM dokumen WHERE id=?', [id]);
     return String(rows[0]!.slug);
   }
+
+  function removalServices() {
+    const repository = new CoreBackendRepository(pool);
+    const documents = new DokumenAdminService(repository, audit, storage);
+    const requests = new RemovalRequestsService(repository, new RemovalRequestsRepository(repository), audit, documents, service, templates);
+    return { documents, requests };
+  }
+  const adminOwner = () => ({ ...actor, peran: ['ADMIN'] } as PenggunaAktif);
+
+  it('deletes only an owned draft revision, preserving the published file, pointer and access', async () => {
+    const { documents } = removalServices();
+    const d = await publishedDoc();
+    const revision = await service.newVersion(actor, d.id, ready('Draf revisi yang dibatalkan'));
+    await addFileMetadata(revision.id, 'UTAMA');
+    await expect(documents.hapusDraf({ ...second, peran: ['ADMIN'] }, d.id, revision.id)).rejects.toMatchObject({ status: 404 });
+    await expect(documents.hapusDraf(adminOwner(), d.id, d.versionId)).rejects.toMatchObject({ status: 409 });
+    await documents.hapusDraf(adminOwner(), d.id, revision.id);
+    const detail = await service.document(actor, d.id);
+    expect(detail.document.currentPublishedVersionId).toBe(d.versionId);
+    await expect(service.document(actor, d.id, revision.id)).rejects.toMatchObject({ status: 404 });
+    const foreignVersion = await service.newVersion(second, d.id, ready('Revisi Superadmin lain'));
+    await expect(documents.hapusDraf(adminOwner(), d.id, foreignVersion.id)).rejects.toMatchObject({ status: 404 });
+    await documents.hapusDraf(actor, d.id, foreignVersion.id);
+    await expect(service.publicDetail(await documentSlug(d.id))).resolves.toBeTruthy();
+    const onlyDraft = await doc();
+    await documents.hapusDraf(actor, onlyDraft.id, onlyDraft.versionId);
+    await expect(service.document(actor, onlyDraft.id)).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('rolls back draft cancellation when audit fails and rejects submitted drafts', async () => {
+    const { documents } = removalServices();
+    const d = await doc();
+    await addFileMetadata(d.versionId, 'UTAMA');
+    const fail = vi.spyOn(audit, 'recordDomain').mockRejectedValueOnce(new Error('audit unavailable'));
+    await expect(documents.hapusDraf(adminOwner(), d.id, d.versionId)).rejects.toThrow('audit unavailable');
+    fail.mockRestore();
+    expect((await files.listForVersion(actor, d.versionId)).length).toBe(1);
+    await service.transition(second, d.versionId, 'SUBMIT');
+    await expect(documents.hapusDraf(actor, d.id, d.versionId)).rejects.toMatchObject({ status: 409 });
+  });
+
+  it('persists owner-only removal requests, prevents duplicate requests and reserves decisions to Superadmin', async () => {
+    const { requests } = removalServices();
+    const d = await publishedDoc();
+    await expect(requests.create({ ...second, peran: ['ADMIN'] }, 'DOCUMENT', d.id, { jenis: 'DELETE', alasan: 'Bukan milik saya' })).rejects.toMatchObject({ status: 404 });
+    const inputs = { jenis: 'WITHDRAW', alasan: 'Perlu koreksi resmi' };
+    for (const invalid of [{ ...adminOwner(), status: 'NONAKTIF' as const }, { ...adminOwner(), izin: ['documents.read_admin'] as const }, { ...actor, peran: ['DOSEN_STAF'] as const }])
+      await expect(requests.create(invalid as PenggunaAktif, 'DOCUMENT', d.id, inputs)).rejects.toBeInstanceOf(ForbiddenException);
+    const raced = await Promise.allSettled([requests.create(adminOwner(), 'DOCUMENT', d.id, inputs), requests.create(adminOwner(), 'DOCUMENT', d.id, inputs)]);
+    expect(raced.map((item) => item.status).sort()).toEqual(['fulfilled', 'rejected']);
+    const own = await requests.list(adminOwner(), { sumber: 'DOCUMENT', resourceId: d.id });
+    expect(own.data).toHaveLength(1);
+    const request = own.data[0]!;
+    expect((await requests.list({ ...second, peran: ['ADMIN'] }, { sumber: 'DOCUMENT', resourceId: d.id })).data).toHaveLength(0);
+    await expect(requests.decide(adminOwner(), request.id, { keputusan: 'APPROVE', catatan: 'Saya punya izin langsung' })).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.publicDetail(await documentSlug(d.id))).resolves.toBeTruthy();
+    const decisions = await Promise.allSettled([
+      requests.decide(second, request.id, { keputusan: 'APPROVE', catatan: 'Tarik untuk koreksi' }),
+      requests.decide(second, request.id, { keputusan: 'APPROVE', catatan: 'Klik ulang' }),
+    ]);
+    expect(decisions.map((item) => item.status).sort()).toEqual(['fulfilled', 'rejected']);
+    const detail = await service.document(actor, d.id);
+    expect(detail.document.currentPublishedVersionId).toBeNull();
+    expect(detail.document.statusWorkflow).toBe('DITARIK');
+    const saved = (await requests.list(adminOwner(), { sumber: 'DOCUMENT', resourceId: d.id, status: 'ALL' })).data[0]!;
+    expect(saved.status).toBe('APPROVED');
+    expect(['Tarik untuk koreksi', 'Klik ulang']).toContain(saved.catatan);
+  });
+
+  it('deletes approved requests atomically, preserves request history and rolls back when decision audit fails', async () => {
+    const { requests } = removalServices();
+    const d = await publishedDoc();
+    const request = await requests.create(adminOwner(), 'DOCUMENT', d.id, { jenis: 'DELETE', alasan: 'Unggahan keliru' });
+    const original = audit.recordDomain.bind(audit);
+    const fail = vi.spyOn(audit, 'recordDomain').mockImplementation((event, db) => {
+      if (event.action === 'REMOVAL_APPROVED') throw new Error('decision audit unavailable');
+      return original(event, db);
+    });
+    await expect(requests.decide(second, request.id, { keputusan: 'APPROVE', catatan: 'Hapus sesuai permintaan' })).rejects.toThrow('decision audit unavailable');
+    fail.mockRestore();
+    expect((await files.listForVersion(actor, d.versionId)).length).toBe(1);
+    expect((await requests.list(adminOwner(), { sumber: 'DOCUMENT', resourceId: d.id })).data).toHaveLength(1);
+    await requests.decide(second, request.id, { keputusan: 'APPROVE', catatan: 'Hapus sesuai permintaan' });
+    await expect(service.document(actor, d.id)).rejects.toMatchObject({ status: 404 });
+    expect((await requests.list(adminOwner(), { sumber: 'DOCUMENT', resourceId: d.id, status: 'ALL' })).data[0]).toMatchObject({ status: 'APPROVED', resourceId: d.id });
+  });
+
+  it('rejects stale publication requests without withdrawing a newer version, and allows a reasoned refusal', async () => {
+    const { requests } = removalServices();
+    const d = await publishedDoc();
+    const request = await requests.create(adminOwner(), 'DOCUMENT', d.id, { jenis: 'WITHDRAW', alasan: 'Tarik versi lama' });
+    const newer = await service.newVersion(actor, d.id, ready('Versi baru setelah permintaan'));
+    await addFileMetadata(newer.id, 'UTAMA'); await approve(newer.id); await publish(newer.id);
+    await expect(requests.decide(second, request.id, { keputusan: 'APPROVE', catatan: 'Versi berubah' })).rejects.toMatchObject({ status: 409 });
+    expect((await service.document(actor, d.id)).document.currentPublishedVersionId).toBe(newer.id);
+    await requests.decide(second, request.id, { keputusan: 'DECLINE', catatan: 'Ajukan ulang untuk versi baru' });
+    expect((await requests.list(adminOwner(), { sumber: 'DOCUMENT', resourceId: d.id, status: 'ALL' })).data[0]).toMatchObject({ status: 'DECLINED', catatan: 'Ajukan ulang untuk versi baru' });
+  });
+
+  it('keeps template management owner-scoped and handles published-template withdrawal requests', async () => {
+    const { requests } = removalServices();
+    const suffix = uid();
+    const template = await templates.create(actor, await incomingFile('request.docx', minimalDocx()), { nama: `Format ${suffix}`, slug: `request-${suffix}`, tingkatAkses: 'PUBLIK' });
+    await templates.verify(second, template.id, template.versionId, {});
+    await templates.publish(second, template.id, template.versionId, {});
+    await expect(requests.create({ ...second, peran: ['ADMIN'] }, 'TEMPLATE', template.id, { jenis: 'DELETE', alasan: 'Tidak punya' })).rejects.toMatchObject({ status: 404 });
+    const request = await requests.create(adminOwner(), 'TEMPLATE', template.id, { jenis: 'WITHDRAW', alasan: 'Perbarui isi format' });
+    await requests.decide(second, request.id, { keputusan: 'APPROVE', catatan: 'Tarik untuk diperbarui' });
+    expect((await templates.list({ q: suffix })).data).toHaveLength(0);
+    const [versions] = await pool.query<RowDataPacket[]>('SELECT status FROM template_surat_versi WHERE id=?', [template.versionId]);
+    expect(versions[0]!.status).toBe('ARCHIVED');
+    await expect(templates.remove(adminOwner(), template.id, {})).rejects.toMatchObject({ status: 409 });
+    expect((await templates.adminList({ ...second, peran: ['ADMIN'] })).some((row) => row.id === template.id)).toBe(false);
+    const deletion = await requests.create(adminOwner(), 'TEMPLATE', template.id, { jenis: 'DELETE', alasan: 'Format lama tidak diperlukan' });
+    await requests.decide(second, deletion.id, { keputusan: 'APPROVE', catatan: 'Hapus format yang sudah ditarik' });
+    await expect(templates.review(actor, template.id, template.versionId)).rejects.toMatchObject({ status: 404 });
+    expect((await requests.list(adminOwner(), { sumber: 'TEMPLATE', resourceId: template.id, status: 'ALL' })).data).toHaveLength(2);
+  });
+
+  it('closes pending requests when Superadmin directly removes their target', async () => {
+    const { requests, documents } = removalServices();
+    const d = await publishedDoc();
+    const request = await requests.create(adminOwner(), 'DOCUMENT', d.id, { jenis: 'DELETE', alasan: 'Tidak diperlukan' });
+    await documents.hapusPermanen(second, d.id);
+    await expect(requests.decide(second, request.id, { keputusan: 'APPROVE', catatan: 'Klik terlambat' })).rejects.toMatchObject({ status: 409 });
+    expect((await requests.list(adminOwner(), { sumber: 'DOCUMENT', resourceId: d.id, status: 'ALL' })).data[0]).toMatchObject({ status: 'OBSOLETE' });
+  });
 
   it('serves authorized admin document and verifier lists, active DOSEN_STAF lookup, redacted audit, and public masters', async () => {
     const d = await doc();

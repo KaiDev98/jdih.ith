@@ -31,6 +31,7 @@ import {
   ukuranBerkas,
 } from '@/lib/label-dokumen';
 import { AdminHapusDokumen } from '@/components/admin-hapus-dokumen';
+import { AntreanPermintaanPenghapusan, FormPermintaanPenghapusan } from './admin-removal-requests';
 import { TandaPermohonanSk } from '@/components/admin-daftar-dokumen';
 import { cn } from '@/lib/cn';
 import { AdminBerkasReview } from '@/components/admin-berkas-review';
@@ -473,6 +474,15 @@ function DetailDokumen({
                 onConfirm={() => post(`/admin/documents/versions/${document.versionId}/submit`, {})}
               />
             )}
+            {bisaDiubah && document.bolehUbah && izin.includes('documents.edit') && (
+              <ConfirmAction label="Hapus draf" tone="danger" title="Hapus draf ini?"
+                description={`Draf versi ${document.nomorVersi} dan berkasnya akan dihapus. Versi lain, termasuk yang sedang terbit, tetap tersedia.`}
+                confirmLabel="Ya, hapus draf" onConfirm={async () => {
+                  await ambilApi(`/admin/documents/${id}/drafts/${document.versionId}`, { method: 'DELETE', headers: csrfHeaders(csrfToken) });
+                  window.dispatchEvent(new Event('jdih:workflow'));
+                  router.replace('/admin/dokumen/pengajuan');
+                }} />
+            )}
             {(tahap === 'DIAJUKAN' || setujuiLangsung) && (
               <ConfirmAction
                 label="Setujui"
@@ -525,7 +535,7 @@ function DetailDokumen({
                 onConfirm={buatRevisi}
               />
             )}
-            {document.currentPublishedVersionId && (
+            {superadmin && document.currentPublishedVersionId && (
               <ConfirmAction
                 disabled={!superadmin || !izin.includes('workflow.withdraw')}
                 tone="danger"
@@ -546,6 +556,10 @@ function DetailDokumen({
               </ConfirmAction>
             )}
           </div>
+          {!superadmin && document.bolehRevisi && !bisaDiubah && izin.includes('documents.edit') && (
+            <div className="mt-4 border-t border-sekat pt-4"><p className="mb-2 text-xs text-slate-500">Penarikan atau penghapusan memerlukan keputusan Superadmin.</p>
+              <FormPermintaanPenghapusan sumber="DOCUMENT" resourceId={id} judul={document.judul} bisaTarik={!!document.currentPublishedVersionId} /></div>
+          )}
           {bisaDiubah && kekurangan.length > 0 && (
             <div role="status" className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
               <p className="font-semibold">
@@ -755,9 +769,13 @@ function DetailDokumen({
                   })}
               </ul>
             </Card>
-            <AdminHapusDokumen id={id} judul={document.judul} />
+            {superadmin && <AdminHapusDokumen id={id} judul={document.judul} />}
           </aside>
         </div>
+        {(superadmin || document.bolehRevisi) && <AntreanPermintaanPenghapusan sumber="DOCUMENT" resourceId={id} onProcessed={(row, keputusan) => {
+          if (keputusan === 'APPROVE' && row.jenis === 'DELETE') router.replace('/admin/dokumen');
+          else setRefresh((n) => n + 1);
+        }} />}
       </div>
     </div>
   );

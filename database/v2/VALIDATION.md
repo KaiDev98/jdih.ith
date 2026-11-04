@@ -1,5 +1,14 @@
 # Hasil Final Runtime Validation Phase 1 — 2026-10-04
 
+Revisi permintaan 2026-11-04: schema fresh/seed berhasil diimpor pada MySQL 8.4
+terisolasi (3309), 30 tabel. Validator statis: 51 FK, 35 CHECK, 26 UNIQUE sekunder,
+87 indeks sekunder. Patch-024 diuji dua kali pada DB uji dan DB lokal aplikasi
+(3308), tanpa perubahan jumlah dokumen/versi/format/akun. Uji integrasi mencakup
+hapus draf tanpa menyentuh publikasi, batas pemilik, keputusan khusus Superadmin,
+permintaan/keputusan bersamaan, rollback audit, versi stale, format pernah terbit,
+serta penutupan permintaan oleh tindakan langsung. Data unggahan aplikasi tidak
+dihapus untuk pengujian; kasus penghapusan memakai DB/storage uji tersendiri.
+
 Revisi 2026-11-04: schema template menambah APPROVED, verified_by/approved_at dan
 FK verifikator. Validator statis lulus: 29 tabel, 49 FK, 33 CHECK. Patch-022 dan
 patch-023 diuji berulang pada DB uji terisolasi. Integrasi approval/publish,

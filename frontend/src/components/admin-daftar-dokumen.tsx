@@ -20,6 +20,7 @@ import { useSession } from '@/lib/sesi';
 import { tautanDetailDokumen, type KonteksDokumen } from '@/lib/panel';
 import { cn } from '@/lib/cn';
 import { AdminTemplateVerificationQueue } from './admin-template-verification-queue';
+import { AntreanPermintaanPenghapusan } from './admin-removal-requests';
 import {
   kodeTahapTampil,
   LABEL_STATUS_HUKUM,
@@ -401,6 +402,7 @@ export function DaftarDokumenAdmin({
         }
       />
       {verificationOnly && <AdminTemplateVerificationQueue />}
+      {verificationOnly && <AntreanPermintaanPenghapusan />}
       <Card className={cn('overflow-hidden p-0 sm:p-0', semuaDokumen && 'koleksi-dokumen-panel')}>
         <div className="grid gap-3 border-b border-sekat p-4">
           <div className="flex flex-wrap items-center gap-3">

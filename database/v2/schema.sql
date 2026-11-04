@@ -534,3 +534,34 @@ CREATE TABLE password_reset_emails (
   KEY idx_password_reset_queue (sent_at,cancelled_at,next_attempt_at),
   CONSTRAINT fk_password_reset_email_token FOREIGN KEY (token_id) REFERENCES password_reset_tokens (id) ON DELETE CASCADE ON UPDATE RESTRICT
 ) ENGINE=InnoDB;
+
+-- Permintaan penarikan/penghapusan: snapshot resource tetap ada setelah penghapusan.
+-- resource_id dan version_id sengaja tanpa FK, seperti entity_id pada audit_log.
+CREATE TABLE permintaan_penghapusan (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  sumber ENUM('DOCUMENT','TEMPLATE') NOT NULL,
+  resource_id BIGINT UNSIGNED NOT NULL,
+  version_id BIGINT UNSIGNED NULL,
+  judul VARCHAR(500) NOT NULL,
+  jenis ENUM('WITHDRAW','DELETE') NOT NULL,
+  alasan VARCHAR(1000) NOT NULL,
+  status ENUM('PENDING','APPROVED','DECLINED','OBSOLETE') NOT NULL DEFAULT 'PENDING',
+  requested_by BIGINT UNSIGNED NOT NULL,
+  decided_by BIGINT UNSIGNED NULL,
+  catatan VARCHAR(1000) NULL,
+  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  decided_at DATETIME(6) NULL,
+  pending_resource BIGINT UNSIGNED GENERATED ALWAYS AS (CASE WHEN status='PENDING' THEN resource_id ELSE NULL END) STORED,
+  UNIQUE KEY uq_permintaan_pending (sumber,pending_resource),
+  KEY idx_permintaan_inbox (status,id),
+  KEY idx_permintaan_owner (requested_by,status,id),
+  KEY idx_permintaan_resource (sumber,resource_id,id),
+  KEY idx_permintaan_decider (decided_by),
+  CONSTRAINT fk_permintaan_owner FOREIGN KEY (requested_by) REFERENCES pengguna (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_permintaan_decider FOREIGN KEY (decided_by) REFERENCES pengguna (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT ck_permintaan_reason CHECK (CHAR_LENGTH(TRIM(alasan))>0),
+  CONSTRAINT ck_permintaan_decision CHECK (
+    (status='PENDING' AND decided_by IS NULL AND decided_at IS NULL AND catatan IS NULL) OR
+    (status<>'PENDING' AND decided_by IS NOT NULL AND decided_at IS NOT NULL AND catatan IS NOT NULL AND CHAR_LENGTH(TRIM(catatan))>0)
+  )
+) ENGINE=InnoDB;

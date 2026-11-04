@@ -44,6 +44,7 @@ afterEach(() => {
 });
 
 function setupDetail() {
+  state.daftar.mockResolvedValue({ data: [], meta: { totalButir: 0, totalHalaman: 0 } });
   state.api.mockImplementation((url: string) =>
     Promise.resolve(
       url.endsWith('/files')
@@ -108,9 +109,11 @@ describe('Admin membaca dokumen tanpa tindakan Superadmin; SOP khusus Superadmin
       if (own) {
         expect(edit).toHaveAttribute('href', '/admin/dokumen/5/ubah');
         expect(screen.getByRole('button', { name: 'Ajukan untuk diverifikasi' })).toBeEnabled();
+        expect(screen.getByRole('button', { name: 'Hapus draf' })).toBeEnabled();
       } else {
         expect(edit).not.toHaveAttribute('href');
         expect(screen.getByRole('button', { name: 'Ajukan untuk diverifikasi' })).toBeDisabled();
+        expect(screen.queryByRole('button', { name: 'Hapus draf' })).not.toBeInTheDocument();
       }
     });
   it('Admin membuka SOP Permohonan SK dan dapat mengunggah tanpa kewenangan lepas', async () => {

@@ -9,6 +9,8 @@ import { acak, csrfToken } from './security.js';
 import { GoogleService } from './google.service.js';
 import { AuditService } from './audit.service.js';
 import { LetterTemplatesService } from '../core-backend/templates/letter-templates.service.js';
+import { RemovalRequestsService } from '../core-backend/documents/removal-requests.service.js';
+import { DokumenAdminService } from '../core-backend/documents/dokumen-admin.service.js';
 import { Readable } from 'node:stream';
 
 @Controller('contract-probe')
@@ -44,6 +46,8 @@ describe('AppModule HTTP security wiring (no database/network provider)', () => 
     registerWithPassword: vi.fn().mockResolvedValue({ token, expires: new Date(Date.now() + 3600000), result: { id: '9', status: 'MENUNGGU_VERIFIKASI', peran: ['DOSEN_STAF'] } }),
   };
   const templates = { remove: vi.fn().mockResolvedValue({ id: '5', deleted: true }), review: vi.fn() };
+  const removals = { create: vi.fn().mockResolvedValue({ id: '8', status: 'PENDING' }) };
+  const drafts = { hapusDraf: vi.fn().mockResolvedValue({ id: '5', versionId: '50', dihapus: true }) };
   beforeAll(async () => {
     Object.assign(process.env, {
       NODE_ENV: 'test',
@@ -80,6 +84,10 @@ describe('AppModule HTTP security wiring (no database/network provider)', () => 
       .useValue({ record: vi.fn() })
       .overrideProvider(LetterTemplatesService)
       .useValue(templates)
+      .overrideProvider(RemovalRequestsService)
+      .useValue(removals)
+      .overrideProvider(DokumenAdminService)
+      .useValue(drafts)
       .compile();
     app = module.createNestApplication({ logger: false });
     app.use(cookieParser());
@@ -203,6 +211,25 @@ describe('AppModule HTTP security wiring (no database/network provider)', () => 
       expect((await fetch(path, { method: 'DELETE', headers: valid })).status).toBe(200);
       expect(templates.remove).toHaveBeenLastCalledWith(actor, '5', undefined);
     }
+  });
+  it('draft cancellation and removal requests are default-closed, permission-checked and CSRF-protected', async () => {
+    const actor = { ...user, peran: ['ADMIN'], izin: ['documents.read_admin', 'documents.edit'] };
+    const headers = { cookie: 'jdih_session=' + token, origin: 'http://localhost:3000', 'content-type': 'application/json' };
+    for (const [path, method, body] of [
+      ['/admin/documents/5/drafts/50', 'DELETE', undefined],
+      ['/admin/documents/5/removal-requests', 'POST', JSON.stringify({ jenis: 'DELETE', alasan: 'Unggahan keliru' })],
+    ] as const) {
+      auth();
+      expect((await fetch(base + '/api/v1' + path, { method, body })).status).toBe(403);
+      expect((await fetch(base + '/api/v1' + path, { method, headers: { ...headers, 'x-csrf-token': csrfToken(token, key) }, body })).status).toBe(403);
+      identity.authenticate.mockResolvedValue({ user: actor });
+      expect((await fetch(base + '/api/v1' + path, { method, headers, body })).status).toBe(403);
+      expect((await fetch(base + '/api/v1' + path, { method, headers: { ...headers, origin: 'https://evil.test', 'x-csrf-token': csrfToken(token, key) }, body })).status).toBe(403);
+      const response = await fetch(base + '/api/v1' + path, { method, headers: { ...headers, 'x-csrf-token': csrfToken(token, key) }, body });
+      expect(response.status).toBe(method === 'POST' ? 201 : 200);
+    }
+    expect(drafts.hapusDraf).toHaveBeenCalledWith(actor, '5', '50');
+    expect(removals.create).toHaveBeenCalledWith(actor, 'DOCUMENT', '5', { jenis: 'DELETE', alasan: 'Unggahan keliru' });
   });
   it('pratinjau antrean memakai rute terproteksi dengan respons PDF inline dan cache privat', async () => {
     const pdf = Buffer.from('%PDF-1.7\nPreview transport\n%%EOF');

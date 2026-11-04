@@ -1,5 +1,29 @@
 # CODEX IMPLEMENTATION PLAN — JDIH ITH V2
 
+Revisi TERBARU 2026-11-04: Admin pemilik dan Superadmin dapat menghapus versi
+DRAF/REVISI yang dibatalkan. Hanya versi tersebut beserta file/relasi/term/workflow
+miliknya yang dibersihkan; audit DELETE_DRAFT disimpan. Versi terbit dan pointer
+publik tetap utuh. Jika tidak tersisa versi, induk ditandai deleted_at. DIAJUKAN,
+DISETUJUI, TERBIT dan DITARIK tidak dapat dihapus lewat endpoint hapus draf.
+Admin hanya melihat unggahan sendiri pada pengelolaan Format Persuratan;
+antrean persetujuan format tetap dapat dibaca lintas pemilik tanpa hak ubah.
+Admin pemilik dapat meminta WITHDRAW/DELETE untuk dokumen hukum/SOP/format.
+Permintaan disimpan pada permintaan_penghapusan (patch-024), satu PENDING per
+sumber+resource. Hanya Superadmin aktif dengan izin tindakan terkait memutuskan,
+dengan catatan wajib. APPROVE langsung menjalankan tindakan dan audit keputusan
+dalam satu transaksi; DECLINE mempertahankan dokumen dan menyimpan alasan.
+Status permintaan terpisah dari status workflow versi. Snapshot resource/version
+serta alasan tetap tersimpan setelah dokumen dihapus. Persetujuan memeriksa ulang
+versi yang diminta; permintaan versi lama tidak dapat menarik/menghapus versi baru.
+Penarikan tidak memulihkan versi superseded atau membalik status hukum dokumen
+lain. Dokumen hukum memakai penghapusan permanen yang sudah tersedia; format
+memakai deleted_at tanpa mengarsipkan versi sebagai pengganti penghapusan.
+Format yang pernah terbit tetap memerlukan Superadmin untuk dihapus meskipun
+sudah ditarik. Antrean Verifikasi memuat inbox Superadmin dan riwayat milik Admin,
+dengan polling/fokus, pagination, konfirmasi, CSRF serta feedback. Tindakan langsung
+Superadmin menandai permintaan PENDING terkait sebagai OBSOLETE.
+Jalankan patch-024 setelah patch-023 sebelum backend terbaru; tidak reset data.
+
 This file tells Codex how to move from the current foundation to the agreed V2 without losing design intent.
 
 ## Pratinjau dan baca antrean lintas pemilik - 2026-11-04 (terbaru)

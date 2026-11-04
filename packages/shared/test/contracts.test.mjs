@@ -4,6 +4,14 @@ import { readFileSync } from 'node:fs';
 import * as c from '../dist/index.js';
 const ok = (schema, value) => assert.equal(schema.safeParse(value).success, true);
 const bad = (schema, value) => assert.equal(schema.safeParse(value).success, false);
+test('removal requests cannot set owners or decisions and require bounded reasons', () => {
+  ok(c.skemaPermintaanPenghapusan, { jenis: 'WITHDRAW', alasan: 'Koreksi dokumen' });
+  for (const value of [{ jenis: 'DELETE', alasan: ' ' }, { jenis: 'DELETE', alasan: 'a'.repeat(1001) }, { jenis: 'DELETE', alasan: 'Koreksi', requestedBy: '7' }, { jenis: 'DELETE', alasan: 'Koreksi', status: 'APPROVED' }]) bad(c.skemaPermintaanPenghapusan, value);
+  ok(c.skemaKeputusanPenghapusan, { keputusan: 'DECLINE', catatan: 'Dokumen tetap diperlukan' });
+  bad(c.skemaKeputusanPenghapusan, { keputusan: 'APPROVE', catatan: '' });
+  bad(c.skemaKeputusanPenghapusan, { keputusan: 'APPROVE', catatan: 'OK', jenis: 'DELETE' });
+  bad(c.skemaDaftarPermintaanPenghapusan, { requestedBy: '1' });
+});
 test('email registration accepts all providers but cannot assign role or approval', () => {
   const value = { nama: 'Dosen Kampus', email: ' Dosen@Gmail.com ', password: 'PasswordKuat123', konfirmasiPassword: 'PasswordKuat123', unitManual: 'Unit lain' };
   ok(c.skemaDaftarEmail, value);

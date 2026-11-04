@@ -21,6 +21,7 @@ import {
 } from '@/components/ui';
 import styles from './admin-templates.module.css';
 import { PratinjauFormat } from './pratinjau-format';
+import { AntreanPermintaanPenghapusan, FormPermintaanPenghapusan } from './admin-removal-requests';
 
 type Template = {
   id: string;
@@ -38,6 +39,7 @@ type Template = {
   pendingTingkatAkses: 'PUBLIK' | 'INTERNAL' | null;
   mimeType?: string | null;
   pendingMimeType?: string | null;
+  pernahTerbit?: boolean | number;
 };
 
 export function AdminTemplates() {
@@ -55,7 +57,7 @@ export function AdminTemplates() {
   const bolehGanti = (row: Template) =>
     bolehUbah(row) && (bolehVerifikasi || row.pendingStatus !== 'APPROVED');
   const bolehHapus = (row: Template) =>
-    bolehUbah(row) && (bolehVerifikasi || (!row.aktif && row.pendingStatus !== 'APPROVED'));
+    bolehUbah(row) && (bolehVerifikasi || (!row.aktif && !row.pernahTerbit && row.pendingStatus !== 'APPROVED'));
   const [rows, setRows] = useState<Template[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState('');
@@ -73,6 +75,14 @@ export function AdminTemplates() {
   const [file, setFile] = useState<File>();
   const [fileKey, setFileKey] = useState(0);
   const editor = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const muat = () => { if (document.visibilityState === 'visible') setRefresh((n) => n + 1); };
+    const timer = window.setInterval(muat, 30_000);
+    window.addEventListener('focus', muat);
+    window.addEventListener('jdih:workflow', muat);
+    return () => { window.clearInterval(timer); window.removeEventListener('focus', muat); window.removeEventListener('jdih:workflow', muat); };
+  }, []);
 
   useEffect(() => {
     let aktif = true;
@@ -308,7 +318,7 @@ export function AdminTemplates() {
                     <Button
                       tone="secondary"
                       ukuran="kecil"
-                      disabled={!bolehGanti(row) || (!row.aktif && !row.pendingVersionId)}
+                      disabled={!bolehGanti(row) || (!row.aktif && !row.pendingVersionId && !row.pernahTerbit)}
                       onClick={() => {
                         reset();
                         setSelected(row);
@@ -349,7 +359,7 @@ export function AdminTemplates() {
                           onConfirm={() => publish(row)}
                         />
                       )}
-                    <ConfirmAction
+                    {bolehHapus(row) || !bolehUbah(row) ? <ConfirmAction
                       label="Hapus"
                       tone="danger"
                       ukuran="kecil"
@@ -358,13 +368,14 @@ export function AdminTemplates() {
                       description={`${row.nama} akan dihapus dari daftar pengelola dan portal. Seluruh versi berkasnya tidak lagi dapat diunduh.`}
                       disabled={!bolehHapus(row)}
                       onConfirm={() => remove(row)}
-                    />
+                    /> : <FormPermintaanPenghapusan sumber="TEMPLATE" resourceId={row.id} judul={row.nama} bisaTarik={!!row.currentVersionId} />}
                   </div>
                 </li>
               ))}
             </ul>
           )}
           <p className={styles.listNote}>Versi lama tetap tersimpan ketika berkas diperbarui.</p>
+          <div className="px-4"><AntreanPermintaanPenghapusan sumber="TEMPLATE" /></div>
         </Card>
         <div ref={editor} tabIndex={-1} className={styles.editor}>
           <Card className="p-0! sm:p-0!">

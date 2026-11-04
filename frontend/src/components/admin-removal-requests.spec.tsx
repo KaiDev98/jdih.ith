@@ -1,0 +1,126 @@
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AntreanPermintaanPenghapusan, FormPermintaanPenghapusan } from './admin-removal-requests';
+const state = vi.hoisted(() => ({ role: 'ADMIN', api: vi.fn(), list: vi.fn() }));
+vi.mock('@/lib/api-client', async (original) => ({
+  ...(await original<object>()),
+  ambilApi: state.api,
+  ambilApiBerdaftar: state.list,
+}));
+vi.mock('@/lib/sesi', () => ({
+  useSession: () => ({
+    pengguna: {
+      peran: [state.role],
+      izin: ['documents.read_admin', 'documents.delete', 'workflow.withdraw'],
+    },
+    csrfToken: 'csrf',
+  }),
+  csrfHeaders: () => ({ 'x-csrf-token': 'csrf' }),
+}));
+const request = {
+  id: '9',
+  sumber: 'DOCUMENT',
+  resourceId: '5',
+  versionId: '50',
+  judul: 'Peraturan pengujian',
+  jenis: 'DELETE',
+  alasan: 'Salah unggah',
+  status: 'PENDING',
+  pemohon: 'Admin Hukum',
+  catatan: null,
+  createdAt: '2026-11-04T00:00:00Z',
+};
+beforeEach(() => {
+  state.role = 'ADMIN';
+  state.api.mockReset().mockResolvedValue({});
+  state.list.mockReset().mockResolvedValue({ data: [request], meta: { totalButir: 1 } });
+});
+afterEach(cleanup);
+describe('permintaan penarikan dan penghapusan', () => {
+  it('memerlukan alasan dan konfirmasi, membatalkan tanpa menulis, lalu mengirim CSRF satu kali', async () => {
+    let done!: () => void;
+    state.api.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          done = resolve;
+        }),
+    );
+    render(
+      <FormPermintaanPenghapusan
+        sumber="DOCUMENT"
+        resourceId="5"
+        judul="Peraturan pengujian"
+        bisaTarik
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Minta penghapusan' }));
+    expect(screen.getByRole('button', { name: 'Kirim permintaan' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Batal' }));
+    expect(state.api).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Minta penghapusan' }));
+    fireEvent.change(screen.getByLabelText('Alasan permintaan'), {
+      target: { value: 'Salah unggah' },
+    });
+    const confirm = screen.getByRole('button', { name: 'Kirim permintaan' });
+    fireEvent.click(confirm);
+    fireEvent.click(confirm);
+    expect(state.api).toHaveBeenCalledExactlyOnceWith('/admin/documents/5/removal-requests', {
+      method: 'POST',
+      headers: { 'x-csrf-token': 'csrf' },
+      muatan: { jenis: 'DELETE', alasan: 'Salah unggah' },
+    });
+    done();
+    await screen.findByText(/Permintaan terkirim/);
+    expect(screen.getByRole('button', { name: 'Minta penghapusan' })).toBeDisabled();
+  });
+  it('mempertahankan alasan bila pengiriman gagal; format belum terbit tanpa permintaan penarikan', async () => {
+    state.api.mockRejectedValue(new Error('Masih ada permintaan menunggu'));
+    render(
+      <FormPermintaanPenghapusan
+        sumber="TEMPLATE"
+        resourceId="7"
+        judul="Format tugas"
+        bisaTarik={false}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: 'Minta penarikan' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Minta penghapusan' }));
+    fireEvent.change(screen.getByLabelText('Alasan permintaan'), {
+      target: { value: 'Format salah' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Kirim permintaan' }));
+    await screen.findByText('Masih ada permintaan menunggu');
+    expect(screen.getByLabelText('Alasan permintaan')).toHaveValue('Format salah');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+  it('Admin hanya memantau, walaupun mempunyai izin keputusan langsung', async () => {
+    render(<AntreanPermintaanPenghapusan />);
+    await screen.findByText('Peraturan pengujian');
+    expect(screen.queryByRole('button', { name: 'Setujui & hapus' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Tidak setujui' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Lihat riwayat' }));
+    await waitFor(() =>
+      expect(state.list).toHaveBeenLastCalledWith(
+        '/admin/removal-requests',
+        expect.objectContaining({ kueri: expect.objectContaining({ status: 'ALL' }) }),
+      ),
+    );
+  });
+  it('Superadmin memerlukan catatan sebelum keputusan, lalu menampilkan hasil tindakan', async () => {
+    state.role = 'SUPERADMIN';
+    render(<AntreanPermintaanPenghapusan />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Setujui & hapus' }));
+    expect(state.api).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Ya, lanjutkan' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Catatan keputusan'), {
+      target: { value: 'Sesuai alasan pemohon' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
+    await screen.findByText('Dokumen berhasil dihapus.');
+    expect(state.api).toHaveBeenCalledExactlyOnceWith('/admin/removal-requests/9/decision', {
+      method: 'POST',
+      headers: { 'x-csrf-token': 'csrf' },
+      muatan: { keputusan: 'APPROVE', catatan: 'Sesuai alasan pemohon' },
+    });
+  });
+});

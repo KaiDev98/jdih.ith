@@ -270,8 +270,10 @@ describe('pustaka Format Persuratan', () => {
       ]);
       render(<AdminTemplates />);
       await screen.findByText('Surat Tugas');
-      if (status === 'APPROVED')
-        expect(screen.getByRole('button', { name: 'Hapus' })).toBeDisabled();
+      if (status === 'APPROVED') {
+        expect(screen.queryByRole('button', { name: 'Hapus' })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Minta penghapusan' })).toBeEnabled();
+      }
       else expect(screen.getByRole('button', { name: 'Hapus' })).toBeEnabled();
     },
   );

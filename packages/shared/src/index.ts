@@ -27,3 +27,4 @@ export * from './schemas/template.schema.js';
 export * from './schemas/master.schema.js';
 export * from './schemas/kontak.schema.js';
 export * from './schemas/kunjungan.schema.js';
+export * from './schemas/removal-request.schema.js';

@@ -423,61 +423,79 @@ export class LetterTemplatesService {
   async remove(actor: PenggunaAktif, templateId: string, raw: unknown) {
     this.cekPengelola(actor);
     skemaHapusTemplate.parse(raw ?? {});
-    return this.repo.transaction(async (db) => {
-      const template = (
-        await this.repo.rows<
-          RowDataPacket & {
-            id: string;
-            nama: string;
-            current_version_id: string | null;
-            aktif: number;
-            created_by: string;
-          }
-        >(
-          db,
-          'SELECT id,nama,created_by,current_version_id,aktif FROM template_surat WHERE id=? AND deleted_at IS NULL FOR UPDATE',
-          [templateId],
-        )
-      )[0];
-      if (!template) throw new NotFoundException();
-      cekPemilikAtauSuperadmin(actor, template.created_by);
-      if (!actor.peran.includes('SUPERADMIN')) {
-        const approved = await this.repo.rows(
-          db,
-          "SELECT id FROM template_surat_versi WHERE template_surat_id=? AND status='APPROVED' FOR UPDATE",
-          [templateId],
-        );
-        if (template.current_version_id || approved.length)
-          throw new ConflictException(
-            'Format yang sudah disetujui atau terbit hanya dapat dihapus Superadmin',
-          );
-      }
-      // Semua tindakan versi mengunci induk yang sama. Setelah dihapus, unggah,
-      // persetujuan, penerbitan dan unduhan tidak dapat menghidupkannya kembali.
-      // Riwayat versi/berkas dipertahankan, tanpa mengubahnya menjadi arsip.
-      await this.repo.write(
+    return this.repo.transaction((db) => this.removeInTransaction(db, actor, templateId));
+  }
+
+  async removeInTransaction(db: PoolConnection, actor: PenggunaAktif, templateId: string) {
+    this.cekPengelola(actor);
+    const template = (
+      await this.repo.rows<
+        RowDataPacket & {
+          id: string;
+          nama: string;
+          current_version_id: string | null;
+          aktif: number;
+          created_by: string;
+        }
+      >(
         db,
-        'UPDATE template_surat SET current_version_id=NULL,aktif=0,deleted_at=UTC_TIMESTAMP(6) WHERE id=?',
+        'SELECT id,nama,created_by,current_version_id,aktif FROM template_surat WHERE id=? AND deleted_at IS NULL FOR UPDATE',
+        [templateId],
+      )
+    )[0];
+    if (!template) throw new NotFoundException();
+    cekPemilikAtauSuperadmin(actor, template.created_by);
+    if (!actor.peran.includes('SUPERADMIN')) {
+      const approved = await this.repo.rows(
+        db,
+        "SELECT id FROM template_surat_versi WHERE template_surat_id=? AND (status='APPROVED' OR activated_at IS NOT NULL) FOR UPDATE",
         [templateId],
       );
-      await this.audit.recordDomain(
-        {
-          module: 'letter-templates',
-          action: 'DELETE',
-          entityType: 'template_surat',
-          entityId: templateId,
-          actorId: actor.id,
-          before: {
-            nama: template.nama,
-            aktif: Boolean(template.aktif),
-            currentVersionId: template.current_version_id,
-          },
-          after: { deleted: true },
+      if (template.current_version_id || approved.length)
+        throw new ConflictException(
+          'Format yang sudah disetujui atau terbit hanya dapat dihapus Superadmin',
+        );
+    }
+    // Semua tindakan versi mengunci induk yang sama. Setelah dihapus, unggah,
+    // persetujuan, penerbitan dan unduhan tidak dapat menghidupkannya kembali.
+    // Riwayat versi/berkas dipertahankan, tanpa mengubahnya menjadi arsip.
+    await this.repo.write(
+      db,
+      'UPDATE template_surat SET current_version_id=NULL,aktif=0,deleted_at=UTC_TIMESTAMP(6) WHERE id=?',
+      [templateId],
+    );
+    await this.audit.recordDomain(
+      {
+        module: 'letter-templates',
+        action: 'DELETE',
+        entityType: 'template_surat',
+        entityId: templateId,
+        actorId: actor.id,
+        before: {
+          nama: template.nama,
+          aktif: Boolean(template.aktif),
+          currentVersionId: template.current_version_id,
         },
-        db,
-      );
-      return { id: templateId, deleted: true };
-    });
+        after: { deleted: true },
+      },
+      db,
+    );
+    await this.repo.write(db,
+      "UPDATE permintaan_penghapusan SET status='OBSOLETE',catatan='Format sudah dihapus melalui pengelolaan.',decided_by=?,decided_at=UTC_TIMESTAMP(6) WHERE sumber='TEMPLATE' AND resource_id=? AND status='PENDING'",
+      [actor.id, templateId]);
+    return { id: templateId, deleted: true };
+  }
+
+  async withdrawInTransaction(db: PoolConnection, actor: PenggunaAktif, templateId: string, reason: string) {
+    cekSuperadmin(actor);
+    cekIzin(actor, ['templates.manage']);
+    const template = await this.lockTemplate(db, templateId);
+    if (!template.current_version_id) throw new ConflictException('Format tidak lagi terbit.');
+    const versionId = String(template.current_version_id);
+    await this.repo.write(db, "UPDATE template_surat_versi SET status='ARCHIVED',archived_at=UTC_TIMESTAMP(6) WHERE id=? AND status='ACTIVE'", [versionId]);
+    await this.repo.write(db, 'UPDATE template_surat SET current_version_id=NULL,aktif=0 WHERE id=?', [templateId]);
+    await this.audit.recordDomain({ module: 'letter-templates', action: 'WITHDRAW', entityType: 'template_surat', entityId: templateId,
+      actorId: actor.id, before: { status: 'ACTIVE' }, after: { status: 'WITHDRAWN', reason } }, db);
   }
 
   async list(rawQuery: unknown, actor?: PenggunaAktif) {
@@ -539,7 +557,7 @@ export class LetterTemplatesService {
     const superadmin = actor.peran.includes('SUPERADMIN');
     return this.repo.rows(
       this.repo.pool,
-      `SELECT CAST(t.id AS CHAR) id,CAST(t.created_by AS CHAR) createdBy,t.slug,t.nama,t.aktif,CAST(t.current_version_id AS CHAR) currentVersionId,CAST(v.nomor_versi AS UNSIGNED) nomorVersi,v.tingkat_akses tingkatAkses,v.status,v.mime_type mimeType,v.nama_asli namaAsli,CAST(p.id AS CHAR) pendingVersionId,CAST(p.nomor_versi AS UNSIGNED) pendingNomorVersi,p.tingkat_akses pendingTingkatAkses,p.status pendingStatus,p.mime_type pendingMimeType,p.nama_asli pendingNamaAsli FROM template_surat t LEFT JOIN template_surat_versi v ON v.id=t.current_version_id LEFT JOIN template_surat_versi p ON p.template_surat_id=t.id AND p.status IN ('PENDING_REVIEW','APPROVED') WHERE t.deleted_at IS NULL${superadmin ? '' : ' AND t.created_by=?'} ORDER BY t.updated_at DESC`,
+      `SELECT CAST(t.id AS CHAR) id,CAST(t.created_by AS CHAR) createdBy,t.slug,t.nama,t.aktif,EXISTS(SELECT 1 FROM template_surat_versi h WHERE h.template_surat_id=t.id AND h.activated_at IS NOT NULL) pernahTerbit,CAST(t.current_version_id AS CHAR) currentVersionId,CAST(v.nomor_versi AS UNSIGNED) nomorVersi,v.tingkat_akses tingkatAkses,v.status,v.mime_type mimeType,v.nama_asli namaAsli,CAST(p.id AS CHAR) pendingVersionId,CAST(p.nomor_versi AS UNSIGNED) pendingNomorVersi,p.tingkat_akses pendingTingkatAkses,p.status pendingStatus,p.mime_type pendingMimeType,p.nama_asli pendingNamaAsli FROM template_surat t LEFT JOIN template_surat_versi v ON v.id=t.current_version_id LEFT JOIN template_surat_versi p ON p.template_surat_id=t.id AND p.status IN ('PENDING_REVIEW','APPROVED') WHERE t.deleted_at IS NULL${superadmin ? '' : ' AND t.created_by=?'} ORDER BY t.updated_at DESC`,
       superadmin ? [] : [actor.id],
     );
   }

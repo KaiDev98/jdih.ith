@@ -164,7 +164,8 @@ describe('Format Persuratan dikelola Admin dan Superadmin', () => {
         expect.objectContaining({ action: 'DELETE', actorId: admin.id }),
         db,
       );
-      expect(repo.write).toHaveBeenCalledTimes(1);
+      expect(repo.write).toHaveBeenCalledTimes(2);
+      expect(repo.write).toHaveBeenLastCalledWith(db, expect.stringContaining("status='OBSOLETE'"), [admin.id, '5']);
     });
   }
 
@@ -302,7 +303,7 @@ describe('Format Persuratan dikelola Admin dan Superadmin', () => {
       ])
       .mockResolvedValueOnce([]);
     await expect(service.remove(admin, '5', {})).resolves.toEqual({ id: '5', deleted: true });
-    expect(repo.write).toHaveBeenCalledTimes(1);
+    expect(repo.write).toHaveBeenCalledTimes(2);
   });
 
   it('penghapusan berulang atau ID tidak ditemukan ditolak tanpa write/audit', async () => {

@@ -1,5 +1,12 @@
 # Physical Database JDIH ITH V2 — Phase 1
 
+Revisi terbaru 2026-11-04: jalankan `patch-024-permintaan-penghapusan.sql` setelah
+patch-023, sebelum backend terbaru. Patch hanya menambah tabel permintaan,
+indeks/constraint dan audit migrasi; tidak menghapus unggahan atau master.
+Aman diulang. Schema instalasi kosong sudah memuat tabel ini (30 tabel).
+Resource/version pada permintaan adalah snapshot tanpa FK agar keputusan tetap
+tersimpan sesudah penghapusan; akun pemohon/pemutus tetap memiliki FK RESTRICT.
+
 Revisi 2026-11-04: pada DB lama, jalankan patch-022 kemudian
 `patch-023-persetujuan-penerbitan-terpisah.sql` sebelum memakai backend terbaru.
 Seluruh unggahan Format Persuratan (termasuk Superadmin) menunggu persetujuan,

@@ -447,3 +447,16 @@ upload_deletion:
   direct_button_visible: true
   preserve_master_types_and_portal_pages: true
   local_purge_is_a_migration: false
+
+removal_requests:
+  draft_deletion: "owner ADMIN or SUPERADMIN with documents.edit; DRAF/REVISI only; preserve published versions; audit and physical files only after commit"
+  template_management: "owner ADMIN only; SUPERADMIN global; verification queue remains cross-owner read-only"
+  requesters: "active owner ADMIN; documents.edit or templates.manage"
+  resources: [DOCUMENT, TEMPLATE]
+  actions: [WITHDRAW, DELETE]
+  decisions: "active SUPERADMIN with action permission; reasoned APPROVE or DECLINE; action and audit atomic"
+  storage: "patch-024-permintaan-penghapusan; one pending per resource; durable snapshot without resource FK preserves deletion history"
+  stale_requests: "current version must match snapshot; otherwise 409 and reasoned refusal/re-request"
+  queue: "Antrean Verifikasi; Superadmin all, Admin own only; pending/history pagination and 30-second polling"
+  direct_superadmin_action: "mark matching pending requests OBSOLETE in transaction"
+  previously_published_templates: "deletion still requires Superadmin after withdrawal"

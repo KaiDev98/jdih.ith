@@ -44,7 +44,7 @@ import type { KonfigurasiApp } from '../../config/configuration.js';
 import { DocumentFilesService } from './files/document-files.service.js';
 import { bisaDipratinjau } from './storage/file-validation.js';
 import { z } from 'zod';
-import type { RowDataPacket } from 'mysql2/promise';
+import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 
 type Actor = PenggunaAktif;
 interface MasterPayload {
@@ -1370,55 +1370,62 @@ export class CoreBackendService {
     cekSuperadmin(actor);
     this.allow(actor, 'workflow.withdraw');
     const reason = skemaTarikDokumen.parse(raw).alasan;
-    return this.repo.transaction(async (db) => {
-      const d = (
-        await this.repo.rows(
-          db,
-          'SELECT id,current_published_version_id FROM dokumen WHERE id=? FOR UPDATE',
-          [id],
-        )
-      )[0] as any;
-      if (!d) throw new NotFoundException();
-      const vid = String(d.current_published_version_id ?? '');
-      if (!vid) throw new ConflictException('Tidak ada versi terbit aktif');
-      const v = (
-        await this.repo.rows(
-          db,
-          "SELECT * FROM dokumen_versi WHERE id=? AND status_workflow='TERBIT' FOR UPDATE",
-          [vid],
-        )
-      )[0] as any;
-      if (!v) throw new ConflictException();
-      const now = utc();
-      await this.repo.write(
+    return this.repo.transaction((db) => this.withdrawInTransaction(db, actor, id, reason));
+  }
+  async withdrawInTransaction(db: PoolConnection, actor: Actor, id: string, reason: string) {
+    cekSuperadmin(actor);
+    this.allow(actor, 'workflow.withdraw');
+    reason = skemaTarikDokumen.parse({ alasan: reason }).alasan;
+    const d = (
+      await this.repo.rows(
         db,
-        "UPDATE dokumen_versi SET status_workflow='DITARIK',withdrawn_at=?,withdrawal_reason=? WHERE id=?",
-        [now, reason, vid],
-      );
-      await this.repo.write(
+        'SELECT id,current_published_version_id FROM dokumen WHERE id=? AND deleted_at IS NULL FOR UPDATE',
+        [id],
+      )
+    )[0] as any;
+    if (!d) throw new NotFoundException();
+    const vid = String(d.current_published_version_id ?? '');
+    if (!vid) throw new ConflictException('Tidak ada versi terbit aktif');
+    const v = (
+      await this.repo.rows(
         db,
-        'UPDATE dokumen SET current_published_version_id=NULL WHERE id=? AND current_published_version_id=?',
-        [id, vid],
-      );
-      await this.repo.write(
-        db,
-        "INSERT INTO dokumen_workflow(dokumen_versi_id,status_asal,status_tujuan,action,catatan,actor_id) VALUES(?,'TERBIT','DITARIK','WITHDRAW',?,?)",
-        [vid, reason, actor.id],
-      );
-      await this.audit.recordDomain(
-        {
-          module: 'workflow',
-          action: 'WITHDRAW',
-          entityType: 'dokumen_versi',
-          entityId: vid,
-          actorId: actor.id,
-          before: { status: 'TERBIT' },
-          after: { status: 'DITARIK', reason },
-        },
-        db,
-      );
-      return { id, versionId: vid, currentPublishedVersionId: null, statusWorkflow: 'DITARIK' };
-    });
+        "SELECT * FROM dokumen_versi WHERE id=? AND status_workflow='TERBIT' FOR UPDATE",
+        [vid],
+      )
+    )[0] as any;
+    if (!v) throw new ConflictException();
+    const now = utc();
+    await this.repo.write(
+      db,
+      "UPDATE dokumen_versi SET status_workflow='DITARIK',withdrawn_at=?,withdrawal_reason=? WHERE id=?",
+      [now, reason, vid],
+    );
+    await this.repo.write(
+      db,
+      'UPDATE dokumen SET current_published_version_id=NULL WHERE id=? AND current_published_version_id=?',
+      [id, vid],
+    );
+    await this.repo.write(
+      db,
+      "INSERT INTO dokumen_workflow(dokumen_versi_id,status_asal,status_tujuan,action,catatan,actor_id) VALUES(?,'TERBIT','DITARIK','WITHDRAW',?,?)",
+      [vid, reason, actor.id],
+    );
+    await this.audit.recordDomain(
+      {
+        module: 'workflow',
+        action: 'WITHDRAW',
+        entityType: 'dokumen_versi',
+        entityId: vid,
+        actorId: actor.id,
+        before: { status: 'TERBIT' },
+        after: { status: 'DITARIK', reason },
+      },
+      db,
+    );
+    await this.repo.write(db,
+      "UPDATE permintaan_penghapusan SET status='OBSOLETE',catatan='Dokumen sudah ditarik melalui tindakan Superadmin.',decided_by=?,decided_at=UTC_TIMESTAMP(6) WHERE sumber='DOCUMENT' AND resource_id=? AND status='PENDING'",
+      [actor.id, id]);
+    return { id, versionId: vid, currentPublishedVersionId: null, statusWorkflow: 'DITARIK' };
   }
 
 }
