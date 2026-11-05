@@ -139,6 +139,7 @@ panel_routes:
   notification_document_navigation: "full-page link; SUBMIT/APPROVE -> verification, RETURN -> submissions, PUBLISH -> all documents"
 
 panel_layout:
+  mobile_bottom_spacing: "64px plus safe-area inset; compact Admin/Superadmin bottom clearance for the 44px scroll-to-top button, desktop spacing unchanged"
   dashboard_desktop: "at >=1024px: latest documents on the left filling remaining viewport height; actions and shortcuts on the right; independent inner scrolling, no page scrolling; mobile normal scroll"
   account_order: "Superadmin first, current Admin second, then newest; sort before API pagination"
   staff_account_columns: [Nama, Email, Peran, Unit, Status]
