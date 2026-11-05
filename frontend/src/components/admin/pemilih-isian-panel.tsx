@@ -91,6 +91,7 @@ export function PemilihIsianPanel({
           aria-label={label}
         >
           <Menu.RadioGroup
+            className={styles.options}
             value={value}
             onValueChange={(next) => {
               if (opsi.some((option) => option.value === next && !option.disabled))

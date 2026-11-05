@@ -113,7 +113,7 @@ admin_document_policy:
   sop_permohonan_sk_menu_visible: true
   verification_queue_read_scope: "legal/SOP and pending template queue read-only across authors; management remains owner-scoped; Superadmin alone can verify"
   category_scope: "categories mapped to the Admin account's unit"
-  input_category_visibility: "Pilih kategori first clears selection; eligible active own-unit category second for Admin; other units not offered; backend eligibility remains authoritative"
+  input_category_visibility: "Pilih kategori first clears selection; eligible active own-unit category second for Admin; other/inactive categories remain visible afterward but disabled; backend eligibility remains authoritative"
   category_required: false
   amendment_target_scope: "own document and own active published version; enforce search, relation POST and resubmission"
   global_menu_items_visible: true
@@ -465,7 +465,8 @@ removal_requests:
 
 panel_choice_polish:
   access_selector: "native radios with sliding indicator, 240ms ease-out, keyboard focus and reduced motion; create/edit/template forms"
-  document_status_requests_layout: "Status hukum beside Permintaan Penarikan & Penghapusan on desktop; stacked on mobile; verification queue order unchanged"
+  document_status_requests_layout: "Admin: Status hukum beside requests; Superadmin: Status hukum beside Hapus permanen, requests full-width below both; mobile stacked; verification queue order unchanged"
+  choice_spacing: "4px between menu choices, 8px menu inset, comfortable text padding; access focus inside segment and 6px control gutter"
   fields: "Jenis Dokumen, Unit Kerja/Kategori, account verification unit and Add Admin unit use shared animated Radix radio choice menu"
   motion: "180ms enter, 120ms exit, chevron rotation; prefers-reduced-motion removes motion; soft blue focus"
   relation_picker: "Pilih peraturan expands/collapses with CSS grid; focus input on open, return to trigger on close"

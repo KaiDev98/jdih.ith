@@ -218,6 +218,15 @@
   .panel-admin .detail-grid {
     grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.5fr);
   }
+  .panel-admin .detail-tanpa-pdf {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .panel-admin .detail-tanpa-pdf .detail-samping {
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.75fr);
+  }
+  .panel-admin .detail-tanpa-pdf .detail-samping:has(.detail-riwayat) .detail-ringkasan {
+    grid-row: span 2;
+  }
   .panel-admin .formulir-panel {
     grid-template-columns: minmax(0, 1fr) minmax(16rem, 0.4fr);
     gap: 0.875rem;

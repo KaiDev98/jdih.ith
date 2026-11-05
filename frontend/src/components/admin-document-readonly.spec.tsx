@@ -101,6 +101,23 @@ describe('Admin membaca dokumen tanpa tindakan Superadmin; SOP khusus Superadmin
     expect(pair).toContainElement(screen.getByRole('heading', { name: 'Status hukum' }));
     expect(pair).toContainElement(screen.getByRole('heading', { name: /Permintaan Penarikan & Penghapusan/ }));
   });
+  it('Superadmin menempatkan Status hukum di samping Hapus permanen, lalu permintaan di bawah keduanya', async () => {
+    state.peran = ['SUPERADMIN'];
+    state.status = 'DRAF';
+    state.own = true;
+    setupDetail();
+    render(<AdminDocumentDetail id="5" />);
+    await screen.findByRole('heading', { name: 'Dokumen tinjauan' });
+    const pair = screen.getByLabelText('Status hukum dan penghapusan permanen');
+    const status = screen.getByRole('heading', { name: 'Status hukum' });
+    const remove = screen.getByRole('heading', { name: 'Hapus permanen' });
+    const requests = screen.getByRole('heading', { name: /Permintaan Penarikan & Penghapusan/ });
+    expect(pair.children[0]).toContainElement(status);
+    expect(pair.children[1]).toContainElement(remove);
+    expect(pair.children[2]).toContainElement(requests);
+    expect(screen.getByRole('button', { name: 'Hapus permanen' })).toBeDisabled();
+    expect(state.api.mock.calls.every(([, options]) => !options?.method)).toBe(true);
+  });
   for (const own of [true, false])
     it(`tindakan draf mengikuti kepemilikan: ${String(own)}`, async () => {
       state.status = 'DRAF';

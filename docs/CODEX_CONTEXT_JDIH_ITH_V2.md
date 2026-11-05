@@ -3,16 +3,23 @@
 Revisi kategori dan akses TERBARU 2026-11-05: kategori dokumen bersifat opsional
 pada unggah, ubah draf, pengajuan dan persetujuan, termasuk SOP Permohonan SK.
 Dropdown menampilkan Pilih kategori sebagai pilihan pertama (mengosongkan
-kategori); pilihan berikutnya hanya kategori aktif yang boleh dipilih. Admin
-hanya ditawarkan kategori sesuai unit akun, sehingga unitnya berada di urutan
-kedua. Validasi server untuk kategori terpilih, unit, pemilik, metadata wajib
+kategori); kategori aktif sesuai hak akun ditempatkan lebih dahulu, sehingga
+unit Admin berada di urutan kedua. Klarifikasi terbaru: kategori unit lain dan
+nonaktif tetap ditampilkan setelahnya, tetapi tidak dapat dipilih. Pilihan
+menu diberi jarak antarsorotan dan padding teks; fokus akses berada di dalam
+segmen agar tidak menempel tepi. Validasi server untuk kategori terpilih, unit, pemilik, metadata wajib
 dan satu file utama tetap berlaku. Unit versi tetap mengikuti akun walaupun
-tanpa kategori. Ini menggantikan kewajiban kategori dan tampilan seluruh unit
-nonaktif pada revisi lama; tanpa migrasi atau penghapusan master/data.
+tanpa kategori. Ini menggantikan kewajiban kategori pada revisi lama;
+tanpa migrasi atau penghapusan master/data.
 Pilihan Tingkat akses memakai indikator bergeser halus dengan radio native,
 fokus keyboard dan reduced motion, konsisten pada unggah, ubah draf serta format.
 Detail dokumen menempatkan Status hukum dan Permintaan Penarikan & Penghapusan
-berdampingan pada desktop, bertumpuk pada ponsel. Urutan Antrean Verifikasi
+berdampingan pada desktop Admin, bertumpuk pada ponsel. Khusus Superadmin,
+Status hukum berdampingan dengan Hapus permanen; Permintaan Penarikan &
+Penghapusan memenuhi lebar baris di bawah keduanya. Hapus permanen tidak lagi
+mengisi kolom riwayat. Jika tidak ada pratinjau PDF, informasi/riwayat desktop
+Superadmin disusun mendatar agar tidak menyisakan kolom kosong panjang.
+Urutan Antrean Verifikasi
 tetap Dokumen, Format Persuratan, kemudian permintaan; notifikasi lintas fitur
 mengikuti aturan aman di bawah.
 

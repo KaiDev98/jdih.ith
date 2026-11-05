@@ -604,7 +604,7 @@ function DetailDokumen({
           </Card>
         )}
 
-        <div className="detail-grid">
+        <div className={cn('detail-grid', superadmin && !berkas.some((file) => file.mimeType === 'application/pdf') && 'detail-tanpa-pdf')}>
           <div className="detail-utama grid min-w-0 content-start gap-3.5">
             {berkas.length > 0 && (
               <Card className="detail-pratinjau">
@@ -750,11 +750,10 @@ function DetailDokumen({
                   })}
               </ul>
             </Card>
-            {superadmin && <AdminHapusDokumen id={id} judul={document.judul} />}
           </aside>
         </div>
         <div
-          aria-label="Status hukum dan permintaan dokumen"
+          aria-label={superadmin ? 'Status hukum dan penghapusan permanen' : 'Status hukum dan permintaan dokumen'}
           className={cn('grid min-w-0 items-start gap-3.5', (superadmin || document.bolehRevisi) && 'lg:grid-cols-2')}
         >
           <KartuStatusHukum
@@ -769,15 +768,18 @@ function DetailDokumen({
               izin.includes('legal.manage_relations')
             }
           />
+          {superadmin && <AdminHapusDokumen id={id} judul={document.judul} />}
           {(superadmin || document.bolehRevisi) && (
-            <AntreanPermintaanPenghapusan
-              sumber="DOCUMENT"
-              resourceId={id}
-              onProcessed={(row, keputusan) => {
-                if (keputusan === 'APPROVE' && row.jenis === 'DELETE') router.replace('/admin/dokumen');
-                else setRefresh((n) => n + 1);
-              }}
-            />
+            <div className={cn('min-w-0', superadmin && 'lg:col-span-2')}>
+              <AntreanPermintaanPenghapusan
+                sumber="DOCUMENT"
+                resourceId={id}
+                onProcessed={(row, keputusan) => {
+                  if (keputusan === 'APPROVE' && row.jenis === 'DELETE') router.replace('/admin/dokumen');
+                  else setRefresh((n) => n + 1);
+                }}
+              />
+            </div>
           )}
         </div>
       </div>

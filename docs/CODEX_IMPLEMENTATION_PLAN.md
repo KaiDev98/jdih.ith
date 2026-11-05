@@ -2,10 +2,13 @@
 
 Revisi kategori/akses 2026-11-05: kategori opsional pada formulir dan kesiapan
 SUBMIT/APPROVE; pilihan pertama Pilih kategori mengosongkan nilai, pilihan
-berikutnya kategori aktif sesuai hak Admin. Unit versi tetap terikat akun.
+berikutnya kategori aktif sesuai hak Admin; kategori lain/nonaktif tetap tampil
+sesudahnya sebagai pilihan nonaktif. Unit versi tetap terikat akun.
 Uji tanpa kategori hingga terbit, penolakan kategori unit lain, pelepasan kategori
 di ubah draf, konfirmasi/CSRF, radio akses keyboard dan reduced motion. Tempatkan
-panel permintaan di sebelah Status hukum pada desktop dan bertumpuk di ponsel.
+panel permintaan di sebelah Status hukum pada desktop Admin. Khusus Superadmin,
+Status hukum bersebelahan Hapus permanen dan permintaan selebar baris di bawahnya.
+Ponsel bertumpuk. Beri jarak antarpilihan dropdown dan fokus biru di dalam segmen.
 Pertahankan serta uji ulang urutan antrean dan notifikasi format/penarikan/hapus.
 
 Revisi antrean dan notifikasi TERBARU 2026-11-05: respons daftar permintaan

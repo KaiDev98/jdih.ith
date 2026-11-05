@@ -26,8 +26,17 @@ export function PemilihKategoriDokumen({
       opsi={[
         { value: '', label: 'Pilih kategori' },
         ...categories
-          .filter((category) => category.bolehPilih !== false && category.aktif !== false)
-          .map((category) => ({ value: category.id, label: category.nama })),
+          .toSorted((a, b) =>
+            Number(a.bolehPilih === false || a.aktif === false) -
+            Number(b.bolehPilih === false || b.aktif === false),
+          )
+          .map((category) => ({
+            value: category.id,
+            label: category.nama + (category.aktif === false
+              ? ' (nonaktif)'
+              : category.bolehPilih === false ? ' (di luar unit Anda)' : ''),
+            disabled: category.bolehPilih === false || category.aktif === false,
+          })),
       ]}
     />
   );

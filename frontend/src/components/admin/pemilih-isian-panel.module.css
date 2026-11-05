@@ -70,7 +70,7 @@
   max-height: min(320px, var(--radix-dropdown-menu-content-available-height));
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 6px;
+  padding: 8px;
   border: 1px solid #dfe6ee;
   border-radius: 11px;
   background: #fff;
@@ -79,12 +79,17 @@
     0 2px 6px #172f5008;
   transform-origin: var(--radix-dropdown-menu-content-transform-origin);
 }
+.options {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
 .item {
   position: relative;
   display: flex;
   align-items: center;
   min-height: 42px;
-  padding: 10px 34px 10px 11px;
+  padding: 11px 36px 11px 12px;
   border-radius: 7px;
   outline: none;
   font-size: 13px;

@@ -149,13 +149,13 @@ describe('pengajuan dokumen pada panel', () => {
       ),
     );
   });
-  it('kategori Admin opsional: Pilih kategori teratas, unit akun kedua, unit lain tidak ditawarkan', async () => {
+  it('kategori Admin opsional: Pilih kategori teratas, unit akun kedua, kategori lain terlihat tetapi nonaktif', async () => {
     state.api.mockImplementation((url: string) =>
       Promise.resolve(
         url.endsWith('/kategori')
           ? [
-              { id: '3', kode: 'TIK', nama: 'TIK', aktif: true, bolehPilih: true },
               { id: '4', kode: 'HKM', nama: 'Hukum', aktif: true, bolehPilih: false },
+              { id: '3', kode: 'TIK', nama: 'TIK', aktif: true, bolehPilih: true },
               { id: '5', kode: 'LAMA', nama: 'Unit lama', aktif: false, bolehPilih: false },
             ]
           : [{ id: '1', kode: 'SOP', nama: 'SOP', aktif: true }],
@@ -167,7 +167,15 @@ describe('pengajuan dokumen pada panel', () => {
     expect(trigger).toHaveTextContent('Pilih kategori');
     fireEvent.keyDown(trigger, { key: 'ArrowDown' });
     const first = await screen.findByRole('menuitemradio', { name: 'Pilih kategori' });
-    expect(screen.getAllByRole('menuitemradio')).toEqual([first, screen.getByRole('menuitemradio', { name: 'TIK' })]);
+    const items = screen.getAllByRole('menuitemradio');
+    expect(items.slice(0, 2)).toEqual([first, screen.getByRole('menuitemradio', { name: 'TIK' })]);
+    const outside = screen.getByRole('menuitemradio', { name: 'Hukum (di luar unit Anda)' });
+    const inactive = screen.getByRole('menuitemradio', { name: 'Unit lama (nonaktif)' });
+    expect(items).toHaveLength(4);
+    expect(outside).toHaveAttribute('data-disabled');
+    expect(inactive).toHaveAttribute('data-disabled');
+    fireEvent.click(outside);
+    expect(trigger).toHaveTextContent('Pilih kategori');
     fireEvent.click(screen.getByRole('menuitemradio', { name: 'TIK' }));
     expect(trigger).toHaveTextContent('TIK');
     await waitFor(() => expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument());
