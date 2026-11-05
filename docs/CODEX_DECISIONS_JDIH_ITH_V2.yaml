@@ -225,7 +225,7 @@ document_workflow:
 legal:
   manual_revocation: "active Superadmin with workflow.withdraw; direct version-bound revoke or own Admin REVOKE request; published current only, not already revoked; DICABUT while retaining TERBIT/current pointer/files/access"
   revocation_history: "atomic legal history source_version_id NULL, mandatory reason/date/actor and audit; no replacement required; optional decision note falls back to Admin reason; no status changes to other documents"
-  revocation_compatibility: "patch-027 adds REVOKE after patch-026; legacy WITHDRAW records/decisions unchanged, no automatic republication; templates retain withdrawal"
+  revocation_compatibility: "patch-027 adds REVOKE after patch-026; legacy WITHDRAW records/decisions unchanged, no automatic republication; patch-028 extends new revocation to templates"
   statuses:
     - "BERLAKU"
     - "DIUBAH"
@@ -336,6 +336,10 @@ versioning:
   draft_revision_replaces_public_immediately: false
 
 letter_templates:
+  revocation: "owner Admin REVOKE request; active Superadmin with templates.manage approves or directly revokes expected current version; ACTIVE/current/files retained, revoked_at/reason/by recorded atomically with audit"
+  revoked_publication: "visible/countable/previewable/downloadable under unchanged access policy; Dicabut badge and full reason dialog/date WITA; private actor metadata not sent publicly"
+  revoked_replacement: "new upload/approval keeps revoked current; separate publish switches to new version; archived previous version retains revocation metadata"
+  revocation_migration: "patch-028 after patch-027; non-destructive metadata columns and FK/CHECK; no conversion of legacy withdrawals"
   upload_slug_collision: "initial upload modeSlug defaults manual; manual collision returns generic 409 with guidance; automatic mode retries UNIQUE parent insert up to five times with UUID suffix <=191 characters; deleted slugs stay reserved, no old URL reuse; actual slug audited"
   public_layout: "three desktop columns, server search, 12 items per page; access-filtered totals"
   module: "Format Persuratan"
@@ -345,6 +349,7 @@ letter_templates:
   detail_page_v1: false
   preview_v1: "native PDF via authorized inline API/blob dialog; unsupported Office uses download; no third-party viewer"
   legal_metadata_v1: false
+  revocation_metadata_v1: true
   internal_requires_active_staff: true
   access_levels:
     - "PUBLIK"
@@ -464,7 +469,7 @@ removal_requests:
   requesters: "active owner ADMIN; documents.edit or templates.manage"
   resources: [DOCUMENT, TEMPLATE]
   actions: [REVOKE, DELETE, WITHDRAW]
-  new_document_requests: "REVOKE or DELETE only; WITHDRAW creation rejected for legal/SOP; templates accept WITHDRAW/DELETE, reject REVOKE"
+  new_document_requests: "REVOKE or DELETE for all document and template sources; new WITHDRAW requests rejected; existing WITHDRAW decisions remain legacy withdrawal"
   decisions: "active SUPERADMIN with action permission; APPROVE/DECLINE notes optional; action and audit atomic; withdrawal without a note uses Admin request reason; patch-026 before API"
   storage: "patch-024-permintaan-penghapusan; one pending per resource; durable snapshot without resource FK preserves deletion history"
   stale_requests: "current version must match snapshot; otherwise 409 and reasoned refusal/re-request"

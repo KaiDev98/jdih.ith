@@ -542,6 +542,7 @@ function DetailDokumen({
                 disabled={!superadmin || !izin.includes('workflow.withdraw')}
                 tone="danger"
                 label="Cabut Dokumen" icon={FileX2}
+                key={document.currentPublishedVersionId}
                 title="Cabut dokumen ini?"
                 description={
                   // Pencabutan selalu mengenai versi yang sedang tampil, yang
@@ -560,7 +561,7 @@ function DetailDokumen({
           </div>
           {!superadmin && document.bolehRevisi && !bisaDiubah && izin.includes('documents.edit') && (
             <div className="mt-4 border-t border-sekat pt-4"><p className="mb-2 text-xs text-slate-500">Penarikan atau penghapusan memerlukan keputusan Superadmin.</p>
-              <FormPermintaanPenghapusan sumber="DOCUMENT" resourceId={id} judul={document.judul} bisaTarik={!!document.currentPublishedVersionId && document.statusHukum !== 'DICABUT'} /></div>
+              <FormPermintaanPenghapusan key={document.currentPublishedVersionId} sumber="DOCUMENT" resourceId={id} judul={document.judul} bisaTarik={!!document.currentPublishedVersionId && document.statusHukum !== 'DICABUT'} /></div>
           )}
           {bisaDiubah && kekurangan.length > 0 && (
             <div role="status" className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">

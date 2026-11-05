@@ -8,6 +8,13 @@ credentials.
 
 ## Target architecture
 
+Format revocation extension (2026-11-06): apply
+`database/v2/patch-028-pencabutan-format-persuratan.sql` after patch-027 and
+before starting this release. It adds per-version revocation metadata and
+constraints, preserving all existing records and publication pointers. Revoked
+formats remain available under their existing access policy. New uploads still
+require approval and separate publication; archived revocation history remains.
+
 Legal revocation update (2026-11-06): apply
 `database/v2/patch-027-permintaan-pencabutan.sql` after patch-026 before starting
 this API release. It adds the REVOKE request kind without changing existing
@@ -170,7 +177,7 @@ skips those suites; that alone is not a complete release test. The workflow
 does not deploy or access institutional secrets.
 
 For a new empty database, the current `database/v2/schema.sql` and `seed.sql`
-already incorporate patches 001–027; do not blindly replay patches after that
+already incorporate patches 001–028; do not blindly replay patches after that
 baseline import. For an existing V2 database, inspect its current columns,
 constraints and applied changes, back it up together with its private object
 storage, and apply only missing patches in order through a separate operations

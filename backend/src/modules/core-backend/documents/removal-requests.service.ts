@@ -54,17 +54,15 @@ export class RemovalRequestsService {
       throw new ForbiddenException('Permintaan ini khusus Admin pemilik.');
     cekIzin(actor, [sumber === 'DOCUMENT' ? 'documents.edit' : 'templates.manage']);
     const data = skemaPermintaanPenghapusan.parse(raw);
-    if (sumber === 'DOCUMENT' && data.jenis === 'WITHDRAW')
-      throw new ConflictException('Gunakan Minta Pencabutan untuk dokumen hukum dan SOP. Muat ulang halaman.');
-    if (sumber === 'TEMPLATE' && data.jenis === 'REVOKE')
-      throw new ConflictException('Pencabutan status hukum hanya tersedia untuk dokumen hukum dan SOP.');
+    if (data.jenis === 'WITHDRAW')
+      throw new ConflictException('Gunakan Minta Pencabutan. Muat ulang halaman.');
     return this.repo.transaction(async (db) => {
       const target = await this.requests.resource(db, sumber, resourceId);
       if (!target) throw new NotFoundException();
       cekPemilikAtauSuperadmin(actor, target.createdBy);
       if (!target.versionId) throw new ConflictException('Dokumen belum mempunyai versi.');
-      if (data.jenis === 'REVOKE' && (!target.currentId || target.currentStatus !== 'TERBIT' || target.statusHukum === 'DICABUT'))
-        throw new ConflictException('Hanya dokumen terbit yang belum dicabut dapat dimintakan pencabutan.');
+      if (data.jenis === 'REVOKE' && (!target.currentId || target.currentStatus !== (sumber === 'TEMPLATE' ? 'ACTIVE' : 'TERBIT') || target.statusHukum === 'DICABUT'))
+        throw new ConflictException('Hanya dokumen atau format terbit yang belum dicabut dapat dimintakan pencabutan.');
       if (data.jenis === 'WITHDRAW' && !target.currentId)
         throw new ConflictException('Dokumen tidak sedang terbit.');
       if (await this.requests.pending(db, sumber, resourceId))
@@ -89,8 +87,6 @@ export class RemovalRequestsService {
     const data = skemaKeputusanPenghapusan.parse(raw);
     const initial = await this.requests.get(id);
     if (!initial) throw new NotFoundException();
-    if (initial.sumber !== 'DOCUMENT' && initial.jenis === 'REVOKE')
-      throw new ConflictException('Pencabutan status hukum hanya tersedia untuk dokumen hukum dan SOP.');
     // Izin keputusan diperiksa kembali di server sesuai tindakan dan koleksinya.
     cekIzin(actor, [
       initial.sumber === 'TEMPLATE'
@@ -123,7 +119,9 @@ export class RemovalRequestsService {
           else if (request.jenis === 'WITHDRAW')
             await this.core.withdrawInTransaction(db, actor, request.resourceId, data.catatan || request.alasan, id);
           else files = await this.documents.hapusDalamTransaksi(db, actor, request.resourceId, id);
-        } else if (request.jenis === 'WITHDRAW')
+        } else if (request.jenis === 'REVOKE')
+          await this.templates.revokeInTransaction(db, actor, request.resourceId, request.versionId!, data.catatan || request.alasan, id);
+        else if (request.jenis === 'WITHDRAW')
           await this.templates.withdrawInTransaction(db, actor, request.resourceId, data.catatan || request.alasan, id);
         else await this.templates.removeInTransaction(db, actor, request.resourceId, id);
       }

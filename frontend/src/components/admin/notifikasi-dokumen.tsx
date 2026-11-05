@@ -130,6 +130,12 @@ const TAMPILAN = {
     label: 'Format ditarik',
     teks: 'Format Persuratan sudah ditarik dari portal',
   },
+  TEMPLATE_REVOKE: {
+    ...TAMPILAN_DASAR.RETURN,
+    ikon: FileText,
+    label: 'Format Dicabut',
+    teks: 'Format berstatus Dicabut dan tetap tersedia sesuai hak akses',
+  },
   TEMPLATE_DELETE: {
     ...TAMPILAN_DASAR.RETURN,
     ikon: Trash2,

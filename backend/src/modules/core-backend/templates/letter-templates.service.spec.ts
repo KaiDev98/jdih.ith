@@ -405,6 +405,7 @@ describe('Format Persuratan dikelola Admin dan Superadmin', () => {
 
   it('daftar pengelolaan Admin menyaring pemilik di server; Superadmin dapat membaca semua', async () => {
     const { service, repo } = setup();
+    repo.rows.mockResolvedValue([]);
     await service.adminList(admin);
     expect(repo.rows).toHaveBeenLastCalledWith(
       undefined,

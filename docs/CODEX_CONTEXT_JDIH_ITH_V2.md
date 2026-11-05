@@ -1,5 +1,23 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
+Perluasan pencabutan TERBARU 2026-11-06: Format Persuratan juga memakai REVOKE.
+Ini menggantikan pengecualian Format pada revisi sebelumnya. Admin pemilik meminta
+melalui antrean; Superadmin aktif berizin templates.manage menyetujui atau memakai
+Cabut Format langsung dengan versionId dan alasan wajib. Versi harus current ACTIVE
+dan belum dicabut. Pencabutan mengisi revoked_at/revoked_reason/revoked_by pada
+versi, mempertahankan ACTIVE, aktif=1, pointer dan file. Format tetap dihitung,
+ditampilkan, dipratinjau dan diunduh sesuai akses Publik/Internal yang berlaku.
+Portal/panel/Semua Dokumen menampilkan Dicabut; Keterangan membuka alasan lengkap
+dengan tanggal WITA tanpa mengekspos pengelola/berkas Internal ke publik.
+Versi baru tetap PENDING_REVIEW -> APPROVED -> ACTIVE; format lama tetap Dicabut
+sampai publish baru. Riwayat pencabutan versi lama tetap ada setelah ARCHIVED.
+Pemilik tidak dapat menghapus format pernah terbit langsung, termasuk Dicabut;
+permintaan Hapus tetap memerlukan Superadmin. Keputusan/audit/status atomik,
+versi stale/replay/penonaktifan ditolak, request-backed action tidak menduplikasi
+notifikasi TEMPLATE_REVOKE. Dialog pencabutan ditutup jika versi current berganti.
+Jalankan patch-028 setelah patch-027 sebelum API terbaru; tambahan metadata/FK/CHECK
+aman diulang dan tidak mencabut/menayangkan ulang data atau WITHDRAW lama.
+
 Revisi pencabutan TERBARU 2026-11-06: Produk Hukum dan seluruh SOP memakai
 Minta Pencabutan (REVOKE) menggantikan permintaan penarikan baru. Admin pemilik
 meminta; Superadmin aktif berizin workflow.withdraw memutuskan atau memakai

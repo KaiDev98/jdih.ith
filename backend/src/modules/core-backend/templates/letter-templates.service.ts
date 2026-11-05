@@ -21,6 +21,7 @@ import {
   skemaUnggahTemplateAwal,
   skemaCariTemplate,
   skemaAntreanTemplate,
+  skemaCabutDokumen,
 } from '@jdih/shared';
 import {
   cekBacaPanel,
@@ -51,6 +52,7 @@ interface TemplateFile extends RowDataPacket {
   tingkat_akses: 'PUBLIK' | 'INTERNAL';
   id: string;
   template_surat_id: string;
+  revoked_at?: string | null;
 }
 
 export type TemplateDownloadTerotorisasi = TemplateFile;
@@ -282,10 +284,10 @@ export class LetterTemplatesService {
 
   private async lockTemplate(db: PoolConnection, templateId: string) {
     const [template] = await this.repo.rows<
-      RowDataPacket & { id: string; current_version_id: string | null }
+      RowDataPacket & { id: string; current_version_id: string | null; aktif: number }
     >(
       db,
-      'SELECT id,current_version_id FROM template_surat WHERE id=? AND deleted_at IS NULL FOR UPDATE',
+      'SELECT id,current_version_id,aktif FROM template_surat WHERE id=? AND deleted_at IS NULL FOR UPDATE',
       [templateId],
     );
     if (!template) throw new NotFoundException();
@@ -504,6 +506,35 @@ export class LetterTemplatesService {
     return { id: templateId, deleted: true };
   }
 
+  async revoke(actor: PenggunaAktif, templateId: string, raw: unknown) {
+    cekSuperadmin(actor);
+    cekIzin(actor, ['templates.manage']);
+    const input = skemaCabutDokumen.parse(raw);
+    return this.repo.transaction((db) => this.revokeInTransaction(db, actor, templateId, input.versionId, input.alasan));
+  }
+
+  async revokeInTransaction(db: PoolConnection, actor: PenggunaAktif, templateId: string, versionId: string, reason: string, requestId?: string) {
+    cekSuperadmin(actor);
+    cekIzin(actor, ['templates.manage']);
+    const input = skemaCabutDokumen.parse({ versionId, alasan: reason });
+    const template = await this.lockTemplate(db, templateId);
+    if (!Number(template.aktif) || template.current_version_id !== input.versionId)
+      throw new ConflictException('Versi terbit format sudah berubah atau tidak tersedia. Muat ulang halaman.');
+    const version = await this.version(db, templateId, input.versionId);
+    if (version.status !== 'ACTIVE') throw new ConflictException('Hanya format terbit yang dapat dicabut.');
+    if (version.revoked_at) throw new ConflictException('Format sudah dicabut.');
+    await this.repo.write(db,
+      'UPDATE template_surat_versi SET revoked_at=UTC_TIMESTAMP(6),revoked_reason=?,revoked_by=? WHERE id=?',
+      [input.alasan, actor.id, input.versionId]);
+    await this.repo.write(db, 'UPDATE template_surat SET updated_at=UTC_TIMESTAMP(6) WHERE id=?', [templateId]);
+    await this.audit.recordDomain({ module: 'letter-templates', action: 'REVOKE', entityType: 'template_surat_versi', entityId: input.versionId,
+      actorId: actor.id, before: { status: 'ACTIVE' }, after: { status: 'REVOKED', reason: input.alasan, ...(requestId ? { requestId } : {}) } }, db);
+    await this.repo.write(db,
+      "UPDATE permintaan_penghapusan SET status='OBSOLETE',catatan='Format sudah dicabut melalui tindakan Superadmin.',decided_by=?,decided_at=UTC_TIMESTAMP(6) WHERE sumber='TEMPLATE' AND resource_id=? AND jenis='REVOKE' AND status='PENDING'",
+      [actor.id, templateId]);
+    return { id: templateId, versionId: input.versionId, dicabut: true };
+  }
+
   async withdrawInTransaction(db: PoolConnection, actor: PenggunaAktif, templateId: string, reason: string, requestId?: string) {
     cekSuperadmin(actor);
     cekIzin(actor, ['templates.manage']);
@@ -539,17 +570,20 @@ export class LetterTemplatesService {
         nama: string;
         tingkatAkses: 'PUBLIK' | 'INTERNAL';
         mimeType?: string;
+        tanggalPencabutan?: string | null;
+        alasanPencabutan?: string | null;
       }
     >(
       this.repo.pool,
-      `SELECT CAST(t.id AS CHAR) id,t.slug,t.nama,v.tingkat_akses tingkatAkses,v.mime_type mimeType FROM template_surat t JOIN template_surat_versi v ON v.id=t.current_version_id WHERE t.aktif=1 AND t.deleted_at IS NULL AND v.status='ACTIVE' AND ${visible}${search} ORDER BY t.nama,t.id LIMIT ? OFFSET ?`,
+      `SELECT CAST(t.id AS CHAR) id,t.slug,t.nama,v.tingkat_akses tingkatAkses,v.mime_type mimeType,DATE_FORMAT(CONVERT_TZ(v.revoked_at,'+00:00','+08:00'),'%Y-%m-%d') tanggalPencabutan,v.revoked_reason alasanPencabutan FROM template_surat t JOIN template_surat_versi v ON v.id=t.current_version_id WHERE t.aktif=1 AND t.deleted_at IS NULL AND v.status='ACTIVE' AND ${visible}${search} ORDER BY t.nama,t.id LIMIT ? OFFSET ?`,
       [...values, page.perHalaman, offset],
     );
     // Pengunjung anonim tidak menerima `tingkatAkses`: keberadaan format
     // Internal tidak boleh tersirat dari bentuk tanggapan publik.
-    const data = rows.map(({ tingkatAkses, mimeType, ...row }) => ({
+    const data = rows.map(({ tingkatAkses, mimeType, tanggalPencabutan, alasanPencabutan, ...row }) => ({
       ...row,
       ...(includeInternal ? { tingkatAkses } : {}),
+      ...(tanggalPencabutan && alasanPencabutan ? { pencabutan: { tanggal: tanggalPencabutan, alasan: alasanPencabutan } } : {}),
       kemampuan: { download: true as const, preview: !!mimeType && bisaDipratinjau(mimeType) },
     }));
     const total = Number(count?.total ?? 0);
@@ -573,11 +607,18 @@ export class LetterTemplatesService {
   async adminList(actor: PenggunaAktif) {
     cekBacaPanel(actor, 'templates.manage');
     const superadmin = actor.peran.includes('SUPERADMIN');
-    return this.repo.rows(
+    const rows = await this.repo.rows<RowDataPacket & { id: string; dicabut: number | string; aktif: number | string; pernahTerbit: number | string; currentVersionId: string | null; tanggalPencabutan: string | null; alasanPencabutan: string | null }>(
       this.repo.pool,
-      `SELECT CAST(t.id AS CHAR) id,CAST(t.created_by AS CHAR) createdBy,t.slug,t.nama,t.aktif,EXISTS(SELECT 1 FROM template_surat_versi h WHERE h.template_surat_id=t.id AND h.activated_at IS NOT NULL) pernahTerbit,CAST(t.current_version_id AS CHAR) currentVersionId,CAST(v.nomor_versi AS UNSIGNED) nomorVersi,v.tingkat_akses tingkatAkses,v.status,v.mime_type mimeType,v.nama_asli namaAsli,CAST(p.id AS CHAR) pendingVersionId,CAST(p.nomor_versi AS UNSIGNED) pendingNomorVersi,p.tingkat_akses pendingTingkatAkses,p.status pendingStatus,p.mime_type pendingMimeType,p.nama_asli pendingNamaAsli FROM template_surat t LEFT JOIN template_surat_versi v ON v.id=t.current_version_id LEFT JOIN template_surat_versi p ON p.template_surat_id=t.id AND p.status IN ('PENDING_REVIEW','APPROVED') WHERE t.deleted_at IS NULL${superadmin ? '' : ' AND t.created_by=?'} ORDER BY t.updated_at DESC`,
+      `SELECT CAST(t.id AS CHAR) id,CAST(t.created_by AS CHAR) createdBy,t.slug,t.nama,t.aktif,EXISTS(SELECT 1 FROM template_surat_versi h WHERE h.template_surat_id=t.id AND h.activated_at IS NOT NULL) pernahTerbit,CAST(t.current_version_id AS CHAR) currentVersionId,CAST(v.nomor_versi AS UNSIGNED) nomorVersi,v.tingkat_akses tingkatAkses,v.status,IF(v.revoked_at IS NULL,0,1) dicabut,DATE_FORMAT(CONVERT_TZ(v.revoked_at,'+00:00','+08:00'),'%Y-%m-%d') tanggalPencabutan,v.revoked_reason alasanPencabutan,v.mime_type mimeType,v.nama_asli namaAsli,CAST(p.id AS CHAR) pendingVersionId,CAST(p.nomor_versi AS UNSIGNED) pendingNomorVersi,p.tingkat_akses pendingTingkatAkses,p.status pendingStatus,p.mime_type pendingMimeType,p.nama_asli pendingNamaAsli FROM template_surat t LEFT JOIN template_surat_versi v ON v.id=t.current_version_id LEFT JOIN template_surat_versi p ON p.template_surat_id=t.id AND p.status IN ('PENDING_REVIEW','APPROVED') WHERE t.deleted_at IS NULL${superadmin ? '' : ' AND t.created_by=?'} ORDER BY t.updated_at DESC`,
       superadmin ? [] : [actor.id],
     );
+    return rows.map(({ tanggalPencabutan, alasanPencabutan, dicabut, aktif, pernahTerbit, ...row }) => ({
+      ...row,
+      dicabut: Number(dicabut),
+      aktif: Number(aktif),
+      pernahTerbit: Number(pernahTerbit),
+      ...(tanggalPencabutan && alasanPencabutan ? { pencabutan: { tanggal: tanggalPencabutan, alasan: alasanPencabutan } } : {}),
+    }));
   }
 
   async verificationQueue(actor: PenggunaAktif, rawQuery: unknown) {

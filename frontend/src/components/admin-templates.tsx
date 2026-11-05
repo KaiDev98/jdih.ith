@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { FileText, FileUp, Plus, UploadCloud, X, Trash2 } from 'lucide-react';
+import { FileText, FileUp, Plus, UploadCloud, X, Trash2, FileX2 } from 'lucide-react';
+import type { PencabutanTemplate } from '@jdih/shared';
 import Link from '@/components/admin/tautan-panel';
 import { ambilApi, GalatApi } from '@/lib/api-client';
 import { useSession, csrfHeaders } from '@/lib/sesi';
@@ -22,6 +23,7 @@ import styles from './admin-templates.module.css';
 import { PratinjauFormat } from './pratinjau-format';
 import { AntreanPermintaanPenghapusan, FormPermintaanPenghapusan } from './admin-removal-requests';
 import { PemilihTingkatAkses } from './admin/pemilih-tingkat-akses';
+import { KeteranganPencabutanFormat } from './keterangan-pencabutan-format';
 
 type Template = {
   id: string;
@@ -40,6 +42,8 @@ type Template = {
   mimeType?: string | null;
   pendingMimeType?: string | null;
   pernahTerbit?: boolean | number;
+  dicabut?: boolean | number;
+  pencabutan?: PencabutanTemplate;
 };
 
 export function AdminTemplates() {
@@ -65,7 +69,7 @@ export function AdminTemplates() {
   const [refresh, setRefresh] = useState(0);
   const [selected, setSelected] = useState<Template>();
   const [filter, setFilter] = useState<
-    'SEMUA' | 'AKTIF' | 'MENUNGGU_VERIFIKASI' | 'DISETUJUI' | 'NONAKTIF'
+    'SEMUA' | 'AKTIF' | 'DICABUT' | 'MENUNGGU_VERIFIKASI' | 'DISETUJUI' | 'NONAKTIF'
   >('SEMUA');
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
@@ -74,6 +78,7 @@ export function AdminTemplates() {
   const [access, setAccess] = useState<'PUBLIK' | 'INTERNAL'>('PUBLIK');
   const [file, setFile] = useState<File>();
   const [fileKey, setFileKey] = useState(0);
+  const [alasanPencabutan, setAlasanPencabutan] = useState<Record<string, string>>({});
   const editor = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -172,7 +177,20 @@ export function AdminTemplates() {
     setRefresh((x) => x + 1);
     window.dispatchEvent(new Event('jdih:workflow'));
   }
-  const aktif = rows.filter((row) => row.aktif).length;
+  async function revoke(row: Template) {
+    if (!bolehVerifikasi || !row.aktif || !row.currentVersionId || row.dicabut)
+      throw new Error('Hanya Superadmin dapat mencabut format terbit yang belum dicabut.');
+    await ambilApi(`/admin/letter-templates/${row.id}/revoke`, {
+      method: 'POST', headers: csrfHeaders(csrfToken),
+      muatan: { versionId: row.currentVersionId, alasan: alasanPencabutan[row.id] ?? '' },
+    });
+    setAlasanPencabutan((notes) => ({ ...notes, [row.id]: '' }));
+    setNotice(`${row.nama} dicabut. Berkas tetap tersedia dengan keterangan Dicabut.`);
+    setRefresh((value) => value + 1);
+    window.dispatchEvent(new Event('jdih:workflow'));
+  }
+  const aktif = rows.filter((row) => row.aktif && !row.dicabut).length;
+  const dicabut = rows.filter((row) => row.dicabut).length;
   const menungguVerifikasi = rows.filter(
     (row) => row.pendingVersionId && row.pendingStatus !== 'APPROVED',
   ).length;
@@ -181,7 +199,8 @@ export function AdminTemplates() {
   const tampil = rows.filter(
     (row) =>
       filter === 'SEMUA' ||
-      (filter === 'AKTIF' && !!row.aktif) ||
+      (filter === 'AKTIF' && !!row.aktif && !row.dicabut) ||
+      (filter === 'DICABUT' && !!row.dicabut) ||
       (filter === 'MENUNGGU_VERIFIKASI' &&
         !!row.pendingVersionId &&
         row.pendingStatus !== 'APPROVED') ||
@@ -248,6 +267,7 @@ export function AdminTemplates() {
                 [
                   ['SEMUA', 'Semua', rows.length],
                   ['AKTIF', 'Aktif', aktif],
+                  ['DICABUT', 'Dicabut', dicabut],
                   ['MENUNGGU_VERIFIKASI', 'Menunggu persetujuan', menungguVerifikasi],
                   ['DISETUJUI', 'Disetujui', disetujui],
                   ['NONAKTIF', 'Nonaktif', nonaktif],
@@ -297,7 +317,7 @@ export function AdminTemplates() {
                           ? 'Dosen/Staf'
                           : 'Publik'}
                       </span>
-                      {row.aktif ? (
+                      {row.dicabut ? <Badge color="red">Dicabut</Badge> : row.aktif ? (
                         <Badge color="green">Aktif</Badge>
                       ) : row.pendingVersionId ? (
                         <Badge color={row.pendingStatus === 'APPROVED' ? 'blue' : 'amber'}>
@@ -319,6 +339,7 @@ export function AdminTemplates() {
                     </div>
                   </div>
                   <div className={styles.actions}>
+                    {row.pencabutan && <KeteranganPencabutanFormat nama={row.nama} pencabutan={row.pencabutan} />}
                     <Button
                       tone="secondary"
                       ukuran="kecil"
@@ -363,6 +384,15 @@ export function AdminTemplates() {
                           onConfirm={() => publish(row)}
                         />
                       )}
+                    {bolehVerifikasi && !!row.aktif && row.currentVersionId && !row.dicabut && (
+                      <ConfirmAction key={row.currentVersionId} label="Cabut Format" icon={FileX2} tone="danger" ukuran="kecil"
+                        title="Cabut format persuratan?"
+                        description={`${row.nama} versi ${row.nomorVersi} tetap tersedia sebagai dokumentasi dengan label Dicabut. Alasan pencabutan tampil sesuai hak akses format.`}
+                        confirmLabel="Ya, cabut" confirmDisabled={!alasanPencabutan[row.id]?.trim()} onConfirm={() => revoke(row)}>
+                        <TextAreaField label="Alasan pencabutan" rows={3} maxLength={1000} value={alasanPencabutan[row.id] ?? ''}
+                          onChange={(event) => setAlasanPencabutan((notes) => ({ ...notes, [row.id]: event.target.value }))} />
+                      </ConfirmAction>
+                    )}
                     {bolehHapus(row) || !bolehUbah(row) ? <ConfirmAction
                       label="Hapus" icon={Trash2}
                       tone="danger"
@@ -372,7 +402,7 @@ export function AdminTemplates() {
                       description={`${row.nama} akan dihapus dari daftar pengelola dan portal. Seluruh versi berkasnya tidak lagi dapat diunduh.`}
                       disabled={!bolehHapus(row)}
                       onConfirm={() => remove(row)}
-                    /> : <FormPermintaanPenghapusan sumber="TEMPLATE" resourceId={row.id} judul={row.nama} bisaTarik={!!row.currentVersionId} />}
+                    /> : <FormPermintaanPenghapusan key={row.currentVersionId} sumber="TEMPLATE" resourceId={row.id} judul={row.nama} bisaTarik={!!row.aktif && !!row.currentVersionId && !row.dicabut} />}
                   </div>
                 </li>
               ))}

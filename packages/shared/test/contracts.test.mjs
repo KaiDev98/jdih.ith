@@ -464,6 +464,13 @@ test('template list only title and download, no public Internal', () => {
   for (const field of ['preview', 'statusHukum', 'pic', 'detailUrl'])
     bad(c.skemaItemTemplatePublik, { ...item, [field]: 'x' });
   ok(c.skemaItemTemplatePublik, { ...item, kemampuan: { download: true, preview: true } });
+  const pencabutan = { tanggal: '2026-11-06', alasan: 'Format sudah dicabut' };
+  ok(c.skemaItemTemplatePublik, { ...item, pencabutan });
+  ok(c.skemaItemTemplateAuthorized, { ...item, tingkatAkses: 'INTERNAL', pencabutan });
+  bad(c.skemaItemTemplatePublik, { ...item, pencabutan: { ...pencabutan, revokedBy: '12' } });
+  bad(c.skemaPencabutanTemplate, { ...pencabutan, alasan: ' ' });
+  bad(c.skemaPencabutanTemplate, { ...pencabutan, alasan: 'a'.repeat(1001) });
+  bad(c.skemaPencabutanTemplate, { ...pencabutan, tanggal: 'kemarin' });
   bad(c.skemaItemTemplatePublik, { ...item, kemampuan: { download: true, preview: 'true' } });
 });
 test('template version metadata rejects actor/state/storage assignment', () => {

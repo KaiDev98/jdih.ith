@@ -8,6 +8,7 @@ import {
   skemaTanggapanHalaman,
   skemaHalaman,
   skemaKataKunci,
+  skemaTanggal,
 } from './common.schema.js';
 export const skemaCariTemplate = skemaHalaman.extend({ q: skemaKataKunci.optional() });
 export const skemaBuatTemplate = z.strictObject({
@@ -39,10 +40,16 @@ export const skemaVersiTemplateAdmin = z.strictObject({
   tingkatAkses: skemaAksesTemplate,
   status: skemaStatusVersiTemplate,
 });
+export const skemaPencabutanTemplate = z.strictObject({
+  tanggal: skemaTanggal,
+  alasan: teksWajib(1000, 'Alasan pencabutan'),
+});
+export type PencabutanTemplate = z.infer<typeof skemaPencabutanTemplate>;
 const item = {
   id: skemaId,
   slug: skemaSlug,
   nama: teksWajib(200, 'Nama'),
+  pencabutan: skemaPencabutanTemplate.optional(),
   kemampuan: z.strictObject({ download: z.literal(true), preview: z.boolean().optional() }),
 };
 /**

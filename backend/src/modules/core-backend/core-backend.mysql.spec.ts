@@ -485,14 +485,15 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     expect((await requests.list(adminOwner(), { sumber: 'DOCUMENT', resourceId: d.id, status: 'ALL' })).data[0]).toMatchObject({ status: 'DECLINED', catatan: 'Ajukan ulang untuk versi baru' });
   });
 
-  it('keeps template management owner-scoped and handles published-template withdrawal requests', async () => {
+  it('keeps template management owner-scoped and handles legacy published-template withdrawal requests', async () => {
     const { requests } = removalServices();
     const suffix = uid();
     const template = await templates.create(actor, await incomingFile('request.docx', minimalDocx()), { nama: `Format ${suffix}`, slug: `request-${suffix}`, tingkatAkses: 'PUBLIK' });
     await templates.verify(second, template.id, template.versionId, {});
     await templates.publish(second, template.id, template.versionId, {});
     await expect(requests.create({ ...second, peran: ['ADMIN'] }, 'TEMPLATE', template.id, { jenis: 'DELETE', alasan: 'Tidak punya' })).rejects.toMatchObject({ status: 404 });
-    const request = await requests.create(adminOwner(), 'TEMPLATE', template.id, { jenis: 'WITHDRAW', alasan: 'Perbarui isi format' });
+    const [legacy] = await pool.execute("INSERT INTO permintaan_penghapusan(sumber,resource_id,version_id,judul,jenis,alasan,requested_by) VALUES('TEMPLATE',?,?,?,'WITHDRAW','Perbarui isi format',?)", [template.id, template.versionId, 'Format lama', actor.id]);
+    const request = { id: String((legacy as any).insertId) };
     await requests.decide(second, request.id, { keputusan: 'APPROVE', catatan: 'Tarik untuk diperbarui' });
     expect((await templates.list({ q: suffix })).data).toHaveLength(0);
     const [versions] = await pool.query<RowDataPacket[]>('SELECT status FROM template_surat_versi WHERE id=?', [template.versionId]);
@@ -503,6 +504,87 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     await requests.decide(second, deletion.id, { keputusan: 'APPROVE', catatan: 'Hapus format yang sudah ditarik' });
     await expect(templates.review(actor, template.id, template.versionId)).rejects.toMatchObject({ status: 404 });
     expect((await requests.list(adminOwner(), { sumber: 'TEMPLATE', resourceId: template.id, status: 'ALL' })).data).toHaveLength(2);
+  });
+
+  it('revokes published templates through Superadmin approval while keeping public preview/download and preserves revoked history when replacing', async () => {
+    const { requests } = removalServices();
+    const suffix = uid();
+    const pdf = Buffer.from('%PDF-1.7\nmetadata-only test\n%%EOF\n');
+    const t = await templates.create(actor, await incomingFile('request.pdf', pdf), { nama: `Format ${suffix}`, slug: `revoke-${suffix}`, tingkatAkses: 'PUBLIK' });
+    await templates.verify(second, t.id, t.versionId, {}); await templates.publish(second, t.id, t.versionId, {});
+    await expect(requests.create({ ...second, peran: ['ADMIN'] }, 'TEMPLATE', t.id, { jenis: 'REVOKE', alasan: 'Bukan pemilik' })).rejects.toMatchObject({ status: 404 });
+    const request = await requests.create(adminOwner(), 'TEMPLATE', t.id, { jenis: 'REVOKE', alasan: 'Format tidak digunakan lagi' });
+    await expect(requests.decide(adminOwner(), request.id, { keputusan: 'APPROVE' })).rejects.toBeInstanceOf(ForbiddenException);
+    await requests.decide(second, request.id, { keputusan: 'APPROVE' });
+    const publicList = await templates.list({ q: suffix });
+    expect(publicList.meta.totalButir).toBe(1);
+    expect(publicList.data[0]).toMatchObject({ id: t.id, pencabutan: { alasan: 'Format tidak digunakan lagi' }, kemampuan: { download: true, preview: true } });
+    expect(publicList.data[0]).not.toHaveProperty('tingkatAkses');
+    const opened = await templates.openAuthorized(await templates.authorizeOpen(t.slug), undefined, true);
+    expect(opened.mimeType).toBe('application/pdf'); opened.stream.destroy();
+    const managed = (await templates.adminList(adminOwner())).find((r) => r.id === t.id)!;
+    expect(managed).toMatchObject({ currentVersionId: t.versionId, aktif: 1, dicabut: 1, pencabutan: { alasan: 'Format tidak digunakan lagi' } });
+    await expect(requests.create(adminOwner(), 'TEMPLATE', t.id, { jenis: 'REVOKE', alasan: 'Ulang' })).rejects.toMatchObject({ status: 409 });
+    await expect(templates.remove(adminOwner(), t.id, {})).rejects.toMatchObject({ status: 409 });
+    const v2 = await templates.newVersion(adminOwner(), t.id, await incomingFile('new.pdf', pdf), { tingkatAkses: 'PUBLIK' });
+    expect((await templates.list({ q: suffix })).data[0]!.pencabutan).toBeTruthy();
+    await templates.verify(second, t.id, v2.id, {});
+    expect((await templates.list({ q: suffix })).data[0]!.pencabutan).toBeTruthy();
+    await templates.publish(second, t.id, v2.id, {});
+    expect((await templates.list({ q: suffix })).data[0]).not.toHaveProperty('pencabutan');
+    const [history] = await pool.query<RowDataPacket[]>('SELECT status,revoked_reason,CAST(revoked_by AS CHAR) revokedBy FROM template_surat_versi WHERE id=?', [t.versionId]);
+    expect(history[0]).toMatchObject({ status: 'ARCHIVED', revoked_reason: 'Format tidak digunakan lagi', revokedBy: second.id });
+  });
+
+  it('protects template revocation by role/state/version and rollback, keeps Internal templates private and closes direct requests', async () => {
+    const { requests } = removalServices();
+    const suffix = uid();
+    const t = await templates.create(actor, await incomingFile('request.docx', minimalDocx()), { nama: `Internal ${suffix}`, slug: `internal-revoke-${suffix}`, tingkatAkses: 'INTERNAL' });
+    const input = { versionId: t.versionId, alasan: 'Pencabutan internal' };
+    await expect(templates.revoke(second, t.id, input)).rejects.toMatchObject({ status: 409 });
+    await templates.verify(second, t.id, t.versionId, {}); await templates.publish(second, t.id, t.versionId, {});
+    await pool.execute('UPDATE template_surat SET aktif=0 WHERE id=?', [t.id]);
+    await expect(templates.revoke(second, t.id, input)).rejects.toMatchObject({ status: 409 });
+    await expect(requests.create(adminOwner(), 'TEMPLATE', t.id, { jenis: 'REVOKE', alasan: input.alasan })).rejects.toMatchObject({ status: 409 });
+    await pool.execute('UPDATE template_surat SET aktif=1 WHERE id=?', [t.id]);
+    await expect(templates.revoke(adminOwner(), t.id, input)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(templates.revoke({ ...second, status: 'NONAKTIF' }, t.id, input)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(templates.revoke(second, t.id, { ...input, alasan: '' })).rejects.toThrow();
+    await expect(templates.revoke(second, t.id, { ...input, versionId: '999999999' })).rejects.toMatchObject({ status: 409 });
+    const request = await requests.create(adminOwner(), 'TEMPLATE', t.id, { jenis: 'REVOKE', alasan: input.alasan });
+    const record = audit.recordDomain.bind(audit);
+    const fail = vi.spyOn(audit, 'recordDomain').mockImplementation((event, db) => {
+      if (event.action === 'REMOVAL_APPROVED') throw new Error('template revocation audit failure');
+      return record(event, db);
+    });
+    await expect(requests.decide(second, request.id, { keputusan: 'APPROVE' })).rejects.toThrow('template revocation audit failure'); fail.mockRestore();
+    expect((await templates.adminList(adminOwner())).find((r) => r.id === t.id)!.dicabut).toBe(0);
+    const results = await Promise.allSettled([templates.revoke(second, t.id, input), templates.revoke(second, t.id, input)]);
+    expect(results.map((r) => r.status).sort()).toEqual(['fulfilled', 'rejected']);
+    expect((await requests.list(adminOwner(), { requestId: request.id, status: 'ALL' })).data[0]!.status).toBe('OBSOLETE');
+    expect((await templates.list({ q: suffix })).meta.totalButir).toBe(0);
+    await expect(templates.authorizeOpen(t.slug)).rejects.toMatchObject({ status: 404 });
+    const staff = await addStaff();
+    const visible = (await templates.list({ q: suffix }, staff)).data[0]!;
+    expect(visible).toMatchObject({ pencabutan: { alasan: input.alasan }, tingkatAkses: 'INTERNAL' });
+    const opened = await templates.openAuthorized(await templates.authorizeOpen(t.slug, staff), staff); opened.stream.destroy();
+    await templates.remove(second, t.id, {});
+    await expect(templates.authorizeOpen(t.slug, staff)).rejects.toMatchObject({ status: 404 });
+    const [stored] = await pool.query<RowDataPacket[]>('SELECT revoked_reason FROM template_surat_versi WHERE id=?', [t.versionId]);
+    expect(stored[0]!.revoked_reason).toBe(input.alasan);
+  });
+
+  it('rejects template revocation approval after publication changes and permits refusal without a note', async () => {
+    const { requests } = removalServices(); const suffix = uid();
+    const t = await templates.create(actor, await incomingFile('request.docx', minimalDocx()), { nama: `Format ${suffix}`, slug: `stale-revoke-${suffix}`, tingkatAkses: 'PUBLIK' });
+    await templates.verify(second, t.id, t.versionId, {}); await templates.publish(second, t.id, t.versionId, {});
+    const request = await requests.create(adminOwner(), 'TEMPLATE', t.id, { jenis: 'REVOKE', alasan: 'Versi lama' });
+    const v2 = await templates.newVersion(adminOwner(), t.id, await incomingFile('request.docx', minimalDocx()), { tingkatAkses: 'PUBLIK' });
+    await templates.verify(second, t.id, v2.id, {}); await templates.publish(second, t.id, v2.id, {});
+    await expect(requests.decide(second, request.id, { keputusan: 'APPROVE' })).rejects.toMatchObject({ status: 409 });
+    await expect(templates.revoke(second, t.id, { versionId: t.versionId, alasan: 'Lama' })).rejects.toMatchObject({ status: 409 });
+    await requests.decide(second, request.id, { keputusan: 'DECLINE' });
+    expect((await templates.adminList(adminOwner())).find((r) => r.id === t.id)).toMatchObject({ currentVersionId: v2.id, dicabut: 0 });
   });
 
   it('closes pending requests when Superadmin directly removes their target', async () => {

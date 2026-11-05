@@ -42,6 +42,7 @@ export const skemaNotifikasiDokumen = z.strictObject({
     'TEMPLATE_APPROVE',
     'TEMPLATE_PUBLISH',
     'TEMPLATE_WITHDRAW',
+    'TEMPLATE_REVOKE',
     'TEMPLATE_DELETE',
     'REMOVAL_REQUEST',
     'REMOVAL_APPROVE',

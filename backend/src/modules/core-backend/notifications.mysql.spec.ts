@@ -14,6 +14,7 @@ import { CoreBackendService } from './core-backend.service.js';
 import { DokumenAdminService } from './documents/dokumen-admin.service.js';
 import { RemovalRequestsRepository } from './documents/removal-requests.repository.js';
 import { RemovalRequestsService } from './documents/removal-requests.service.js';
+import { LetterTemplatesService } from './templates/letter-templates.service.js';
 
 /** Opt-in local MySQL checks. All fixtures, dismissals and audit rows are rolled back. */
 describe.skipIf(!process.env.NOTIFICATIONS_MYSQL_ENV)('notifikasi MySQL dengan rollback', () => {
@@ -306,6 +307,27 @@ describe.skipIf(!process.env.NOTIFICATIONS_MYSQL_ENV)('notifikasi MySQL dengan r
     expect(result.find((r) => r.requestId === request.id)).toMatchObject({ action: 'REMOVAL_APPROVE', catatan: null });
     expect(result.some((r) => r.resourceId === d.id && r.action === 'REVOKE')).toBe(false);
     expect((await service.notifications(superadmin)).some((r) => r.requestId === request.id)).toBe(false);
+  });
+  it('template revocation notifies the owner, pending decisions notify Superadmin and approval is not duplicated', async () => {
+    const repo = newRepository();
+    const templates = new LetterTemplatesService(repo, {} as never, audit, {} as never);
+    const documents = new DokumenAdminService(repo, audit, {} as never);
+    const requests = new RemovalRequestsService(repo, new RemovalRequestsRepository(repo), audit, documents, service, templates);
+    const t = await template(owner);
+    await db.execute("UPDATE template_surat_versi SET status='ACTIVE',activated_at=UTC_TIMESTAMP(6) WHERE id=?", [t.vid]);
+    await db.execute('UPDATE template_surat SET current_version_id=?,aktif=1 WHERE id=?', [t.vid, t.id]);
+    const request = await requests.create(owner, 'TEMPLATE', t.id, { jenis: 'REVOKE', alasan: 'Format lama' });
+    expect((await service.notifications(superadmin)).some((r) => r.requestId === request.id && r.action === 'REMOVAL_REQUEST')).toBe(true);
+    await requests.decide(superadmin, request.id, { keputusan: 'APPROVE' });
+    const notifications = await service.notifications(owner);
+    expect(notifications.filter((r) => r.requestId === request.id)).toHaveLength(1);
+    expect(notifications.some((r) => r.resourceId === t.id && r.action === 'TEMPLATE_REVOKE')).toBe(false);
+    const direct = await template(owner);
+    await db.execute("UPDATE template_surat_versi SET status='ACTIVE',activated_at=UTC_TIMESTAMP(6) WHERE id=?", [direct.vid]);
+    await db.execute('UPDATE template_surat SET current_version_id=?,aktif=1 WHERE id=?', [direct.vid, direct.id]);
+    await templates.revoke(superadmin, direct.id, { versionId: direct.vid, alasan: 'Keputusan format langsung' });
+    expect((await service.notifications(owner)).find((r) => r.resourceId === direct.id && r.action === 'TEMPLATE_REVOKE')).toMatchObject({ catatan: 'Keputusan format langsung' });
+    expect((await service.notifications(other)).some((r) => r.resourceId === direct.id)).toBe(false);
   });
   it('direct Superadmin withdrawal, document deletion and draft cancellation notify only the owner', async () => {
     const d = await published(owner);

@@ -1,5 +1,15 @@
 # CODEX IMPLEMENTATION PLAN — JDIH ITH V2
 
+Perluasan Format Persuratan 2026-11-06: REVOKE melalui permintaan pemilik dan
+Cabut Format langsung khusus Superadmin. Metadata revoked_at/reason/by terpisah
+dari workflow versi; ACTIVE/pointer/akses/file dipertahankan. Uji publik/Internal,
+pratinjau/unduh, alasan/tanggal WITA, badge/filter, catatan keputusan opsional,
+pemilik, Superadmin/CSRF, replay/stale/konkurensi, rollback audit, perubahan versi
+saat dialog terbuka dan notifikasi tanpa duplikasi. Kandidat pending/approved
+belum mengganti versi Dicabut; publish baru mengarsip versi lama beserta metadata
+pencabutannya. Patch-028 aman diulang, record lama tidak berubah. Periksa kartu
+4x3, alasan panjang di dialog, akses keyboard dan ponsel sempit. Tanpa purge.
+
 Revisi pencabutan 2026-11-06: ganti permintaan dokumen baru WITHDRAW dengan
 REVOKE; Superadmin juga dapat mencabut langsung tanpa pengganti. Pertahankan
 TERBIT/pointer/file/akses, ubah status hukum DICABUT dan simpan riwayat hukum

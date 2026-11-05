@@ -17,6 +17,7 @@ import { UnduhTemplate } from './unduh-template';
 import { StateMessage } from './ui';
 import styles from './koleksi-berkas.module.css';
 import { PratinjauFormat } from './pratinjau-format';
+import { KeteranganPencabutanFormat } from './keterangan-pencabutan-format';
 
 type Berkas = HasilCariAnonim | HasilCariAuthorized | ItemTemplatePublik | ItemTemplateAuthorized;
 type Jenis = 'format' | 'sk';
@@ -24,19 +25,20 @@ type Jenis = 'format' | 'sk';
 function KartuBerkas({ item }: { item: Berkas }) {
   if ('nama' in item)
     return (
-      <li className={styles.format}>
+      <li className={styles.format} data-revoked={!!item.pencabutan || undefined}>
         <div className={styles.formatHeader}>
           <FileText size={22} strokeWidth={1.4} aria-hidden />
-          <span>Format surat</span>
+          {item.pencabutan ? <span className="text-xs"><TandaStatus status="DICABUT" /></span> : <span className={styles.formatLabel}>Format surat</span>}
         </div>
-        <h3 className="line-clamp-3" title={item.nama}>
+        <h3 className={item.pencabutan ? 'line-clamp-2' : 'line-clamp-3'} title={item.nama}>
           {item.nama}
         </h3>
+        {item.pencabutan && <KeteranganPencabutanFormat nama={item.nama} pencabutan={item.pencabutan} />}
         <div className={styles.formatFooter}>
           <span>
             {'tingkatAkses' in item && item.tingkatAkses === 'INTERNAL'
               ? 'Khusus Dosen/Staf aktif'
-              : 'Siap digunakan'}
+              : item.pencabutan ? 'Dokumentasi' : 'Siap digunakan'}
           </span>
           {item.kemampuan?.preview ? (
             <PratinjauFormat

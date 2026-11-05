@@ -410,6 +410,9 @@ CREATE TABLE template_surat_versi (
   approved_at DATETIME(6) NULL,
   activated_at DATETIME(6) NULL,
   archived_at DATETIME(6) NULL,
+  revoked_at DATETIME(6) NULL,
+  revoked_reason VARCHAR(1000) NULL,
+  revoked_by BIGINT UNSIGNED NULL,
   active_slot TINYINT GENERATED ALWAYS AS (CASE WHEN status = 'ACTIVE' THEN 1 ELSE NULL END) STORED,
   pending_slot TINYINT GENERATED ALWAYS AS (CASE WHEN status IN ('PENDING_REVIEW','APPROVED') THEN 1 ELSE NULL END) STORED,
   created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -430,6 +433,11 @@ CREATE TABLE template_surat_versi (
     (status = 'ARCHIVED' AND archived_at IS NOT NULL AND (activated_at IS NULL OR archived_at >= activated_at))
   ),
   CONSTRAINT fk_template_versi_owner FOREIGN KEY (template_surat_id) REFERENCES template_surat (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_template_versi_revoker FOREIGN KEY (revoked_by) REFERENCES pengguna (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT ck_template_revocation CHECK (
+    (revoked_at IS NULL AND revoked_reason IS NULL AND revoked_by IS NULL) OR
+    (revoked_at IS NOT NULL AND revoked_reason IS NOT NULL AND CHAR_LENGTH(TRIM(revoked_reason))>0 AND revoked_by IS NOT NULL AND activated_at IS NOT NULL AND revoked_at>=activated_at AND status IN ('ACTIVE','ARCHIVED'))
+  ),
   CONSTRAINT fk_template_versi_verifier FOREIGN KEY (verified_by) REFERENCES pengguna (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT fk_template_versi_author FOREIGN KEY (created_by) REFERENCES pengguna (id) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB;

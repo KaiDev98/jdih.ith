@@ -23,7 +23,6 @@ export function FormPermintaanPenghapusan({
   const { csrfToken } = useSession();
   const [alasan, setAlasan] = useState('');
   const [terkirim, setTerkirim] = useState(false);
-  const jenisPencabutan = sumber === 'DOCUMENT' ? 'REVOKE' : 'WITHDRAW';
   useEffect(() => {
     if (!terkirim) return;
     let active = true;
@@ -60,7 +59,7 @@ export function FormPermintaanPenghapusan({
   }
   return (
     <div className="flex flex-wrap gap-2">
-      {([jenisPencabutan, 'DELETE'] as const)
+      {(['REVOKE', 'DELETE'] as const)
         .filter((jenis) => jenis === 'DELETE' || bisaTarik)
         .map((jenis) => (
           <ConfirmAction
@@ -68,11 +67,11 @@ export function FormPermintaanPenghapusan({
             icon={jenis !== 'DELETE' ? FileX2 : Trash2}
             ukuran="kecil"
             tone={jenis === 'DELETE' ? 'danger' : 'secondary'}
-            label={jenis === 'REVOKE' ? 'Minta Pencabutan' : jenis === 'WITHDRAW' ? 'Minta Penarikan' : 'Minta Penghapusan'}
+            label={jenis === 'REVOKE' ? 'Minta Pencabutan' : 'Minta Penghapusan'}
             title={
-              jenis === 'REVOKE' ? 'Minta Pencabutan Dokumen?' : jenis === 'WITHDRAW' ? 'Minta Penarikan dari Portal?' : 'Minta Penghapusan Dokumen?'
+              jenis === 'REVOKE' ? 'Minta Pencabutan Dokumen?' : 'Minta Penghapusan Dokumen?'
             }
-            description={`Permintaan untuk “${judul}” dikirim ke Superadmin. ${jenis === 'REVOKE' ? 'Setelah disetujui, dokumen tetap tersedia dengan status hukum Dicabut, tanpa dokumen pengganti. Alasan permintaan menjadi keterangan pencabutan jika Superadmin tidak mengisi catatan keputusan.' : jenis === 'WITHDRAW' ? 'Dokumen tetap tersedia sampai penarikan disetujui.' : 'Penghapusan seluruh versi dan berkas baru dilakukan setelah persetujuan Superadmin.'}`}
+            description={`Permintaan untuk “${judul}” dikirim ke Superadmin. ${jenis === 'REVOKE' ? 'Setelah disetujui, dokumen tetap tersedia dengan status Dicabut, tanpa dokumen pengganti. Alasan permintaan menjadi keterangan pencabutan jika Superadmin tidak mengisi catatan keputusan.' : 'Penghapusan seluruh versi dan berkas baru dilakukan setelah persetujuan Superadmin.'}`}
             disabled={terkirim}
             confirmLabel="Kirim permintaan"
             confirmDisabled={!alasan.trim()}
@@ -200,7 +199,7 @@ export function AntreanPermintaanPenghapusan({
         </span>
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold">
-            Permintaan {sumber === 'TEMPLATE' ? 'Penarikan' : 'Pencabutan'} &amp; Penghapusan{' '}
+            Permintaan Pencabutan &amp; Penghapusan{' '}
             <span className="text-slate-500">{loading || error ? '—' : total}</span>
           </h2>
           <p className="mt-1 text-xs leading-5 text-slate-500">
@@ -342,7 +341,7 @@ export function AntreanPermintaanPenghapusan({
                           keputusan === 'DECLINE'
                             ? 'Dokumen tetap seperti semula. Catatan akan tampil untuk Admin pemohon.'
                             : row.jenis === 'REVOKE'
-                              ? `“${row.judul}” tetap tersedia dengan status hukum Dicabut. Berkas dan riwayat tetap tersimpan. Catatan keputusan menjadi keterangan pencabutan; bila kosong, alasan Admin digunakan.`
+                              ? `“${row.judul}” tetap tersedia dengan status Dicabut. Berkas dan riwayat tetap tersimpan. Catatan keputusan menjadi keterangan pencabutan; bila kosong, alasan Admin digunakan.`
                             : row.jenis === 'WITHDRAW'
                               ? `“${row.judul}” langsung ditarik dari portal. Riwayat tetap tersimpan.`
                               : `“${row.judul}” beserta seluruh versinya dihapus dari aplikasi. Untuk dokumen hukum, berkas dihapus permanen. Tindakan ini tidak dapat dibatalkan.`

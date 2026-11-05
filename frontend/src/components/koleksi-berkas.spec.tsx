@@ -36,6 +36,20 @@ afterEach(() => {
 });
 
 describe('koleksi berkas bergulir', () => {
+  it('format Dicabut tetap memiliki pratinjau dan keterangan yang dapat dibaca di dialog', async () => {
+    const alasan = 'Alasan pencabutan yang perlu dibaca. '.repeat(20);
+    render(<KoleksiBerkas jenis="format" initial={{ data: [{ id: '91', slug: 'format-dicabut', nama: 'Format Dicabut Uji', pencabutan: { tanggal: '2026-11-06', alasan }, kemampuan: { download: true, preview: true } }], meta: meta(1, 1) }} />);
+    expect(screen.getByText('Dicabut')).toBeInTheDocument();
+    expect(screen.queryByText('Siap digunakan')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pratinjau' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Keterangan pencabutan Format Dicabut Uji' }));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText(/6 November 2026/)).toBeInTheDocument();
+    expect(within(dialog).getByText(alasan.trim())).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Tutup' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Pratinjau' })).toBeEnabled();
+  });
   it('menambah halaman berikutnya tanpa menduplikasi atau membuang berkas sebelumnya', async () => {
     api.list.mockResolvedValue({ data: [format(12), format(13), format(14)], meta: meta(2) });
     render(<KoleksiBerkas jenis="format" initial={initial} />);

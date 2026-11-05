@@ -46,7 +46,7 @@ describe('AppModule HTTP security wiring (no database/network provider)', () => 
     loginPassword: vi.fn().mockResolvedValue({ token, expires: new Date(Date.now() + 3600000) }),
     registerWithPassword: vi.fn().mockResolvedValue({ token, expires: new Date(Date.now() + 3600000), result: { id: '9', status: 'MENUNGGU_VERIFIKASI', peran: ['DOSEN_STAF'] } }),
   };
-  const templates = { remove: vi.fn().mockResolvedValue({ id: '5', deleted: true }), review: vi.fn() };
+  const templates = { remove: vi.fn().mockResolvedValue({ id: '5', deleted: true }), review: vi.fn(), revoke: vi.fn().mockResolvedValue({ id: '5', versionId: '50', dicabut: true }) };
   const listRepository = new RemovalRequestsRepository({
     pool: {}, rows: (_db: unknown, sql: string) => Promise.resolve(sql.startsWith('SELECT COUNT') ? [{ total: 0 }] : []),
   } as never);
@@ -228,6 +228,17 @@ describe('AppModule HTTP security wiring (no database/network provider)', () => 
     expect((await fetch(path, { method: 'POST', headers: { ...headers, origin: 'https://evil.test', 'x-csrf-token': csrfToken(token, key) }, body })).status).toBe(403);
     identity.authenticate.mockResolvedValue({ user: { ...user, peran: ['ADMIN'], izin: ['workflow.withdraw'] } });
     expect((await fetch(path, { method: 'POST', headers: { ...headers, 'x-csrf-token': csrfToken(token, key) }, body })).status).toBe(403);
+  });
+  it('template revocation endpoint checks authentication, permission, origin and CSRF', async () => {
+    const path = base + '/api/v1/admin/letter-templates/5/revoke';
+    const body = JSON.stringify({ versionId: '50', alasan: 'Pencabutan format' });
+    const headers = { cookie: 'jdih_session=' + token, origin: 'http://localhost:3000', 'content-type': 'application/json' };
+    auth(); expect((await fetch(path, { method: 'POST', body })).status).toBe(403);
+    identity.authenticate.mockResolvedValue({ user: { ...user, peran: ['SUPERADMIN'], izin: ['templates.manage'] } });
+    expect((await fetch(path, { method: 'POST', headers, body })).status).toBe(403);
+    expect((await fetch(path, { method: 'POST', headers: { ...headers, origin: 'https://evil.test', 'x-csrf-token': csrfToken(token, key) }, body })).status).toBe(403);
+    expect((await fetch(path, { method: 'POST', headers: { ...headers, 'x-csrf-token': csrfToken(token, key) }, body })).status).toBe(201);
+    expect(templates.revoke).toHaveBeenCalledWith(expect.objectContaining({ peran: ['SUPERADMIN'] }), '5', { versionId: '50', alasan: 'Pencabutan format' });
   });
   it('draft cancellation and removal requests are default-closed, permission-checked and CSRF-protected', async () => {
     const actor = { ...user, peran: ['ADMIN'], izin: ['documents.read_admin', 'documents.edit'] };

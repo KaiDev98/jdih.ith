@@ -47,10 +47,10 @@ export function notificationEventScope(actor: PenggunaAktif) {
       'NULL',
       'v.id',
       't.nama',
-      "CASE a.action WHEN 'APPROVE_VERSION' THEN 'TEMPLATE_APPROVE' ELSE 'TEMPLATE_PUBLISH' END",
-      'NULL',
+      "CASE a.action WHEN 'APPROVE_VERSION' THEN 'TEMPLATE_APPROVE' WHEN 'REVOKE' THEN 'TEMPLATE_REVOKE' ELSE 'TEMPLATE_PUBLISH' END",
+      "CASE WHEN a.action='REVOKE' THEN JSON_UNQUOTE(JSON_EXTRACT(a.after_json,'$.reason')) ELSE NULL END",
       templateJoin,
-      "a.module='letter-templates' AND a.entity_type='template_surat_versi' AND a.action IN ('APPROVE_VERSION','PUBLISH_VERSION') AND t.created_by=? AND a.actor_id<>?",
+      "a.module='letter-templates' AND a.entity_type='template_surat_versi' AND a.action IN ('APPROVE_VERSION','PUBLISH_VERSION','REVOKE') AND t.created_by=? AND a.actor_id<>? AND JSON_EXTRACT(a.after_json,'$.requestId') IS NULL",
       [actor.id, actor.id],
     );
     select(

@@ -29,7 +29,9 @@ export class RemovalRequestsRepository {
           CAST(COALESCE(d.current_published_version_id,(SELECT MAX(v.id) FROM dokumen_versi v WHERE v.dokumen_id=d.id)) AS CHAR) versionId,
           COALESCE((SELECT v.judul FROM dokumen_versi v WHERE v.id=COALESCE(d.current_published_version_id,(SELECT MAX(x.id) FROM dokumen_versi x WHERE x.dokumen_id=d.id))),d.kode_dokumen) judul
          FROM dokumen d WHERE d.id=? AND d.deleted_at IS NULL FOR UPDATE`
-        : `SELECT CAST(t.id AS CHAR) id,CAST(t.created_by AS CHAR) createdBy,CAST(t.current_version_id AS CHAR) currentId,NULL statusHukum,NULL currentStatus,
+        : `SELECT CAST(t.id AS CHAR) id,CAST(t.created_by AS CHAR) createdBy,CAST(t.current_version_id AS CHAR) currentId,
+          (SELECT IF(v.revoked_at IS NULL,'BERLAKU','DICABUT') FROM template_surat_versi v WHERE v.id=t.current_version_id) statusHukum,
+          (SELECT v.status FROM template_surat_versi v WHERE v.id=t.current_version_id AND t.aktif=1) currentStatus,
           CAST(COALESCE(t.current_version_id,(SELECT MAX(v.id) FROM template_surat_versi v WHERE v.template_surat_id=t.id)) AS CHAR) versionId,t.nama judul
          FROM template_surat t WHERE t.id=? AND t.deleted_at IS NULL FOR UPDATE`;
     return (await this.repo.rows<ResourcePenghapusan>(db, sql, [id]))[0];

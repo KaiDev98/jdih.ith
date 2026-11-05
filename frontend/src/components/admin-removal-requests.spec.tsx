@@ -89,7 +89,7 @@ describe('permintaan penarikan dan penghapusan', () => {
     await screen.findByText(/Permintaan terkirim/);
     expect(screen.getByRole('button', { name: 'Minta Penghapusan' })).toBeDisabled();
   });
-  it('mempertahankan alasan bila pengiriman gagal; format belum terbit tanpa permintaan penarikan', async () => {
+  it('mempertahankan alasan bila pengiriman gagal; format belum terbit tanpa permintaan pencabutan', async () => {
     state.api.mockRejectedValue(new Error('Masih ada permintaan menunggu'));
     render(
       <FormPermintaanPenghapusan
@@ -99,7 +99,7 @@ describe('permintaan penarikan dan penghapusan', () => {
         bisaTarik={false}
       />,
     );
-    expect(screen.queryByRole('button', { name: 'Minta Penarikan' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Minta Pencabutan' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Minta Penghapusan' }));
     fireEvent.change(screen.getByLabelText('Alasan permintaan'), {
       target: { value: 'Format salah' },
@@ -161,7 +161,7 @@ describe('permintaan penarikan dan penghapusan', () => {
     render(<FormPermintaanPenghapusan sumber="DOCUMENT" resourceId="5" judul="Peraturan pengujian" bisaTarik />);
     expect(screen.queryByRole('button', { name: 'Minta Penarikan' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Minta Pencabutan' }));
-    expect(screen.getByText(/dokumen tetap tersedia dengan status hukum Dicabut/)).toBeInTheDocument();
+    expect(screen.getByText(/dokumen tetap tersedia dengan status Dicabut/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Kirim permintaan' })).toBeDisabled();
     fireEvent.change(screen.getByLabelText('Alasan permintaan'), { target: { value: 'Tidak berlaku lagi tanpa pengganti' } });
     fireEvent.click(screen.getByRole('button', { name: 'Kirim permintaan' }));
@@ -174,7 +174,7 @@ describe('permintaan penarikan dan penghapusan', () => {
     state.list.mockResolvedValue({ data: [{ ...request, jenis: 'REVOKE' }], meta: { totalButir: 1 } });
     render(<AntreanPermintaanPenghapusan showHistory />);
     fireEvent.click(await screen.findByRole('button', { name: 'Setujui & Cabut' }));
-    expect(screen.getByText(/tetap tersedia dengan status hukum Dicabut/)).toBeInTheDocument();
+    expect(screen.getByText(/tetap tersedia dengan status Dicabut/)).toBeInTheDocument();
     state.list.mockResolvedValue({ data: [{ ...request, jenis: 'REVOKE', status: 'APPROVED' }], meta: { totalButir: 1 } });
     fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
     await screen.findByText('Dokumen berhasil dicabut. Dokumen tetap tersedia dengan status Dicabut.');
