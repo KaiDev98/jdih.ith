@@ -66,6 +66,7 @@ type FormatSurat = {
   tingkatAkses: string;
   pendingVersionId?: string | null;
   pendingStatus?: string | null;
+  pernahTerbit?: boolean | number;
 };
 
 /** Lencana tahap; versi lama yang sudah digantikan tidak disebut "Terbit". */
@@ -295,10 +296,10 @@ export function DaftarDokumenAdmin({
       ? ambilApi<FormatSurat[]>('/admin/letter-templates').then((data) => {
           const cocok = data.filter(
             (row) =>
-              !query ||
+              (Boolean(row.aktif) || Boolean(row.pernahTerbit)) && (!query ||
               `${row.nama} ${row.slug}`
                 .toLocaleLowerCase('id')
-                .includes(query.toLocaleLowerCase('id')),
+                .includes(query.toLocaleLowerCase('id'))),
           );
           return {
             data: [] as BarisDokumen[],
@@ -378,13 +379,13 @@ export function DaftarDokumenAdmin({
         description={
           verificationOnly
             ? superadmin
-              ? 'Dokumen yang diajukan dan menunggu ditinjau. Buka dokumen untuk menyetujui atau mengembalikannya.'
-              : 'Pengajuan dokumen dari seluruh Admin. Anda dapat meninjau informasi; keputusan verifikasi hanya oleh Superadmin.'
+              ? 'Tinjau pengajuan dan terbitkan dokumen yang sudah disetujui. Dokumen tetap di antrean sampai diterbitkan.'
+              : 'Pengajuan dan dokumen yang disetujui dari seluruh Admin dapat ditinjau. Keputusan dan penerbitan hanya oleh Superadmin.'
             : pengajuan
               ? 'Draf, pengajuan yang menunggu verifikasi, dan dokumen yang perlu diperbaiki.'
               : formatDipilih
-                ? 'Format surat terbit, menunggu persetujuan, disetujui dan arsip. Buka pengelolaan format untuk tindakan berikutnya.'
-                : 'Dokumen yang sudah diverifikasi Superadmin, termasuk yang siap terbit dan riwayat penerbitannya.'
+                ? 'Format yang sudah diterbitkan dan riwayat penarikannya. Format belum terbit tetap di Antrean Verifikasi.'
+                : 'Dokumen yang sudah diterbitkan beserta riwayat penerbitan dan penarikannya. Dokumen disetujui tetap di Antrean Verifikasi sampai terbit.'
         }
         action={
           !verificationOnly &&
@@ -473,7 +474,7 @@ export function DaftarDokumenAdmin({
                   !t.nilai ||
                   (pengajuan
                     ? ['DRAF', 'REVISI', 'DIAJUKAN'].includes(t.nilai)
-                    : ['DISETUJUI', 'TERBIT', 'DIGANTI', 'DITARIK'].includes(t.nilai)),
+                    : ['TERBIT', 'DIGANTI', 'DITARIK'].includes(t.nilai)),
               ).map((t) => {
                 const dipilih = status === t.nilai;
                 return (
@@ -525,11 +526,11 @@ export function DaftarDokumenAdmin({
           ) : jumlahTampil === 0 ? (
             verificationOnly && !adaSaringan ? (
               <Kosong icon={ClipboardCheck} nada="selesai" title="Antrean dokumen hukum kosong">
-                Belum ada dokumen berstatus Diajukan. Dokumen yang baru disimpan masih berada di{' '}
+                Belum ada dokumen yang menunggu verifikasi atau penerbitan. Dokumen yang baru disimpan masih berada di{' '}
                 <Link href="/admin/dokumen/pengajuan" className="font-semibold underline">
                   Draf dan Pengajuan
                 </Link>
-                ; buka detail lalu pilih Ajukan untuk diverifikasi.
+                ; buka detail lalu ajukan, atau setujui draf sendiri jika Anda Superadmin.
               </Kosong>
             ) : adaSaringan ? (
               <Kosong
@@ -571,7 +572,7 @@ export function DaftarDokumenAdmin({
               >
                 {pengajuan
                   ? 'Draf dan pengajuan Anda akan tampil di sini.'
-                  : 'Dokumen akan tampil di sini setelah diverifikasi Superadmin.'}
+                  : 'Dokumen akan tampil di sini setelah diterbitkan Superadmin.'}
               </Kosong>
             )
           ) : formatDipilih ? (

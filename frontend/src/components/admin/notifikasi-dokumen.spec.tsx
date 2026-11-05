@@ -125,7 +125,7 @@ describe('penghapusan notifikasi', () => {
   });
   for (const [role, action, path, label] of [
     ['SUPERADMIN', 'SUBMIT', '/superadmin/dokumen/verifikasi/5?versionId=50', 'Tinjau pengajuan'],
-    ['ADMIN', 'APPROVE', '/admin/dokumen/5?versionId=50', 'Buka dokumen'],
+    ['ADMIN', 'APPROVE', '/admin/dokumen/verifikasi/5?versionId=50', 'Buka dokumen'],
     ['ADMIN', 'RETURN', '/admin/dokumen/pengajuan/5?versionId=50', 'Buka dokumen'],
   ]) {
     it(`${label} membuka versi tepat dalam konteks ${action}`, async () => {

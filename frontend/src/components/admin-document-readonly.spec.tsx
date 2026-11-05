@@ -103,7 +103,7 @@ describe('Admin membaca dokumen tanpa tindakan Superadmin; SOP khusus Superadmin
   });
   it('Superadmin menempatkan Status hukum di samping Hapus permanen, lalu permintaan di bawah keduanya', async () => {
     state.peran = ['SUPERADMIN'];
-    state.status = 'DRAF';
+    state.status = 'TERBIT';
     state.own = true;
     setupDetail();
     render(<AdminDocumentDetail id="5" />);
@@ -129,12 +129,40 @@ describe('Admin membaca dokumen tanpa tindakan Superadmin; SOP khusus Superadmin
       if (own) {
         expect(edit).toHaveAttribute('href', '/admin/dokumen/5/ubah');
         expect(screen.getByRole('button', { name: 'Ajukan untuk diverifikasi' })).toBeEnabled();
-        expect(screen.getByRole('button', { name: 'Hapus draf' })).toBeEnabled();
+        expect(screen.getByRole('button', { name: 'Hapus Draf' })).toBeEnabled();
+        expect(screen.getByRole('heading', { name: 'Berkas' }).closest('.detail-berkas')).toContainElement(screen.getByRole('button', { name: 'Hapus Draf' }));
       } else {
         expect(edit).not.toHaveAttribute('href');
         expect(screen.getByRole('button', { name: 'Ajukan untuk diverifikasi' })).toBeDisabled();
-        expect(screen.queryByRole('button', { name: 'Hapus draf' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Hapus Draf' })).not.toBeInTheDocument();
       }
+    });
+  for (const status of ['DRAF', 'REVISI', 'DIAJUKAN'])
+    it(`Superadmin ${status} tidak melihat Hapus Permanen; hapus draf hanya di panel Berkas saat dapat diubah`, async () => {
+      state.peran = ['SUPERADMIN'];
+      state.status = status;
+      state.own = true;
+      setupDetail();
+      render(<AdminDocumentDetail id="5" konteks="pengajuan" />);
+      await screen.findByRole('heading', { name: 'Dokumen tinjauan' });
+      expect(screen.queryByRole('heading', { name: 'Hapus permanen' })).not.toBeInTheDocument();
+      const button = screen.queryByRole('button', { name: 'Hapus Draf' });
+      if (status === 'DIAJUKAN') expect(button).not.toBeInTheDocument();
+      else expect(screen.getByRole('heading', { name: 'Berkas' }).closest('.detail-berkas')).toContainElement(button);
+    });
+  for (const role of ['ADMIN', 'SUPERADMIN'])
+    it(`${role} menghapus versi draf dari Berkas setelah konfirmasi, tanpa memakai hapus permanen`, async () => {
+      state.peran = [role]; state.status = 'DRAF'; state.own = true;
+      setupDetail();
+      render(<AdminDocumentDetail id="5" konteks="pengajuan" />);
+      const remove = await screen.findByRole('button', { name: 'Hapus Draf' });
+      fireEvent.click(remove);
+      fireEvent.click(screen.getByRole('button', { name: 'Batal' }));
+      expect(state.api.mock.calls.some(([, options]) => options?.method === 'DELETE')).toBe(false);
+      fireEvent.click(remove);
+      fireEvent.click(screen.getByRole('button', { name: 'Ya, hapus draf' }));
+      await waitFor(() => expect(state.api).toHaveBeenCalledWith('/admin/documents/5/drafts/50', expect.objectContaining({ method: 'DELETE' })));
+      expect(state.api.mock.calls.some(([url, options]) => url === '/admin/documents/5' && options?.method === 'DELETE')).toBe(false);
     });
   it('Admin membuka SOP Permohonan SK dan dapat mengunggah tanpa kewenangan lepas', async () => {
     state.daftar.mockResolvedValue({ data: [], meta: { totalButir: 0, totalHalaman: 0 } });

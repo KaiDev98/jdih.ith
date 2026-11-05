@@ -147,9 +147,9 @@ export class CoreBackendService {
     if (!verificationOnly)
       where.push(query.cakupan === 'PENGAJUAN'
         ? "v.status_workflow IN ('DRAF','REVISI','DIAJUKAN')"
-        : "v.status_workflow IN ('DISETUJUI','TERBIT','DITARIK')");
-    if (verificationOnly) where.push("v.status_workflow='DIAJUKAN'");
-    else if (query.statusWorkflow === 'TERBIT')
+        : "v.status_workflow IN ('TERBIT','DITARIK')");
+    if (verificationOnly) where.push("v.status_workflow IN ('DIAJUKAN','DISETUJUI')");
+    if (query.statusWorkflow === 'TERBIT')
       where.push("v.status_workflow='TERBIT' AND v.superseded_at IS NULL");
     else if (query.statusWorkflow === 'DIGANTI')
       where.push("v.status_workflow='TERBIT' AND v.superseded_at IS NOT NULL");
@@ -592,7 +592,7 @@ export class CoreBackendService {
     if (!rows.length) throw new NotFoundException();
     cekPeruntukanPanel(actor, rows[0]?.peruntukan);
     const foreignSop = rows[0]?.peruntukan === 'PERMOHONAN_SK' && !actor.peran.includes('SUPERADMIN') && String(rows[0]?.documentCreatedBy) !== actor.id;
-    const visibleRows = foreignSop ? rows.filter(row => row.statusWorkflow === 'DIAJUKAN') : rows;
+    const visibleRows = foreignSop ? rows.filter(row => ['DIAJUKAN', 'DISETUJUI'].includes(String(row.statusWorkflow))) : rows;
     const selected = requestedVersionId
       ? (visibleRows as any[]).find((row) => row.versionId === requestedVersionId)
       : visibleRows[0];

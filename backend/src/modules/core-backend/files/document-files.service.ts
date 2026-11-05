@@ -165,7 +165,7 @@ export class DocumentFilesService {
          IF(?=1 OR f.uploaded_by=?,TRUE,FALSE) bolehHapus
        FROM dokumen_berkas f JOIN dokumen_versi v ON v.id=f.dokumen_versi_id JOIN dokumen d ON d.id=v.dokumen_id AND d.deleted_at IS NULL
        WHERE f.dokumen_versi_id=?
-       ${ownOnly ? "AND (d.peruntukan IS NULL OR d.peruntukan<>'PERMOHONAN_SK' OR d.created_by=? OR v.status_workflow='DIAJUKAN')" : ''}
+       ${ownOnly ? "AND (d.peruntukan IS NULL OR d.peruntukan<>'PERMOHONAN_SK' OR d.created_by=? OR v.status_workflow IN ('DIAJUKAN','DISETUJUI'))" : ''}
        ORDER BY f.jenis_berkas='LAMPIRAN',f.urutan,f.id`,
       [ownOnly ? 0 : 1, actor.id, versionId, ...(ownOnly ? [actor.id] : [])],
     );
@@ -243,7 +243,7 @@ export class DocumentFilesService {
       `SELECT f.*,CAST(d.id AS CHAR) dokumen_id,v.tingkat_akses,d.created_by document_created_by,d.peruntukan
        FROM dokumen_berkas f JOIN dokumen_versi v ON v.id=f.dokumen_versi_id
        JOIN dokumen d ON d.id=v.dokumen_id
-       WHERE f.id=? AND v.id=? AND d.deleted_at IS NULL${actor.peran.includes('SUPERADMIN') ? '' : " AND (d.peruntukan IS NULL OR d.peruntukan<>'PERMOHONAN_SK' OR d.created_by=? OR v.status_workflow='DIAJUKAN')"}`, [fileId, versionId, ...(actor.peran.includes('SUPERADMIN') ? [] : [actor.id])]))[0];
+       WHERE f.id=? AND v.id=? AND d.deleted_at IS NULL${actor.peran.includes('SUPERADMIN') ? '' : " AND (d.peruntukan IS NULL OR d.peruntukan<>'PERMOHONAN_SK' OR d.created_by=? OR v.status_workflow IN ('DIAJUKAN','DISETUJUI'))"}`, [fileId, versionId, ...(actor.peran.includes('SUPERADMIN') ? [] : [actor.id])]))[0];
     if (!file) throw new NotFoundException();
     cekPeruntukanPanel(actor, file.peruntukan);
     if (String(file.tingkat_akses) === 'rahasia') {

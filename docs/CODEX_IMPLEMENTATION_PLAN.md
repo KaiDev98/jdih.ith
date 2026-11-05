@@ -1,5 +1,14 @@
 # CODEX IMPLEMENTATION PLAN — JDIH ITH V2
 
+Revisi antrean 2026-11-06: DIAJUKAN/DISETUJUI dan PENDING_REVIEW/APPROVED tetap
+di antrean sampai publish; Semua Dokumen hanya versi pernah diterbitkan.
+Uji approval tanpa pindah daftar/pointer, publication memindah, revisi menjaga
+publikasi lama, pagination/count/filter server, baca lintas pemilik tanpa hak
+ubah, tinjauan APPROVED yang ditutup setelah publish, notifikasi/dashboard,
+serta rollback publish. Pindah Hapus Draf ke Berkas dan sembunyikan permanen
+di draf/pengajuan Superadmin; uji UI per status/peran, konfirmasi dan seluler.
+Tanpa perubahan schema atau migrasi.
+
 Perbaikan bentrok slug Format Persuratan 2026-11-05: uji alamat manual 409,
 mode otomatis dengan akhiran unik pada INSERT bentrok (termasuk format terhapus),
 batas retry/panjang, unggah serentak, pointer/riwayat lama tetap utuh, rollback

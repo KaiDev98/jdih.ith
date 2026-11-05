@@ -25,7 +25,7 @@ export const skemaItemAntreanTemplate = z.strictObject({
   nama: teksWajib(255, 'Nama'),
   nomorVersi: skemaNomorVersi,
   tingkatAkses: skemaAksesTemplate,
-  status: z.literal('PENDING_REVIEW'),
+  status: z.enum(['PENDING_REVIEW', 'APPROVED']),
   pengunggah: teksWajib(255, 'Pengunggah'),
   diajukanPada: z.string(),
   mimeType: z.string().optional(),

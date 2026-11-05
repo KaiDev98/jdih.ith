@@ -223,9 +223,9 @@ export default function DasborAdmin() {
         .then((r) => simpan({ data: r.data, total: r.meta.totalButir }))
         .catch(() => simpan({ data: [], total: 0 }));
     if (bolehDokumen) {
-      void daftar({}, setAntrean, '/admin/documents/verification-queue');
+      void daftar({ statusWorkflow: 'DIAJUKAN' }, setAntrean, '/admin/documents/verification-queue');
       void daftar({ statusWorkflow: 'REVISI', cakupan: 'PENGAJUAN' }, setRevisi);
-      void daftar({ statusWorkflow: 'DISETUJUI' }, setDisetujui);
+      void daftar({ statusWorkflow: 'DISETUJUI' }, setDisetujui, '/admin/documents/verification-queue');
       void daftar({ statusWorkflow: 'TERBIT', perHalaman: 1 }, (d) => setTerbit(d.total));
       void daftar({ perHalaman: 6 }, (d) => setTerbaru(d.data));
     }
@@ -239,7 +239,7 @@ export default function DasborAdmin() {
     tautanDetailDokumen(
       d.id,
       d.versionId,
-      d.statusWorkflow === 'DIAJUKAN'
+      ['DIAJUKAN', 'DISETUJUI'].includes(d.statusWorkflow)
         ? 'verifikasi'
         : ['DRAF', 'REVISI'].includes(d.statusWorkflow)
           ? 'pengajuan'
@@ -362,7 +362,7 @@ export default function DasborAdmin() {
                 label="Siap diterbitkan"
                 nilai={disetujui?.total}
                 keterangan="Sudah disetujui"
-                href="/admin/dokumen"
+                href="/admin/dokumen/verifikasi"
                 ikon={Send}
                 sorot={bolehTerbit && (disetujui?.total ?? 0) > 0}
               />

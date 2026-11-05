@@ -120,7 +120,7 @@ describe.skipIf(!process.env.DOCUMENT_POLICY_MYSQL_ENV)('MySQL kebijakan unit, r
     const [categories] = await db.query<RowDataPacket[]>('SELECT CAST(kategori_id AS CHAR) id FROM dokumen_versi_kategori WHERE dokumen_versi_id=?', [own.versionId]);
     expect(categories).toEqual([{ id: categoryId }]);
   });
-  it('persetujuan langsung mencatat DRAF -> DISETUJUI, audit dan checksum; tidak masuk antrean atau notifikasi pengajuan', async () => {
+  it('persetujuan langsung mencatat DRAF -> DISETUJUI, audit dan checksum; menunggu terbit di antrean tanpa notifikasi pengajuan', async () => {
     const doc = await create(superadmin); await mainFile(doc.versionId, superadmin.id);
     await expect(service.transition(superadmin, doc.versionId, 'SUBMIT')).rejects.toThrow(/tanpa masuk antrean/);
     await service.transition(superadmin, doc.versionId, 'APPROVE');
@@ -129,7 +129,8 @@ describe.skipIf(!process.env.DOCUMENT_POLICY_MYSQL_ENV)('MySQL kebijakan unit, r
     expect(history[1]).toMatchObject({ status_asal: 'DRAF', status_tujuan: 'DISETUJUI' });
     const [audit] = await db.query<RowDataPacket[]>("SELECT JSON_UNQUOTE(JSON_EXTRACT(after_json,'$.jalur')) jalur FROM audit_log WHERE entity_id=? AND module='workflow' AND action='APPROVE'", [doc.versionId]);
     expect(audit[0]?.jalur).toBe('SUPERADMIN_LANGSUNG');
-    expect((await service.adminDocuments(superadmin, {}, true)).data.some((r) => r.versionId === doc.versionId)).toBe(false);
+    expect((await service.adminDocuments(superadmin, {}, true)).data.some((r) => r.versionId === doc.versionId)).toBe(true);
+    expect((await service.adminDocuments(superadmin, {})).data.some((r) => r.versionId === doc.versionId)).toBe(false);
     expect((await service.notifications(superadmin)).some((r) => r.versionId === doc.versionId)).toBe(false);
   });
   it('Admin tetap harus mengajukan dan tidak dapat menyetujui sendiri', async () => {

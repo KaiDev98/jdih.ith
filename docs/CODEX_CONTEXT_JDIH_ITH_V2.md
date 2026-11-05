@@ -1,5 +1,27 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
+Revisi antrean TERBARU 2026-11-06: Antrean Verifikasi dokumen berisi DIAJUKAN
+dan DISETUJUI. Persetujuan tetap di antrean; hanya publish yang memindah versi
+ke Semua Dokumen (TERBIT/DITARIK, termasuk riwayat superseded). Versi publik
+lama tetap di Semua Dokumen selama revisi baru belum terbit. Penyaringan
+status/count dilakukan server sebelum pagination; dashboard memisahkan hitungan
+DIAJUKAN dan DISETUJUI lewat endpoint antrean. Antrean format mencakup
+PENDING_REVIEW/APPROVED dan menyediakan Terbitkan khusus Superadmin setelah
+persetujuan, dengan konfirmasi/CSRF/audit yang sama. Format yang belum pernah
+terbit tidak muncul pada koleksi format di Semua Dokumen. Pengelolaan format
+tetap owner-scoped; antrean/tinjauan lintas pemilik tetap baca saja sampai
+publish. File/detail SOP Permohonan SK lintas Admin juga dapat dibaca saat
+DISETUJUI, kemudian akses panel lintas pemilik ditutup setelah terbit. Hak
+ubah/keputusan dan akses publik tidak berubah; tanpa migrasi.
+
+Tombol Hapus Draf berada di sisi judul Berkas, hanya DRAF/REVISI yang dapat
+diubah pemilik atau Superadmin. Konfirmasi/CSRF/loading/feedback tetap wajib,
+versi terbit tidak tersentuh. Panel Hapus Permanen disembunyikan pada
+DRAF/REVISI/DIAJUKAN dan konteks Draf Dan Pengajuan Superadmin; panel status
+tidak menyisakan kolom kosong. Pada versi terbit/ditarik, panel permanen tetap
+mengikuti izin. Tautan hasil persetujuan menuju antrean; setelah publish detail
+menuju Semua Dokumen.
+
 Perbaikan unggah format 2026-11-05: modeSlug otomatis hanya pada unggah awal
 yang mengikuti nama. INSERT dengan UNIQUE tetap menjadi penentu akhir; jika
 uq_template_slug bentrok, backend mencoba akhiran UUID acak (maksimal lima

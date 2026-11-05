@@ -481,7 +481,7 @@ describe('pengajuan dokumen pada panel', () => {
     expect(await screen.findByText('Alasan: File dan metadata sudah sesuai')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Pengajuan diterima/ })).toHaveAttribute(
       'href',
-      '/admin/dokumen/5?versionId=50',
+      '/admin/dokumen/verifikasi/5?versionId=50',
     );
   });
 });
@@ -520,8 +520,10 @@ describe('dropdown koleksi Semua Dokumen', () => {
   });
   it('Superadmin dapat memilih SOP khusus dan format memakai data template serta pagination sendiri', async () => {
     state.role = 'SUPERADMIN';
-    state.api.mockResolvedValue(
-      Array.from({ length: 25 }, (_, index) => ({
+    state.api.mockResolvedValue([
+      { id: '90', nama: 'Format Belum Terbit', slug: 'belum-terbit', aktif: false, pendingStatus: 'APPROVED' },
+      { id: '91', nama: 'Format Diajukan', slug: 'diajukan', aktif: false, pendingStatus: 'PENDING_REVIEW' },
+      ...Array.from({ length: 25 }, (_, index) => ({
         id: String(index + 1),
         nama: `Format ${index}`,
         slug: `format-${index}`,
@@ -529,7 +531,8 @@ describe('dropdown koleksi Semua Dokumen', () => {
         nomorVersi: 1,
         tingkatAkses: 'PUBLIK',
       })),
-    );
+      { id: '92', nama: 'Format Ditarik', slug: 'ditarik', aktif: false, pernahTerbit: true, nomorVersi: 1, tingkatAkses: 'PUBLIK' },
+    ]);
     render(<DaftarDokumenAdmin />);
     await screen.findByText('Belum ada dokumen');
     await pilihKoleksi('SOP Permohonan SK');
@@ -543,10 +546,13 @@ describe('dropdown koleksi Semua Dokumen', () => {
     );
     await pilihKoleksi('Format Persuratan');
     expect(await screen.findByText('Format 0')).toBeInTheDocument();
+    expect(screen.queryByText('Format Belum Terbit')).not.toBeInTheDocument();
+    expect(screen.queryByText('Format Diajukan')).not.toBeInTheDocument();
     expect(screen.queryByText('Format 20')).not.toBeInTheDocument();
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Berikutnya' }));
     expect(await screen.findByText('Format 20')).toBeInTheDocument();
+    expect(screen.getByText('Format Ditarik')).toBeInTheDocument();
     expect(screen.queryByText('Format 0')).not.toBeInTheDocument();
     expect(screen.getByText('Halaman 2 dari 2')).toBeInTheDocument();
   });

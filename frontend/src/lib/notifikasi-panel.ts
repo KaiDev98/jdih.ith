@@ -16,7 +16,7 @@ export function notifikasiSetelahBatas(row: NotifikasiDokumen, bounds: BatasNoti
 }
 export function tautanNotifikasi(row: NotifikasiDokumen) {
   if (row.jenis === 'TEMPLATE')
-    return row.action === 'TEMPLATE_SUBMIT'
+    return ['TEMPLATE_SUBMIT', 'TEMPLATE_APPROVE'].includes(row.action)
       ? '/admin/dokumen/verifikasi#antrean-format'
       : '/admin/format-persuratan';
   if (row.jenis === 'REMOVAL')
@@ -27,7 +27,7 @@ export function tautanNotifikasi(row: NotifikasiDokumen) {
   return tautanDetailDokumen(
     row.dokumenId,
     row.versionId,
-    row.action === 'SUBMIT'
+    ['SUBMIT', 'APPROVE'].includes(row.action)
       ? 'verifikasi'
       : row.action === 'RETURN'
         ? 'pengajuan'

@@ -225,6 +225,8 @@ function DetailDokumen({
     window.dispatchEvent(new Event('jdih:workflow'));
     setNote('');
     setRefresh((x) => x + 1);
+    if (url.endsWith('/approve') && konteks !== 'verifikasi' && versionId)
+      router.push(tautanDetailDokumen(id, versionId, 'verifikasi'));
   }
 
   async function loadPreview() {
@@ -263,6 +265,7 @@ function DetailDokumen({
       },
     });
     setPreview(undefined);
+    router.push(tautanDetailDokumen(id, versionId, 'terverifikasi'));
   }
 
   async function buatRevisi() {
@@ -320,6 +323,8 @@ function DetailDokumen({
   const superadmin = pengguna?.peran.includes('SUPERADMIN') ?? false;
   const label = tahapDari(diganti ? 'DIGANTI' : tahap);
   const bisaDiubah = TAHAP_BISA_DIUBAH.includes(tahap);
+  const tampilHapusPermanen = superadmin && konteks !== 'pengajuan' &&
+    !['DRAF', 'REVISI', 'DIAJUKAN'].includes(tahap);
   const jalurLangsung = superadmin && document.bolehSetujuiLangsung === true;
   const setujuiLangsung = jalurLangsung && bisaDiubah;
   const versiPublik = [document, ...detail.versions].find(
@@ -465,15 +470,6 @@ function DetailDokumen({
                 onConfirm={() => post(`/admin/documents/versions/${document.versionId}/submit`, {})}
               />
             )}
-            {bisaDiubah && document.bolehUbah && izin.includes('documents.edit') && (
-              <ConfirmAction label="Hapus draf" icon={Trash2} tone="danger" title="Hapus draf ini?"
-                description={`Draf versi ${document.nomorVersi} dan berkasnya akan dihapus. Versi lain, termasuk yang sedang terbit, tetap tersedia.`}
-                confirmLabel="Ya, hapus draf" onConfirm={async () => {
-                  await ambilApi(`/admin/documents/${id}/drafts/${document.versionId}`, { method: 'DELETE', headers: csrfHeaders(csrfToken) });
-                  window.dispatchEvent(new Event('jdih:workflow'));
-                  router.replace('/admin/dokumen/pengajuan');
-                }} />
-            )}
             {(tahap === 'DIAJUKAN' || setujuiLangsung) && (
               <ConfirmAction
                 label="Setujui" icon={Check}
@@ -617,7 +613,18 @@ function DetailDokumen({
               </Card>
             )}
             <Card className="detail-berkas">
-              <h2 className="text-base font-bold">Berkas</h2>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="text-base font-bold">Berkas</h2>
+                {bisaDiubah && document.bolehUbah && izin.includes('documents.edit') && (
+                  <ConfirmAction label="Hapus Draf" icon={Trash2} ukuran="kecil" tone="danger" title="Hapus draf ini?"
+                    description={`Draf versi ${document.nomorVersi} dan berkasnya akan dihapus. Versi lain, termasuk yang sedang terbit, tetap tersedia.`}
+                    confirmLabel="Ya, hapus draf" onConfirm={async () => {
+                      await ambilApi(`/admin/documents/${id}/drafts/${document.versionId}`, { method: 'DELETE', headers: csrfHeaders(csrfToken) });
+                      window.dispatchEvent(new Event('jdih:workflow'));
+                      router.replace('/admin/dokumen/pengajuan');
+                    }} />
+                )}
+              </div>
               {fileUtama || lampiran.length ? (
                 <ul className="mt-3 grid gap-2 text-sm">
                   {[...(fileUtama ? [fileUtama] : []), ...lampiran].map((b) => (
@@ -753,8 +760,8 @@ function DetailDokumen({
           </aside>
         </div>
         <div
-          aria-label={superadmin ? 'Status hukum dan penghapusan permanen' : 'Status hukum dan permintaan dokumen'}
-          className={cn('grid min-w-0 items-start gap-3.5', (superadmin || document.bolehRevisi) && 'lg:grid-cols-2')}
+          aria-label={tampilHapusPermanen ? 'Status hukum dan penghapusan permanen' : 'Status hukum dan permintaan dokumen'}
+          className={cn('grid min-w-0 items-start gap-3.5', (tampilHapusPermanen || (!superadmin && document.bolehRevisi)) && 'lg:grid-cols-2')}
         >
           <KartuStatusHukum
             id={id}
@@ -768,9 +775,9 @@ function DetailDokumen({
               izin.includes('legal.manage_relations')
             }
           />
-          {superadmin && <AdminHapusDokumen id={id} judul={document.judul} />}
+          {tampilHapusPermanen && <AdminHapusDokumen id={id} judul={document.judul} />}
           {(superadmin || document.bolehRevisi) && (
-            <div className={cn('min-w-0', superadmin && 'lg:col-span-2')}>
+            <div className={cn('min-w-0', tampilHapusPermanen && 'lg:col-span-2')}>
               <AntreanPermintaanPenghapusan
                 sumber="DOCUMENT"
                 resourceId={id}

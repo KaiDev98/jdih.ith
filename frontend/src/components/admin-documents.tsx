@@ -264,7 +264,7 @@ export function AdminDocumentCreate({
         teks: khusus
           ? superadminAktif(pengguna) ? 'Setujui draf, lalu terbitkan SOP' : 'Ajukan ke Superadmin untuk verifikasi'
           : superadminAktif(pengguna)
-            ? 'Setujui draf tanpa antrean verifikasi'
+            ? 'Setujui draf, lalu terbitkan dari antrean'
             : 'Ajukan untuk diverifikasi',
         selesai: false,
       },
@@ -356,7 +356,7 @@ export function AdminDocumentCreate({
           khusus
             ? 'Pilih akses Publik atau Dosen/Staf. Ajukan draf untuk ditinjau Superadmin; Setelah disetujui, Superadmin menerbitkan SOP melalui tindakan terpisah.'
             : superadminAktif(pengguna)
-              ? 'Simpan sebagai draf, tinjau dan setujui langsung dari halaman detail tanpa antrean verifikasi.'
+              ? 'Simpan sebagai draf, setujui dari halaman detail, lalu terbitkan melalui Antrean Verifikasi.'
               : 'Simpan sebagai draf, lalu ajukan verifikasi dari halaman detail.'
         }
         meta={

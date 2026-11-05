@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { ItemAntreanTemplate } from '@jdih/shared';
-import { FileCheck2, RefreshCw, Check } from 'lucide-react';
+import { FileCheck2, RefreshCw, Check, UploadCloud } from 'lucide-react';
 import Link from '@/components/admin/tautan-panel';
 import { ambilApi, ambilApiBerdaftar, GalatApi } from '@/lib/api-client';
 import { csrfHeaders, useSession } from '@/lib/sesi';
@@ -75,9 +75,19 @@ export function AdminTemplateVerificationQueue() {
       headers: csrfHeaders(csrfToken),
       muatan: {},
     });
-    setNotice(
-      `${row.nama} versi ${row.nomorVersi} disetujui. Terbitkan melalui pengelolaan Format Persuratan.`,
-    );
+    setRows((items) => items.map((item) => item.id === row.id ? { ...item, status: 'APPROVED' } : item));
+    setNotice(`${row.nama} versi ${row.nomorVersi} disetujui dan tetap di antrean sampai diterbitkan.`);
+    window.dispatchEvent(new Event('jdih:workflow'));
+  }
+
+  async function publish(row: ItemAntreanTemplate) {
+    if (!bolehSetujui) throw new Error('Penerbitan hanya dapat dilakukan Superadmin aktif.');
+    await ambilApi(`/admin/letter-templates/${row.templateSuratId}/versions/${row.id}/publish`, {
+      method: 'POST', headers: csrfHeaders(csrfToken), muatan: {},
+    });
+    setRows((items) => items.filter((item) => item.id !== row.id));
+    setTotal((value) => Math.max(0, value - 1));
+    setNotice(`${row.nama} versi ${row.nomorVersi} diterbitkan dan keluar dari antrean.`);
     window.dispatchEvent(new Event('jdih:workflow'));
   }
 
@@ -95,7 +105,7 @@ export function AdminTemplateVerificationQueue() {
           <p className="mt-1 text-xs leading-5 text-slate-500">
             {bolehSetujui
               ? 'Tinjau berkas sebelum menyetujui. Penerbitan tetap tindakan terpisah.'
-              : 'Pengajuan dari seluruh Admin dapat ditinjau. Persetujuan hanya oleh Superadmin.'}
+              : 'Pengajuan dan format yang disetujui dapat ditinjau. Keputusan dan penerbitan hanya oleh Superadmin.'}
           </p>
         </div>
         <Button
@@ -128,11 +138,11 @@ export function AdminTemplateVerificationQueue() {
           Memuat antrean format…
         </p>
       ) : rows.length === 0 ? (
-        <p className="p-5 text-sm text-slate-500">Tidak ada format yang menunggu persetujuan.</p>
+        <p className="p-5 text-sm text-slate-500">Tidak ada format yang menunggu persetujuan atau penerbitan.</p>
       ) : (
         <ul
           className="max-h-[26rem] divide-y divide-sekat overflow-y-auto overscroll-contain"
-          aria-label="Format menunggu persetujuan"
+          aria-label="Format menunggu persetujuan atau penerbitan"
         >
           {rows.map((row) => (
             <li key={row.id} className="flex flex-wrap items-center gap-4 px-5 py-4">
@@ -143,9 +153,12 @@ export function AdminTemplateVerificationQueue() {
                 <p className="mt-1 text-xs text-slate-500">
                   Versi {row.nomorVersi} · {row.pengunggah}
                 </p>
-                <div className="mt-2">
+                <div className="mt-2 flex flex-wrap gap-1.5">
                   <Badge color="slate">
                     {row.tingkatAkses === 'INTERNAL' ? 'Dosen/Staf' : 'Publik'}
+                  </Badge>
+                  <Badge color={row.status === 'APPROVED' ? 'blue' : 'amber'}>
+                    {row.status === 'APPROVED' ? 'Disetujui · Siap Terbit' : 'Menunggu Persetujuan'}
                   </Badge>
                 </div>
               </div>
@@ -156,7 +169,7 @@ export function AdminTemplateVerificationQueue() {
                   previewUrl={`/api/v1/admin/letter-templates/verification-queue/${row.templateSuratId}/versions/${row.id}/preview`}
                   downloadUrl={`/api/v1/admin/letter-templates/verification-queue/${row.templateSuratId}/versions/${row.id}/download`}
                 />
-                {bolehSetujui && (
+                {bolehSetujui && row.status === 'PENDING_REVIEW' && (
                   <ConfirmAction
                     label="Setujui" icon={Check}
                     ukuran="kecil"
@@ -164,6 +177,12 @@ export function AdminTemplateVerificationQueue() {
                     description={`${row.nama} versi ${row.nomorVersi} akan disetujui tanpa langsung diterbitkan. Versi publik sebelumnya tetap tersedia.`}
                     onConfirm={() => approve(row)}
                   />
+                )}
+                {bolehSetujui && row.status === 'APPROVED' && (
+                  <ConfirmAction label="Terbitkan" icon={UploadCloud} ukuran="kecil"
+                    title="Terbitkan format persuratan?"
+                    description={`${row.nama} versi ${row.nomorVersi} akan tampil di portal sesuai tingkat aksesnya dan keluar dari antrean. Versi terbit sebelumnya tetap disimpan dalam riwayat.`}
+                    onConfirm={() => publish(row)} />
                 )}
               </div>
             </li>

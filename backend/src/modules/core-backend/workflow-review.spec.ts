@@ -215,11 +215,11 @@ describe('pengajuan dan hasil verifikasi dokumen', () => {
   it('memisahkan dokumen terverifikasi, draf dan antrean pada query backend', async () => {
     const { core, repo } = setup();
     await core.adminDocuments(admin, {});
-    expect(repo.rows.mock.calls.at(-1)?.[1]).toContain("IN ('DISETUJUI','TERBIT','DITARIK')");
+    expect(repo.rows.mock.calls.at(-1)?.[1]).toContain("IN ('TERBIT','DITARIK')");
     await core.adminDocuments(admin, { cakupan: 'PENGAJUAN' });
     expect(repo.rows.mock.calls.at(-1)?.[1]).toContain("IN ('DRAF','REVISI','DIAJUKAN')");
     await core.adminDocuments(verifier, {}, true);
-    expect(repo.rows.mock.calls.at(-1)?.[1]).toContain("v.status_workflow='DIAJUKAN'");
+    expect(repo.rows.mock.calls.at(-1)?.[1]).toContain("v.status_workflow IN ('DIAJUKAN','DISETUJUI')");
     expect(repo.rows.mock.calls.at(-1)?.[1]).not.toContain('d.created_by=?');
   });
   for (const from of ['DRAF', 'REVISI']) {

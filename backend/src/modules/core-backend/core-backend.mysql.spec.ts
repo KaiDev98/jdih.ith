@@ -890,10 +890,15 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     await expect(templates.verify(elevated, own.id, own.versionId, {})).rejects.toBeInstanceOf(ForbiddenException);
     await expect(templates.publish(elevated, own.id, own.versionId, {})).rejects.toBeInstanceOf(ForbiddenException);
     await templates.verify(actor, own.id, own.versionId, {});
-    expect((await templates.verificationQueue(actor, { q: marker })).data.map(row => row.templateSuratId)).toEqual([foreign.id]);
+    expect((await templates.verificationQueue(actor, { q: marker })).data.map(row => row.templateSuratId)).toEqual([own.id, foreign.id]);
+    expect((await templates.verificationQueue(other, { q: marker })).data.find(row => row.templateSuratId === own.id)?.status).toBe('APPROVED');
+    const review = await templates.review(other, own.id, own.versionId, { queue: true });
+    for await (const chunk of review.stream) expect(chunk).toBeDefined();
     await expect(templates.newVersion(owner, own.id, await incomingFile('approved.docx', minimalDocx()), { tingkatAkses: 'PUBLIK' })).rejects.toThrow('dikunci');
     await expect(templates.remove(owner, own.id, {})).rejects.toThrow('hanya dapat dihapus Superadmin');
     await templates.publish(actor, own.id, own.versionId, {});
+    expect((await templates.verificationQueue(actor, { q: marker })).data.map(row => row.templateSuratId)).toEqual([foreign.id]);
+    await expect(templates.review(other, own.id, own.versionId, { queue: true })).rejects.toThrow();
     await expect(templates.remove(owner, own.id, {})).rejects.toThrow('hanya dapat dihapus Superadmin');
     const replacement = await templates.newVersion(owner, own.id, await incomingFile('revision.docx', minimalDocx()), { tingkatAkses: 'PUBLIK' });
     expect(replacement.status).toBe('PENDING_REVIEW');
@@ -916,7 +921,7 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     expect(row[0]?.deleted_at).not.toBeNull();
   });
 
-  it('PDF format previews are protected, pending cross-owner review expires after approval, Office uses download', async () => {
+  it('PDF format previews remain readable in the approved queue until publication, Office uses download', async () => {
     const owner = await addAdmin('ADMIN');
     const other = await addAdmin('ADMIN');
     const suffix = uid();
@@ -931,8 +936,10 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     expect(Buffer.concat(chunks)).toEqual(pdf);
     await expect(templates.authorizeOpen(`preview-${suffix}`)).rejects.toThrow();
     await templates.verify(actor, template.id, template.versionId, {});
-    await expect(templates.review(other, template.id, template.versionId, { queue: true, preview: true })).rejects.toThrow();
+    const approved = await templates.review(other, template.id, template.versionId, { queue: true, preview: true });
+    for await (const chunk of approved.stream) expect(chunk).toBeDefined();
     await templates.publish(actor, template.id, template.versionId, {});
+    await expect(templates.review(other, template.id, template.versionId, { queue: true, preview: true })).rejects.toThrow();
     const published = await templates.openAuthorized(await templates.authorizeOpen(`preview-${suffix}`), undefined, true);
     expect(published.mimeType).toBe('application/pdf');
     published.stream.destroy();
@@ -1163,6 +1170,42 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     ).rejects.toThrow();
   });
 
+  it.each([null, 'PERMOHONAN_SK'])('approval stays queued and only publication moves collection %s to all documents, including revisions and rollback', async (peruntukan) => {
+    const owner = await addAdmin('ADMIN');
+    const reader = await addAdmin('ADMIN');
+    const marker = uid();
+    const [types] = await pool.query<RowDataPacket[]>("SELECT id FROM jenis_dokumen WHERE kode='SOP' AND aktif=1 LIMIT 1");
+    const metadata = { ...ready(`Queue ${marker}`), kategoriId: [] };
+    const document = await service.createDocument(owner, { kodeDokumen: marker, slug: `queue-${marker}`, jenisDokumenId: String(types[0]!.id), peruntukan, versi: metadata });
+    const queue = (statusWorkflow?: string) => service.adminDocuments(reader, { q: marker, statusWorkflow, perHalaman: 1 }, true);
+    const all = () => service.adminDocuments(owner, { q: marker });
+    expect((await queue()).meta.totalButir).toBe(0);
+    await addFileMetadata(document.versionId, 'UTAMA');
+    await service.transition(owner, document.versionId, 'SUBMIT');
+    expect((await queue()).data[0]?.statusWorkflow).toBe('DIAJUKAN');
+    await approve(document.versionId);
+    expect((await queue()).data[0]).toMatchObject({ versionId: document.versionId, statusWorkflow: 'DISETUJUI' });
+    expect((await queue('DIAJUKAN')).meta.totalButir).toBe(0);
+    expect((await queue('DISETUJUI')).meta.totalButir).toBe(1);
+    expect((await all()).meta.totalButir).toBe(0);
+    await publish(document.versionId);
+    expect((await queue()).meta.totalButir).toBe(0);
+    expect((await all()).data[0]?.versionId).toBe(document.versionId);
+    const revision = await service.newVersion(owner, document.id, metadata);
+    await addFileMetadata(revision.id, 'UTAMA');
+    await service.transition(owner, revision.id, 'SUBMIT');
+    await approve(revision.id);
+    expect((await queue()).data[0]?.versionId).toBe(revision.id);
+    expect((await all()).data.map(row => String(row.versionId))).toEqual([document.versionId]);
+    const failure = vi.spyOn(audit, 'recordDomain').mockRejectedValueOnce(new Error('publish rollback'));
+    try { await expect(publish(revision.id)).rejects.toThrow('publish rollback'); } finally { failure.mockRestore(); }
+    expect((await queue()).data[0]?.statusWorkflow).toBe('DISETUJUI');
+    expect((await all()).meta.totalButir).toBe(1);
+    await publish(revision.id);
+    expect((await queue()).meta.totalButir).toBe(0);
+    expect((await all()).data.map(row => String(row.versionId))).toEqual([revision.id, document.versionId]);
+  });
+
   it.each([null, 'PERMOHONAN_SK'])('Admin dapat mengajukan tanpa kategori untuk koleksi %s, unit dan batas kategori tetap diperiksa', async (peruntukan) => {
     const owner = await addAdmin('ADMIN');
     const [types] = await pool.query<RowDataPacket[]>("SELECT id FROM jenis_dokumen WHERE kode='SOP' AND aktif=1 LIMIT 1");
@@ -1223,11 +1266,14 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     await service.transition(owner, d.versionId, 'SUBMIT');
     await expect(service.impact(actor, d.versionId)).rejects.toThrow();
     await expect(service.transition(actor, d.versionId, 'APPROVE')).resolves.toMatchObject({ statusWorkflow: 'DISETUJUI' });
+    expect(await files.listForVersion(other, d.versionId)).toEqual(expect.arrayContaining([expect.objectContaining({ id: uploaded.id })]));
+    await expect(files.authorizeVersion(other, d.versionId, uploaded.id)).resolves.toMatchObject({ mime_type: 'application/pdf' });
+    expect((await service.document(other, d.id)).document).toMatchObject({ statusWorkflow: 'DISETUJUI', bolehUbah: false });
+    expect((await search.permohonanSk({ q: marker }, await addStaff())).data).toHaveLength(0);
+    await publish(d.versionId);
     expect(await files.listForVersion(other, d.versionId)).toEqual([]);
     await expect(files.authorizeVersion(other, d.versionId, uploaded.id)).rejects.toThrow();
     await expect(service.document(other, d.id)).rejects.toThrow();
-    expect((await search.permohonanSk({ q: marker }, await addStaff())).data).toHaveLength(0);
-    await publish(d.versionId);
     expect((await service.notifications(owner)).some(row => row.versionId === d.versionId && row.action === 'APPROVE')).toBe(true);
     expect((await service.notifications(actor)).some(row => (!row.jenis || row.jenis === 'DOCUMENT') && row.versionId === d.versionId)).toBe(false);
     expect((await search.permohonanSk({ q: marker })).data).toHaveLength(level === 'publik' ? 1 : 0);

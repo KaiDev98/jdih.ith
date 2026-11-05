@@ -12,6 +12,10 @@ const row = (id: string): NotifikasiDokumen => ({
   createdAt: '2026-11-05 00:00:00',
 });
 describe('notifikasi lintas fitur panel', () => {
+  it('hasil persetujuan tetap menuju antrean, penerbitan menuju Semua Dokumen', () => {
+    expect(tautanNotifikasi(row('10'))).toBe('/admin/dokumen/verifikasi/5?versionId=50');
+    expect(tautanNotifikasi({ ...row('e-10'), action: 'PUBLISH' })).toBe('/admin/dokumen/5?versionId=50');
+  });
   it('memisahkan dua urutan ID tanpa kehilangan presisi BIGINT dan mempertahankan peristiwa sesudah snapshot', () => {
     const bounds = { sampaiId: '9007199254740993', sampaiEventId: '18446744073709551615' };
     expect(notifikasiSetelahBatas(row('9007199254740994'), bounds)).toBe(true);

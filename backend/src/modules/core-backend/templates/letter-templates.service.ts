@@ -418,7 +418,7 @@ export class LetterTemplatesService {
     cekBacaPanel(actor, 'templates.manage');
     const [version] = await this.repo.rows<TemplateFile>(
       this.repo.pool,
-      `SELECT v.* FROM template_surat_versi v JOIN template_surat t ON t.id=v.template_surat_id WHERE v.id=? AND t.id=? AND t.deleted_at IS NULL${options.queue ? " AND v.status='PENDING_REVIEW'" : actor.peran.includes('SUPERADMIN') ? '' : ' AND t.created_by=?'}`,
+      `SELECT v.* FROM template_surat_versi v JOIN template_surat t ON t.id=v.template_surat_id WHERE v.id=? AND t.id=? AND t.deleted_at IS NULL${options.queue ? " AND v.status IN ('PENDING_REVIEW','APPROVED')" : actor.peran.includes('SUPERADMIN') ? '' : ' AND t.created_by=?'}`,
       options.queue || actor.peran.includes('SUPERADMIN')
         ? [versionId, templateId]
         : [versionId, templateId, actor.id],
@@ -584,7 +584,7 @@ export class LetterTemplatesService {
     cekBacaPanel(actor, 'templates.manage');
     const page = skemaCariTemplate.parse(rawQuery ?? {});
     const values: (string | number)[] = [];
-    const where = ['t.deleted_at IS NULL', "v.status='PENDING_REVIEW'"];
+    const where = ['t.deleted_at IS NULL', "v.status IN ('PENDING_REVIEW','APPROVED')"];
     if (page.q) {
       where.push("t.nama LIKE ? ESCAPE '!'");
       values.push(`%${page.q.replaceAll('!', '!!').replaceAll('%', '!%').replaceAll('_', '!_')}%`);

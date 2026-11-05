@@ -57,8 +57,8 @@ describe('persetujuan format melalui Antrean Verifikasi', () => {
       expect.anything(),
     );
   });
-  it('Setujui membutuhkan konfirmasi dan CSRF, tidak menerbitkan, lalu mengeluarkan format dari antrean', async () => {
-    state.list.mockResolvedValueOnce(result()).mockResolvedValue(result([]));
+  it('Setujui tetap di antrean sampai Terbitkan dengan konfirmasi dan CSRF terpisah', async () => {
+    state.list.mockResolvedValueOnce(result()).mockResolvedValue(result([{ ...row, status: 'APPROVED' }]));
     render(<AdminTemplateVerificationQueue />);
     await screen.findByText('Surat Tugas');
     expect(screen.getByRole('link', { name: 'Unduh untuk ditinjau' })).toHaveAttribute(
@@ -71,15 +71,24 @@ describe('persetujuan format melalui Antrean Verifikasi', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Setujui' }));
     fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
     await screen.findByText(/versi 2 disetujui/);
-    await screen.findByText('Tidak ada format yang menunggu persetujuan.');
+    expect(screen.getByText('Surat Tugas')).toBeInTheDocument();
     expect(state.api).toHaveBeenCalledExactlyOnceWith(
       '/admin/letter-templates/5/versions/80/verify',
       { method: 'POST', headers: { 'X-CSRF-Token': 'csrf' }, muatan: {} },
     );
-    expect(screen.queryByRole('button', { name: 'Terbitkan' })).not.toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Terbitkan' }));
+    expect(state.api).toHaveBeenCalledTimes(1);
+    state.list.mockResolvedValue(result([]));
+    fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
+    await screen.findByText(/versi 2 diterbitkan/);
+    await screen.findByText('Tidak ada format yang menunggu persetujuan atau penerbitan.');
+    expect(state.api).toHaveBeenLastCalledWith('/admin/letter-templates/5/versions/80/publish', {
+      method: 'POST', headers: { 'X-CSRF-Token': 'csrf' }, muatan: {},
+    });
   });
   it('Admin membaca pengajuannya tanpa tombol persetujuan atau perubahan keputusan', async () => {
     state.role = 'ADMIN';
+    state.list.mockResolvedValue(result([{ ...row, status: 'APPROVED' }]));
     render(<AdminTemplateVerificationQueue />);
     await screen.findByText('Surat Tugas');
     expect(screen.queryByRole('button', { name: 'Setujui' })).not.toBeInTheDocument();
@@ -104,10 +113,10 @@ describe('persetujuan format melalui Antrean Verifikasi', () => {
     await screen.findByText('Berkas berubah; periksa ulang');
     expect(screen.getByText('Surat Tugas')).toBeInTheDocument();
   });
-  it('halaman terakhir menyesuaikan setelah pengajuan terakhirnya disetujui', async () => {
+  it('halaman terakhir menyesuaikan setelah format terakhir diterbitkan', async () => {
     state.list
-      .mockResolvedValueOnce(result([row], 11))
-      .mockResolvedValueOnce(result([{ ...row, id: '81' }], 11))
+      .mockResolvedValueOnce(result([{ ...row, status: 'APPROVED' }], 11))
+      .mockResolvedValueOnce(result([{ ...row, id: '81', status: 'APPROVED' }], 11))
       .mockResolvedValueOnce(result([], 10))
       .mockResolvedValue(result([row], 10));
     render(<AdminTemplateVerificationQueue />);
@@ -118,8 +127,8 @@ describe('persetujuan format melalui Antrean Verifikasi', () => {
         kueri: { halaman: 2, perHalaman: 10 },
       }),
     );
-    await screen.findByRole('button', { name: 'Setujui' });
-    fireEvent.click(screen.getByRole('button', { name: 'Setujui' }));
+    await screen.findByRole('button', { name: 'Terbitkan' });
+    fireEvent.click(screen.getByRole('button', { name: 'Terbitkan' }));
     fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
     await waitFor(() =>
       expect(state.list).toHaveBeenLastCalledWith('/admin/letter-templates/verification-queue', {

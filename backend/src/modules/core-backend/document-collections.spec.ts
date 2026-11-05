@@ -72,7 +72,7 @@ describe('filter koleksi dokumen panel sebelum pagination', () => {
     const { repo, service } = setup();
     await service.adminDocuments(actor('SUPERADMIN'), { peruntukan: 'PERMOHONAN_SK' });
     for (const [, sql, params] of repo.rows.mock.calls) {
-      expect(sql).toContain("v.status_workflow IN ('DISETUJUI','TERBIT','DITARIK')");
+      expect(sql).toContain("v.status_workflow IN ('TERBIT','DITARIK')");
       expect(sql).toContain('d.peruntukan=?');
       expect(params).toContain('PERMOHONAN_SK');
     }

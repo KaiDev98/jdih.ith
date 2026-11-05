@@ -458,10 +458,12 @@ test('template version metadata rejects actor/state/storage assignment', () => {
   bad(c.skemaHapusTemplate, { actorId: '1', status: 'ACTIVE' });
 });
 
-test('verification queue exposes only pending template metadata without private fields', () => {
+test('verification queue exposes pending/approved templates until publication, without private fields', () => {
   const item = { id: '80', templateSuratId: '5', nama: 'Surat Tugas', nomorVersi: 1, tingkatAkses: 'PUBLIK', status: 'PENDING_REVIEW', pengunggah: 'Admin', diajukanPada: '2026-11-04 10:00:00' };
   ok(c.skemaItemAntreanTemplate, item);
-  bad(c.skemaItemAntreanTemplate, { ...item, status: 'APPROVED' });
+  ok(c.skemaItemAntreanTemplate, { ...item, status: 'APPROVED' });
+  bad(c.skemaItemAntreanTemplate, { ...item, status: 'ACTIVE' });
+  bad(c.skemaItemAntreanTemplate, { ...item, status: 'ARCHIVED' });
   bad(c.skemaItemAntreanTemplate, { ...item, storageKey: 'private' });
   bad(c.skemaItemAntreanTemplate, { ...item, email: 'private@ith.ac.id' });
 });
