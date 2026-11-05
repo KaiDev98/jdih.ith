@@ -10,7 +10,7 @@ export function LayarGalat({ retry }: { retry: () => void }) {
       <section className={styles.content} aria-labelledby="galat-title" role="alert">
         <p className={styles.brand}>JDIH ITH</p>
         <span className={styles.rule} aria-hidden="true" />
-        <h1 id="galat-title">Halaman belum dapat dimuat</h1>
+        <h1 id="galat-title">Halaman Belum Dapat Dimuat</h1>
         <p>Terjadi kendala saat membuka halaman ini. Coba muat kembali dalam beberapa saat.</p>
         <div className={styles.actions}>
           <button type="button" onClick={retry}><RotateCw size={18} aria-hidden="true" />Coba lagi</button>

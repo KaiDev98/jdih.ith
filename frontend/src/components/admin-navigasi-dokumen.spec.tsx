@@ -48,7 +48,7 @@ describe('navigasi detail dan pemisahan daftar dokumen', () => {
     it(`tautan kembali dan riwayat versi tetap dalam ${konteks}`, async () => {
       render(<AdminDocumentDetail id="5" versionId="50" konteks={konteks} />);
       await screen.findByRole('heading', { name: 'Dokumen 5 versi 50' });
-      expect(screen.getByRole('link', { name: konteks === 'verifikasi' ? 'Antrean verifikasi' : 'Draf dan pengajuan' }))
+      expect(screen.getByRole('link', { name: konteks === 'verifikasi' ? 'Antrean Verifikasi' : 'Draf Dan Pengajuan' }))
         .toHaveAttribute('href', `/superadmin/dokumen/${konteks}`);
       expect(screen.getByRole('link', { name: /Versi 1/ }))
         .toHaveAttribute('href', `/superadmin/dokumen/${konteks}/5?versionId=50`);

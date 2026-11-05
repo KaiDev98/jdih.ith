@@ -22,7 +22,7 @@ export default function DaftarPage() {
         <p className="auth-eyebrow">
           <UserRoundPlus aria-hidden className="size-3.5" /> Akun baru
         </p>
-        <h1>Daftar akun Dosen/Staf</h1>
+        <h1>Daftar Akun Dosen/Staf</h1>
         <p className="auth-intro">
           Gunakan email ITH atau pribadi. Akun diperiksa oleh Superadmin.
         </p>

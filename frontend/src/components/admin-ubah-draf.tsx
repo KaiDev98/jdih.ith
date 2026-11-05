@@ -114,7 +114,7 @@ export function AdminUbahDraf({ id }: { id: string }) {
   if (!TAHAP_BISA_DIUBAH.includes(versi.statusWorkflow))
     return (
       <div className="mx-auto max-w-3xl">
-        <PageTitle title="Ubah draf" meta={kembali} />
+        <PageTitle title="Ubah Draf" meta={kembali} />
         <StateMessage title={`Dokumen ini sedang berstatus "${tahap.teks}"`}>
           Hanya draf yang bisa diubah. Untuk mengubah dokumen yang sudah terbit, pakai tombol{' '}
           <strong>Buat revisi</strong> di halaman detail.
@@ -125,7 +125,7 @@ export function AdminUbahDraf({ id }: { id: string }) {
   return (
     <div className="halaman-panel mx-auto w-full">
       <PageTitle
-        title="Ubah draf"
+        title="Ubah Draf"
         description={`${versi.judul} · versi ${versi.nomorVersi}`}
         meta={
           <>
@@ -221,7 +221,7 @@ function BagianData({ versi, onTersimpan }: { versi: Versi; onTersimpan: () => v
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <Field
           className="sm:col-span-2"
-          label="Judul *"
+          label="Judul"
           id="ubah-judul"
           placeholder="Isi dengan Judul Dokumen"
           maxLength={500}
@@ -230,7 +230,7 @@ function BagianData({ versi, onTersimpan }: { versi: Versi; onTersimpan: () => v
         />
         <div className="grid gap-1 sm:col-span-2">
           <TextAreaField
-            label="Deskripsi singkat *"
+            label="Deskripsi singkat"
             id="ubah-deskripsi"
             maxLength={1000}
             rows={3}

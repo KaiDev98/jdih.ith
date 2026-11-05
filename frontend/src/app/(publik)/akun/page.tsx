@@ -57,7 +57,7 @@ export default function AkunPage() {
   if (session.state === 'error')
     return (
       <div className="mx-auto max-w-3xl px-4 py-12">
-        <h1 className="sr-only">Status akun Anda</h1>
+        <h1 className="sr-only">Status Akun Anda</h1>
         <StateMessage title="Status akun belum tersedia" kind="error">
           {session.galat}
         </StateMessage>
@@ -81,7 +81,7 @@ export default function AkunPage() {
   if (done)
     return (
       <div className="mx-auto max-w-3xl px-4 py-12">
-        <h1 className="sr-only">Status pendaftaran Anda</h1>
+        <h1 className="sr-only">Status Pendaftaran Anda</h1>
         <Card>
           <StateMessage title="Pendaftaran menunggu verifikasi">
             Pendaftaran berhasil dikirim kepada Superadmin. Dokumen publik tetap dapat Anda akses
@@ -96,7 +96,7 @@ export default function AkunPage() {
   if (session.state !== 'registration')
     return (
       <div className="mx-auto max-w-3xl px-4 py-12">
-        <h1 className="sr-only">Lengkapi pendaftaran DOSEN/STAF</h1>
+        <h1 className="sr-only">Lengkapi Pendaftaran Dosen/Staf</h1>
         <StateMessage title="Tidak ada pendaftaran yang dapat dilengkapi">
           Masuk melalui Google institusi untuk melanjutkan.
         </StateMessage>
@@ -108,7 +108,7 @@ export default function AkunPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
       <Card>
-        <h1 className="text-2xl font-bold">Lengkapi pendaftaran DOSEN/STAF</h1>
+        <h1 className="text-2xl font-bold">Lengkapi Pendaftaran Dosen/Staf</h1>
         <p className="mt-2 text-sm leading-6 text-slate-600">
           Akun akan menunggu verifikasi sampai disetujui Superadmin. Selama menunggu, dokumen khusus
           Dosen/Staf belum dapat dibuka.

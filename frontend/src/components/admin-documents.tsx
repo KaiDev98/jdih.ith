@@ -277,7 +277,7 @@ export function AdminDocumentCreate({
             <Check aria-hidden className="size-6" />
           </span>
           <h1 className="mt-5 text-xl font-bold tracking-[-0.015em] text-tinta">
-            {khusus ? 'Draf SOP Permohonan SK dibuat' : 'Draf dokumen dibuat'}
+            {khusus ? 'Draf SOP Permohonan SK Dibuat' : 'Draf Dokumen Dibuat'}
           </h1>
           <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
             {berkasGagal
@@ -351,7 +351,7 @@ export function AdminDocumentCreate({
   return (
     <div className="halaman-panel mx-auto w-full">
       <PageTitle
-        title={khusus ? 'Unggah SOP Permohonan SK' : 'Upload dokumen hukum'}
+        title={khusus ? 'Unggah SOP Permohonan SK' : 'Upload Dokumen Hukum'}
         description={
           khusus
             ? 'Pilih akses Publik atau Dosen/Staf. Ajukan draf untuk ditinjau Superadmin; Setelah disetujui, Superadmin menerbitkan SOP melalui tindakan terpisah.'
@@ -386,7 +386,7 @@ export function AdminDocumentCreate({
           <div className="isian-dokumen grid gap-3">
             {hubungan && <PanelHubungan nilai={hubungan} onUbah={setHubungan} />}
             <Field
-              label="Judul *"
+              label="Judul"
               id="doc-title"
               required
               placeholder="Isi dengan Judul Dokumen"
@@ -395,7 +395,7 @@ export function AdminDocumentCreate({
               maxLength={500}
             />
             <TextAreaField
-              label="Deskripsi singkat *"
+              label="Deskripsi singkat"
               required
               id="doc-description"
               rows={2}
@@ -408,7 +408,7 @@ export function AdminDocumentCreate({
 
             <div className="grid gap-4 sm:grid-cols-3">
               <PemilihIsianPanel
-                label="Jenis dokumen *"
+                label="Jenis dokumen"
                 id="doc-type"
                 required
                 value={type}
@@ -438,7 +438,7 @@ export function AdminDocumentCreate({
 
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
               <Field
-                label="Nomor *"
+                label="Nomor"
                 required
                 id="doc-number"
                 placeholder="Nomor dokumen"
@@ -446,7 +446,7 @@ export function AdminDocumentCreate({
                 onChange={(e) => setNumber(e.target.value)}
               />
               <Field
-                label="Tahun *"
+                label="Tahun"
                 required
                 id="doc-year"
                 inputMode="numeric"
@@ -456,7 +456,7 @@ export function AdminDocumentCreate({
                 onChange={(e) => setYear(e.target.value.replace(/\D/g, ''))}
               />
               <Field
-                label="Tanggal penetapan *"
+                label="Tanggal penetapan"
                 required
                 id="doc-date"
                 type="date"
@@ -464,7 +464,7 @@ export function AdminDocumentCreate({
                 onChange={(e) => setDate(e.target.value)}
               />
               <Field
-                label="PIC *"
+                label="PIC"
                 required
                 id="doc-pic"
                 value={pic}
@@ -502,7 +502,7 @@ export function AdminDocumentCreate({
               {aturAlamat && (
                 <div id="atur-alamat" className="mt-3 grid gap-3 sm:grid-cols-2">
                   <Field
-                    label="Kode dokumen *"
+                    label="Kode dokumen"
                     id="doc-code"
                     required
                     placeholder="mis. SK-REK-2026-012"
@@ -514,7 +514,7 @@ export function AdminDocumentCreate({
                     maxLength={64}
                   />
                   <Field
-                    label="Slug URL *"
+                    label="Slug URL"
                     id="doc-slug"
                     required
                     value={slug}

@@ -7,7 +7,7 @@ describe('fallback halaman', () => {
     const retry = vi.fn();
     const error = new Error('PRIVATE_DATABASE_PASSWORD do not expose');
     render(<ErrorPage error={error} retry={retry} />);
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Halaman belum dapat dimuat');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Halaman Belum Dapat Dimuat');
     expect(screen.queryByText(/PRIVATE_DATABASE_PASSWORD/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Coba lagi' }));
     expect(retry).toHaveBeenCalledOnce();

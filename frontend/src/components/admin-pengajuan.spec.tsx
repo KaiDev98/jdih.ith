@@ -68,7 +68,7 @@ describe('pengajuan dokumen pada panel', () => {
       ),
     );
     render(<AdminDocumentCreate mode="permohonan-sk" />);
-    await waitFor(() => expect(screen.getByLabelText('Jenis dokumen *')).toHaveTextContent('SOP'));
+    await waitFor(() => expect(screen.getByLabelText('Jenis dokumen')).toHaveTextContent('SOP'));
     expect(screen.getByRole('radio', { name: 'Publik' })).toBeChecked();
     fireEvent.click(screen.getByRole('radio', { name: 'Dosen/Staf' }));
     expect(screen.getByRole('radio', { name: 'Dosen/Staf' })).toBeChecked();
@@ -189,7 +189,7 @@ describe('pengajuan dokumen pada panel', () => {
         : url.endsWith('/kategori') ? [] : [{ id: '1', kode: 'SOP', nama: 'SOP', aktif: true }],
     ));
     render(<AdminDocumentCreate mode="permohonan-sk" />);
-    await waitFor(() => expect(screen.getByLabelText('Jenis dokumen *')).toHaveTextContent('SOP'));
+    await waitFor(() => expect(screen.getByLabelText('Jenis dokumen')).toHaveTextContent('SOP'));
     for (const [id, value] of [['doc-description', 'Prosedur lengkap'], ['doc-number', '1'], ['doc-year', '2026'], ['doc-pic', 'Hukum'], ['doc-date', '2026-11-05']])
       fireEvent.change(document.getElementById(id!)!, { target: { value } });
     fireEvent.change(document.getElementById('doc-file')!, { target: { files: [new File(['%PDF'], 'sop.pdf', { type: 'application/pdf' })] } });
@@ -364,7 +364,7 @@ describe('pengajuan dokumen pada panel', () => {
       ),
     );
     render(<AdminDocumentCreate mode="permohonan-sk" />);
-    await waitFor(() => expect(screen.getByLabelText('Jenis dokumen *')).toHaveTextContent('SOP'));
+    await waitFor(() => expect(screen.getByLabelText('Jenis dokumen')).toHaveTextContent('SOP'));
     expect(screen.getByRole('heading', { name: 'Unggah SOP Permohonan SK' })).toBeInTheDocument();
     expect(screen.getByText(/Ajukan draf untuk ditinjau Superadmin/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Buat draf' })).toBeInTheDocument();

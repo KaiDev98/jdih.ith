@@ -4,12 +4,12 @@ import { halamanAdminBolehDibuka, hrefAktif, inisial, jejakHalaman, menuUntuk, p
 describe('navigasi admin', () => {
   it.each(['ADMIN', 'SUPERADMIN'])('Upload Dokumen berada di atas Draf dan Pengajuan untuk %s', (peran) => {
     const dokumen = menuUntuk(['documents.read_admin', 'documents.create'], [peran]).find((k) => k.judul === 'Dokumen')!;
-    expect(dokumen.butir.map((b) => b.label)).toEqual(['Semua Dokumen', 'Upload Dokumen', 'Draf dan Pengajuan', 'Antrean Verifikasi']);
+    expect(dokumen.butir.map((b) => b.label)).toEqual(['Semua Dokumen', 'Upload Dokumen', 'Draf Dan Pengajuan', 'Antrean Verifikasi']);
   });
   it('hanya menampilkan menu sesuai izin dan menyembunyikan kelompok kosong', () => {
     const menu = menuUntuk(['dashboard.read', 'documents.read_admin']);
     expect(menu.map((k) => k.judul)).toEqual(['Umum', 'Dokumen', 'Layanan']);
-    expect(menu[1]!.butir.map((b) => b.label)).toEqual(['Semua Dokumen', 'Draf dan Pengajuan', 'Antrean Verifikasi']);
+    expect(menu[1]!.butir.map((b) => b.label)).toEqual(['Semua Dokumen', 'Draf Dan Pengajuan', 'Antrean Verifikasi']);
   });
 
   it('memilih butir aktif dengan alamat terpanjang yang cocok', () => {
@@ -59,17 +59,17 @@ describe('navigasi admin', () => {
     expect(jejakHalaman('/admin/dokumen/923/ubah')).toEqual([
       { label: 'Dasbor', href: '/admin' },
       { label: 'Dokumen', href: '/admin/dokumen' },
-      { label: 'Detail dokumen', href: '/admin/dokumen/923' },
-      { label: 'Ubah draf', href: '/admin/dokumen/923/ubah' },
+      { label: 'Detail Dokumen', href: '/admin/dokumen/923' },
+      { label: 'Ubah Draf', href: '/admin/dokumen/923/ubah' },
     ]);
     expect(jejakHalaman('/admin/profil').at(-1)?.label).toBe('Pengaturan Profil');
     expect(jejakHalaman('/admin/sop-permohonan-sk/baru').map((j) => j.label)).toEqual([
       'Dasbor',
       'SOP Permohonan SK',
-      'Unggah dokumen',
+      'Unggah Dokumen',
     ]);
     // "baru" di bawah Dokumen tetap berlabel umum.
-    expect(jejakHalaman('/admin/dokumen/baru').at(-1)?.label).toBe('Upload dokumen');
+    expect(jejakHalaman('/admin/dokumen/baru').at(-1)?.label).toBe('Upload Dokumen');
   });
 
   it('membedakan Superadmin dan Admin, serta membuat inisial', () => {
@@ -80,7 +80,7 @@ describe('navigasi admin', () => {
     expect(inisial('Rektor')).toBe('R');
   });
   for (const role of ['ADMIN', 'SUPERADMIN']) {
-    for (const [segmen, label] of [['verifikasi', 'Antrean verifikasi'], ['pengajuan', 'Draf dan pengajuan']]) {
+    for (const [segmen, label] of [['verifikasi', 'Antrean Verifikasi'], ['pengajuan', 'Draf Dan Pengajuan']]) {
       it(`detail ${segmen} tetap menandai daftar asal dan breadcrumb bagi ${role}`, () => {
         const root = role === 'ADMIN' ? '/admin' : '/superadmin';
         const menu = menuUntuk(['documents.read_admin'], [role]);
@@ -88,7 +88,7 @@ describe('navigasi admin', () => {
         expect(jejakHalaman(`${root}/dokumen/${segmen}/970`)).toEqual([
           { label: 'Dasbor', href: root },
           { label, href: `${root}/dokumen/${segmen}` },
-          { label: 'Detail dokumen', href: `${root}/dokumen/${segmen}/970` },
+          { label: 'Detail Dokumen', href: `${root}/dokumen/${segmen}/970` },
         ]);
       });
     }

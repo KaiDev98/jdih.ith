@@ -7,7 +7,7 @@ import { ArrowLeft, Search } from 'lucide-react';
  * tertutup tidak tersirat.
  */
 export function HalamanTidakDitemukan({
-  judul = 'Halaman tidak ditemukan',
+  judul = 'Halaman Tidak Ditemukan',
   pesan = 'Alamat yang Anda buka tidak tersedia. Periksa kembali tautannya, atau cari produk hukum yang Anda butuhkan.',
 }: {
   judul?: string;

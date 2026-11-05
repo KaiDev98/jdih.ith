@@ -50,7 +50,7 @@ describe('persetujuan format melalui Antrean Verifikasi', () => {
     );
     render(<AdminVerificationQueue />);
     await screen.findByText('Surat Tugas');
-    expect(screen.getByRole('heading', { name: 'Antrean verifikasi' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Antrean Verifikasi' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Antrean Format Persuratan/ })).toBeInTheDocument();
     expect(state.list).toHaveBeenCalledWith(
       '/admin/documents/verification-queue',

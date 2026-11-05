@@ -381,9 +381,9 @@ function DetailDokumen({
             >
               <ArrowLeft aria-hidden className="size-4" />
               {konteks === 'verifikasi'
-                ? 'Antrean verifikasi'
+                ? 'Antrean Verifikasi'
                 : konteks === 'pengajuan'
-                  ? 'Draf dan pengajuan'
+                  ? 'Draf Dan Pengajuan'
                   : psk
                     ? 'SOP Permohonan SK'
                     : 'Dokumen'}

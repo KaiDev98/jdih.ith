@@ -1,5 +1,8 @@
 # CODEX IMPLEMENTATION PLAN — JDIH ITH V2
 
+Revisi teks 2026-11-05: kapital awal kata pada judul halaman/breadcrumb; hapus
+bintang label unggah/ubah draf tanpa mengubah required, validasi atau workflow.
+
 Revisi kategori/akses 2026-11-05: kategori opsional pada formulir dan kesiapan
 SUBMIT/APPROVE; pilihan pertama Pilih kategori mengosongkan nilai, pilihan
 berikutnya kategori aktif sesuai hak Admin; kategori lain/nonaktif tetap tampil

@@ -1,5 +1,10 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
+Revisi teks 2026-11-05: judul halaman dan breadcrumb memakai kapital awal kata,
+misalnya Semua Dokumen, Upload Dokumen Hukum dan Antrean Verifikasi. Label
+unggah/ubah draf tidak menampilkan tanda bintang; required, informasi aksesibel,
+validasi shared/server, kelengkapan dan konfirmasi tetap berlaku.
+
 Revisi kategori dan akses TERBARU 2026-11-05: kategori dokumen bersifat opsional
 pada unggah, ubah draf, pengajuan dan persetujuan, termasuk SOP Permohonan SK.
 Dropdown menampilkan Pilih kategori sebagai pilihan pertama (mengosongkan

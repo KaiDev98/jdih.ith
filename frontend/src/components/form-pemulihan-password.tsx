@@ -83,7 +83,7 @@ function Heading({ reset }: { reset?: boolean }) {
       <p className="auth-eyebrow">
         <Icon size={14} aria-hidden /> Pemulihan akun Dosen/Staf
       </p>
-      <h1>{reset ? 'Atur ulang password' : 'Lupa password?'}</h1>
+      <h1>{reset ? 'Atur Ulang Password' : 'Lupa Password?'}</h1>
       <p className="auth-intro">
         {reset
           ? 'Buat password baru untuk akun Anda.'

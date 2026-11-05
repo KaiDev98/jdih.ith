@@ -41,7 +41,7 @@ export function ProfilPengguna({ pengguna, unit }: { pengguna: PenggunaSesiTampi
               <p className="text-xs font-semibold tracking-wide text-institusi-700">
                 {pengelola ? 'PENGELOLA PORTAL' : 'DOSEN / STAF ITH'}
               </p>
-              <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">Profil saya</h1>
+              <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">Profil Saya</h1>
               <p className="mt-1 break-words text-sm text-slate-600">{pengguna.nama}</p>
             </div>
             <div className="col-start-2 sm:col-auto">

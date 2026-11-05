@@ -29,7 +29,7 @@ export default function MasukPage() {
         <p className="auth-eyebrow">
           <Building2 aria-hidden className="size-3.5" /> Akun Dosen/Staf
         </p>
-        <h1>Masuk Dosen dan Staf</h1>
+        <h1>Masuk Dosen Dan Staf</h1>
         <p className="auth-intro">Email ITH atau pribadi yang terdaftar.</p>
       </div>
       <div>

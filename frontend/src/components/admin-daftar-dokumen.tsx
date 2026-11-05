@@ -370,10 +370,10 @@ export function DaftarDokumenAdmin({
       <PageTitle
         title={
           verificationOnly
-            ? 'Antrean verifikasi'
+            ? 'Antrean Verifikasi'
             : pengajuan
-              ? 'Draf dan pengajuan'
-              : 'Semua dokumen'
+              ? 'Draf Dan Pengajuan'
+              : 'Semua Dokumen'
         }
         description={
           verificationOnly

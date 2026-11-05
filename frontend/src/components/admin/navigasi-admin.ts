@@ -52,7 +52,7 @@ export const MENU_ADMIN: readonly KelompokNav[] = [
         izin: ['documents.create'],
       },
       {
-        label: 'Draf dan Pengajuan',
+        label: 'Draf Dan Pengajuan',
         href: '/admin/dokumen/pengajuan',
         ikon: FileText,
         izin: ['documents.read_admin'],
@@ -108,7 +108,7 @@ export const MENU_ADMIN: readonly KelompokNav[] = [
 /** Aksi cepat di pencarian (Ctrl+K); tampil bila akun punya salah satu izinnya. */
 export const AKSI_CEPAT: readonly ButirNav[] = [
   {
-    label: 'Upload dokumen hukum baru',
+    label: 'Upload Dokumen Hukum Baru',
     href: '/admin/dokumen/baru',
     ikon: FilePlus2,
     izin: ['documents.create'],
@@ -122,7 +122,7 @@ export const AKSI_CEPAT: readonly ButirNav[] = [
     kataKunci: 'surat keputusan prosedur',
   },
   {
-    label: 'Tinjau antrean verifikasi',
+    label: 'Tinjau Antrean Verifikasi',
     href: '/admin/dokumen/verifikasi',
     ikon: ClipboardCheck,
     izin: ['workflow.approve', 'workflow.return'],
@@ -164,12 +164,12 @@ export function halamanAdminBolehDibuka(pathname: string, peran: readonly string
 
 const LABEL_SEGMEN: Record<string, string> = {
   'sop-permohonan-sk': 'SOP Permohonan SK',
-  'sop-permohonan-sk/baru': 'Unggah dokumen',
+  'sop-permohonan-sk/baru': 'Unggah Dokumen',
   dokumen: 'Dokumen',
-  baru: 'Upload dokumen',
-  verifikasi: 'Antrean verifikasi',
-  pengajuan: 'Draf dan pengajuan',
-  ubah: 'Ubah draf',
+  baru: 'Upload Dokumen',
+  verifikasi: 'Antrean Verifikasi',
+  pengajuan: 'Draf Dan Pengajuan',
+  ubah: 'Ubah Draf',
   pengguna: 'Pengguna',
   'jenis-dokumen': 'Jenis Dokumen',
   kategori: 'Kategori SOP',
@@ -193,7 +193,7 @@ export function jejakHalaman(pathname: string): { label: string; href: string }[
     const label =
       LABEL_SEGMEN[`${segmen[i - 1] ?? ''}/${s}`] ??
       LABEL_SEGMEN[s] ??
-      (/^\d+$/.test(s) ? 'Detail dokumen' : s);
+      (/^\d+$/.test(s) ? 'Detail Dokumen' : s);
     jejak.push({ label, href });
   });
   return jejak;
