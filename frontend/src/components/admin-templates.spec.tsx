@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdminTemplates } from './admin-templates';
+import { GalatApi } from '@/lib/api-client';
 
 const state = vi.hoisted(() => ({
   role: 'ADMIN',
@@ -102,6 +103,25 @@ describe('pustaka Format Persuratan', () => {
       expect(screen.getByRole('button', { name: 'Ya, lanjutkan' })).toBeEnabled(),
     );
   });
+  it('alamat manual yang bentrok tetap mempertahankan nama, slug dan berkas dengan pesan konflik', async () => {
+    const message = 'Alamat format sudah digunakan. Ganti Slug pada bagian Alamat dan deskripsi, atau pilih Ikuti nama lagi.';
+    state.api.mockImplementation((_url: string, options?: { method?: string }) => options?.method
+      ? Promise.reject(new GalatApi('KONFLIK', message, 409)) : Promise.resolve(rows));
+    render(<AdminTemplates />);
+    await screen.findByText('Surat Tugas');
+    fireEvent.change(screen.getByLabelText('Nama'), { target: { value: 'Format Baru' } });
+    fireEvent.click(screen.getByText('Alamat dan deskripsi'));
+    fireEvent.change(screen.getByLabelText('Slug'), { target: { value: 'alamat-dipakai' } });
+    fireEvent.change(screen.getByLabelText(/^Berkas/), { target: { files: [new File(['data'], 'baru.pdf')] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Buat template' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
+    await screen.findByText(message);
+    expect(screen.getByLabelText('Nama')).toHaveValue('Format Baru');
+    expect(screen.getByLabelText('Slug')).toHaveValue('alamat-dipakai');
+    expect((screen.getByLabelText(/^Berkas/) as HTMLInputElement).files?.[0]?.name).toBe('baru.pdf');
+    const call = state.api.mock.calls.find(([, options]) => options?.method === 'POST');
+    expect((call?.[1]?.muatan as FormData).get('modeSlug')).toBe('manual');
+  });
   it('Admin mengirim format untuk verifikasi dan tidak dapat menyetujui format tertunda', async () => {
     state.api.mockResolvedValue([
       { ...rows[0], pendingVersionId: 'v3', pendingNomorVersi: 3, pendingTingkatAkses: 'PUBLIK' },
@@ -128,6 +148,8 @@ describe('pustaka Format Persuratan', () => {
       '/admin/letter-templates',
       expect.objectContaining({ method: 'POST', headers: { 'X-CSRF-Token': 'csrf' } }),
     );
+    const upload = state.api.mock.calls.find(([, options]) => options?.method === 'POST');
+    expect((upload?.[1]?.muatan as FormData).get('modeSlug')).toBe('otomatis');
   });
   it('persetujuan dipindahkan ke Antrean Verifikasi, bukan dilakukan di pengelolaan format', async () => {
     state.role = 'SUPERADMIN';

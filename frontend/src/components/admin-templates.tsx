@@ -126,6 +126,7 @@ export function AdminTemplates() {
     if (!selected) {
       data.set('nama', name.trim());
       data.set('slug', slug.replace(/-+$/, ''));
+      data.set('modeSlug', slugManual ? 'manual' : 'otomatis');
       data.set('deskripsi', description);
     }
     await ambilApi(

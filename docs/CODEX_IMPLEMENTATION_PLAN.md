@@ -1,5 +1,10 @@
 # CODEX IMPLEMENTATION PLAN — JDIH ITH V2
 
+Perbaikan bentrok slug Format Persuratan 2026-11-05: uji alamat manual 409,
+mode otomatis dengan akhiran unik pada INSERT bentrok (termasuk format terhapus),
+batas retry/panjang, unggah serentak, pointer/riwayat lama tetap utuh, rollback
+audit dan pembersihan berkas gagal. Perubahan hanya unggah awal; tanpa migrasi.
+
 Revisi dasbor 2026-11-05: panel terbaru di kiri sampai bawah viewport desktop,
 tindakan/pintasan di kanan; gulir internal tanpa gulir halaman. Periksa desktop
 1024/1440/1920, layar pendek, daftar panjang, fokus keyboard, data kosong/loading

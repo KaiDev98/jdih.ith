@@ -1,4 +1,4 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import type { PenggunaAktif } from '@jdih/shared';
 import { mkdtemp, rm, rmdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -65,6 +65,63 @@ function setup() {
 }
 
 describe('Format Persuratan dikelola Admin dan Superadmin', () => {
+  const collision = () => Object.assign(new Error('Duplicate slug'), {
+    code: 'ER_DUP_ENTRY', sqlMessage: "Duplicate entry for key 'template_surat.uq_template_slug'",
+  });
+  it('alamat manual yang bentrok mendapat konflik dan berkas sementara dibersihkan', async () => {
+    const { service, repo, storage, audit } = setup();
+    repo.write.mockRejectedValueOnce(collision());
+    await expect(service.create(admin, await incoming(), {
+      nama: 'Surat tugas', slug: 'surat-tugas', tingkatAkses: 'PUBLIK',
+    })).rejects.toBeInstanceOf(ConflictException);
+    expect(repo.write).toHaveBeenCalledOnce();
+    expect(storage.discard).toHaveBeenCalledOnce();
+    expect(storage.finalize).not.toHaveBeenCalled();
+    expect(audit.recordDomain).not.toHaveBeenCalled();
+  });
+  it('alamat otomatis yang bentrok mendapat akhiran unik dan audit memakai alamat akhir', async () => {
+    const { service, repo, storage, audit } = setup();
+    repo.write.mockRejectedValueOnce(collision());
+    const slug = 'a'.repeat(191);
+    const result = await service.create(admin, await incoming(), {
+      nama: 'Format baru', slug, modeSlug: 'otomatis', tingkatAkses: 'PUBLIK',
+    });
+    expect(result.slug).toMatch(new RegExp(`^${'a'.repeat(154)}-[a-f0-9-]{36}$`));
+    expect(result.slug).toHaveLength(191);
+    expect(result.status).toBe('PENDING_REVIEW');
+    expect(repo.write.mock.calls[1]?.[2]).toEqual([result.slug, 'Format baru', null, admin.id, 0]);
+    expect(audit.recordDomain).toHaveBeenCalledWith(expect.objectContaining({
+      action: 'CREATE', after: { slug: result.slug, nama: 'Format baru', status: 'PENDING_REVIEW' },
+    }), expect.anything());
+    expect(storage.finalize).toHaveBeenCalledOnce();
+    expect(storage.discard).not.toHaveBeenCalled();
+  });
+  it('membatasi retry bentrok otomatis dan tidak meninggalkan versi/audit ketika semua percobaan gagal', async () => {
+    const { service, repo, storage, audit } = setup();
+    repo.write.mockRejectedValue(collision());
+    await expect(service.create(admin, await incoming(), {
+      nama: 'Format baru', slug: 'format-baru-', modeSlug: 'otomatis', tingkatAkses: 'PUBLIK',
+    })).rejects.toThrow();
+    // Slug tidak valid ditolak sebelum staging/INSERT.
+    expect(repo.write).not.toHaveBeenCalled();
+    await expect(service.create(admin, await incoming(), {
+      nama: 'Format baru', slug: 'format-baru', modeSlug: 'otomatis', tingkatAkses: 'PUBLIK',
+    })).rejects.toBeInstanceOf(ConflictException);
+    expect(repo.write).toHaveBeenCalledTimes(5);
+    expect(audit.recordDomain).not.toHaveBeenCalled();
+    expect(storage.discard).toHaveBeenCalledOnce();
+    expect(storage.finalize).not.toHaveBeenCalled();
+  });
+  it('tidak menyamarkan kegagalan database lain sebagai bentrok alamat', async () => {
+    const { service, repo, storage } = setup();
+    const failure = Object.assign(new Error('DB failed'), { code: 'ER_DUP_ENTRY', sqlMessage: 'PRIMARY' });
+    repo.write.mockRejectedValueOnce(failure);
+    await expect(service.create(admin, await incoming(), {
+      nama: 'Format baru', slug: 'format-baru', modeSlug: 'otomatis', tingkatAkses: 'PUBLIK',
+    })).rejects.toBe(failure);
+    expect(repo.write).toHaveBeenCalledOnce();
+    expect(storage.discard).toHaveBeenCalledOnce();
+  });
   it('pencarian dan pagination memakai batas API serta count yang hanya mencakup akses publik', async () => {
     const { service, repo } = setup();
     repo.rows

@@ -306,6 +306,15 @@ test('search items and detail carry view/download counts', () => {
   ok(c.skemaStatistikDokumen, { dilihat: 0, diunduh: 0 });
   bad(c.skemaStatistikDokumen, { dilihat: 1, diunduh: 1, pengunduh: ['a'] });
 });
+test('template upload distinguishes automatic addresses from manual and legacy clients', () => {
+  const payload = { nama: 'Format Surat', slug: 'format-surat', tingkatAkses: 'PUBLIK' };
+  assert.equal(c.skemaUnggahTemplateAwal.parse(payload).modeSlug, 'manual');
+  ok(c.skemaUnggahTemplateAwal, { ...payload, modeSlug: 'otomatis' });
+  ok(c.skemaUnggahTemplateAwal, { ...payload, modeSlug: 'manual' });
+  bad(c.skemaUnggahTemplateAwal, { ...payload, modeSlug: true });
+  bad(c.skemaUnggahTemplateAwal, { ...payload, modeSlug: 'true' });
+  bad(c.skemaUnggahTemplateAwal, { ...payload, slug: '../bad', modeSlug: 'otomatis' });
+});
 test('generic comma-list utilities preserve precision and reject invalid IDs', () => {
   assert.deepEqual(c.daftarIdTerpisahKoma.parse('1, 18446744073709551615'), [
     '1',

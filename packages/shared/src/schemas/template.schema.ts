@@ -66,6 +66,8 @@ export const skemaMetadataDownloadTemplate = z.strictObject({
 });
 export const skemaUnggahTemplateAwal = skemaBuatTemplate.extend({
   tingkatAkses: skemaAksesTemplate,
+  /** Klien lama/manual mempertahankan alamat persis; otomatis boleh diberi akhiran unik. */
+  modeSlug: z.enum(['manual', 'otomatis']).default('manual'),
 });
 export type MuatanBuatTemplate = z.infer<typeof skemaBuatTemplate>;
 export type MuatanBuatVersiTemplate = z.infer<typeof skemaBuatVersiTemplate>;

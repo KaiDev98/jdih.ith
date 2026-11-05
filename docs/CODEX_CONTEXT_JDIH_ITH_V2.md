@@ -1,5 +1,15 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
+Perbaikan unggah format 2026-11-05: modeSlug otomatis hanya pada unggah awal
+yang mengikuti nama. INSERT dengan UNIQUE tetap menjadi penentu akhir; jika
+uq_template_slug bentrok, backend mencoba akhiran UUID acak (maksimal lima
+percobaan, panjang tetap <=191) dalam transaksi yang sama. Alamat manual/klien
+lama tetap persis dan bentrok mendapat 409 dengan petunjuk, bukan 500. Slug
+format yang sudah dihapus tetap dicadangkan; tidak dipakai ulang, menghidupkan
+format lama, atau mengubah current pointer pemilik lain. Audit memakai alamat
+akhir; staging/incoming dibersihkan saat gagal, pending/verifikasi/penerbitan
+tetap terpisah. Tanpa migrasi atau perubahan unggahan pengguna.
+
 Revisi dasbor 2026-11-05: desktop mulai 1024px memakai Terakhir Diperbarui di
 kiri, memenuhi sisa tinggi ruang kerja. Perlu Tindakan di kanan dan pintasan
 di bawahnya. Halaman tidak bergulir vertikal; isi daftar/panel bergulir sendiri,

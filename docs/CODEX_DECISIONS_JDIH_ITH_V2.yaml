@@ -330,6 +330,7 @@ versioning:
   draft_revision_replaces_public_immediately: false
 
 letter_templates:
+  upload_slug_collision: "initial upload modeSlug defaults manual; manual collision returns generic 409 with guidance; automatic mode retries UNIQUE parent insert up to five times with UUID suffix <=191 characters; deleted slugs stay reserved, no old URL reuse; actual slug audited"
   public_layout: "three desktop columns, server search, 12 items per page; access-filtered totals"
   module: "Format Persuratan"
   primary_format_v1: ".docx"

@@ -948,6 +948,37 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     await expect(templates.review(other, office.id, office.versionId, { queue: true })).rejects.toThrow();
   });
 
+  it('handles template slug collisions atomically without reusing deleted URLs or changing another owner publication', async () => {
+    const owner = await addAdmin('ADMIN');
+    const slug = `slug-collision-${uid()}`;
+    const meta = { nama: 'Format dengan nama sama', slug, tingkatAkses: 'PUBLIK' };
+    const first = await templates.create(actor, await incomingFile('first.docx', minimalDocx()), meta);
+    await templates.verify(actor, first.id, first.versionId, {});
+    await templates.publish(actor, first.id, first.versionId, {});
+    await expect(templates.create(owner, await incomingFile('manual.docx', minimalDocx()), meta)).rejects.toMatchObject({ status: 409 });
+    const automatic = await templates.create(owner, await incomingFile('auto.docx', minimalDocx()), { ...meta, modeSlug: 'otomatis' });
+    expect(automatic.slug).not.toBe(slug);
+    expect(automatic.status).toBe('PENDING_REVIEW');
+    expect((await templates.authorizeOpen(slug)).id).toBe(first.versionId);
+    await templates.remove(actor, first.id, {});
+    const replacement = await templates.create(owner, await incomingFile('replacement.docx', minimalDocx()), { ...meta, modeSlug: 'otomatis' });
+    expect(replacement.slug).not.toBe(slug);
+    expect(replacement.slug).not.toBe(automatic.slug);
+    await expect(templates.authorizeOpen(slug)).rejects.toThrow();
+    const [old] = await pool.query<RowDataPacket[]>('SELECT deleted_at,current_version_id FROM template_surat WHERE id=?', [first.id]);
+    expect(old[0]?.deleted_at).not.toBeNull();
+    expect(old[0]?.current_version_id).toBeNull();
+    const [history] = await pool.query<RowDataPacket[]>('SELECT id FROM template_surat_versi WHERE id=?', [first.versionId]);
+    expect(history).toHaveLength(1);
+    const parallelMeta = { ...meta, slug: `parallel-slug-${uid()}`, modeSlug: 'otomatis' };
+    const parallelFiles = await Promise.all([incomingFile('one.docx', minimalDocx()), incomingFile('two.docx', minimalDocx())]);
+    const concurrent = await Promise.all(parallelFiles.map(file => templates.create(owner, file, parallelMeta)));
+    expect(new Set(concurrent.map(result => result.slug)).size).toBe(2);
+    expect(concurrent.every(result => result.status === 'PENDING_REVIEW')).toBe(true);
+    const [audited] = await pool.query<RowDataPacket[]>("SELECT JSON_UNQUOTE(JSON_EXTRACT(after_json,'$.slug')) slug FROM audit_log WHERE module='letter-templates' AND action='CREATE' AND entity_id=?", [replacement.id]);
+    expect(audited[0]?.slug).toBe(replacement.slug);
+  });
+
   it('keeps Admin template uploads pending until an active Superadmin verifies them', async () => {
     const suffix = uid();
     const admin = await addAdmin('ADMIN');

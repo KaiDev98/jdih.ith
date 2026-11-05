@@ -1,4 +1,5 @@
 import { createReadStream } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import { rm } from 'node:fs/promises';
 import {
   ConflictException,
@@ -85,11 +86,28 @@ export class LetterTemplatesService {
     const staged = await this.storage.stage(createReadStream(incoming.path));
     try {
       return await this.repo.transaction(async (db) => {
-        await this.repo.write(
-          db,
-          'INSERT INTO template_surat(slug,nama,deskripsi,created_by,aktif) VALUES(?,?,?,?,?)',
-          [b.slug, b.nama, b.deskripsi ?? null, actor.id, 0],
-        );
+        let slug = b.slug;
+        // UNIQUE menjadi penentu akhir, termasuk untuk unggahan serentak dan slug
+        // format yang sudah dihapus. Alamat lama tidak dialihkan ke format baru.
+        for (let attempt = 0; attempt < 5; attempt++) {
+          try {
+            await this.repo.write(
+              db,
+              'INSERT INTO template_surat(slug,nama,deskripsi,created_by,aktif) VALUES(?,?,?,?,?)',
+              [slug, b.nama, b.deskripsi ?? null, actor.id, 0],
+            );
+            break;
+          } catch (error) {
+            const duplicate = error as { code?: string; sqlMessage?: string } | null;
+            if (duplicate?.code !== 'ER_DUP_ENTRY' || !/\buq_template_slug\b/.test(duplicate.sqlMessage ?? ''))
+              throw error;
+            if (b.modeSlug === 'manual')
+              throw new ConflictException('Alamat format sudah digunakan. Ganti Slug pada bagian Alamat dan deskripsi, atau pilih Ikuti nama lagi.');
+            if (attempt === 4)
+              throw new ConflictException('Alamat otomatis belum dapat dibuat. Coba unggah kembali.');
+            slug = `${b.slug.slice(0, 154).replace(/-+$/, '')}-${randomUUID()}`;
+          }
+        }
         const templateId = await this.repo.id(db);
         const status = 'PENDING_REVIEW' as const;
         const versionId = await this.insertVersion(
@@ -109,7 +127,7 @@ export class LetterTemplatesService {
             entityType: 'template_surat',
             entityId: templateId,
             actorId: actor.id,
-            after: { slug: b.slug, nama: b.nama, status: 'PENDING_REVIEW' as const },
+            after: { slug, nama: b.nama, status: 'PENDING_REVIEW' as const },
           },
           db,
         );
@@ -125,7 +143,7 @@ export class LetterTemplatesService {
           db,
         );
         await this.storage.finalize(staged);
-        return { id: templateId, versionId, slug: b.slug, nomorVersi: 1, status };
+        return { id: templateId, versionId, slug, nomorVersi: 1, status };
       });
     } catch (error) {
       await this.storage.discard(staged);
