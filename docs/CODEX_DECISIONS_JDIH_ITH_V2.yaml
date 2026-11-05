@@ -139,6 +139,7 @@ panel_routes:
   notification_document_navigation: "full-page link; SUBMIT -> verification, RETURN -> submissions, APPROVE -> verified"
 
 panel_layout:
+  dashboard_desktop: "at >=1024px: latest documents on the left filling remaining viewport height; actions and shortcuts on the right; independent inner scrolling, no page scrolling; mobile normal scroll"
   account_order: "Superadmin first, current Admin second, then newest; sort before API pagination"
   staff_account_columns: [Nama, Email, Peran, Unit, Status]
   staff_verification_entry: "Pengguna -> Buka verifikasi -> Tinjau; active Superadmin with decision permission only"

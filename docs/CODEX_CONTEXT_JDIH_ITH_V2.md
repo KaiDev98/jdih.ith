@@ -1,5 +1,13 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
+Revisi dasbor 2026-11-05: desktop mulai 1024px memakai Terakhir Diperbarui di
+kiri, memenuhi sisa tinggi ruang kerja. Perlu Tindakan di kanan dan pintasan
+di bawahnya. Halaman tidak bergulir vertikal; isi daftar/panel bergulir sendiri,
+dengan fokus keyboard dan header tetap terlihat. Layar pendek tetap dapat
+mengakses seluruh daftar/pintasan. Ponsel memakai gulir halaman normal dengan
+urutan dokumen terbaru, tindakan, lalu pintasan. Data/izin dan larangan audit
+dashboard tetap berlaku; tanpa migrasi atau perubahan query.
+
 Revisi teks 2026-11-05: judul halaman dan breadcrumb memakai kapital awal kata,
 misalnya Semua Dokumen, Upload Dokumen Hukum dan Antrean Verifikasi. Label
 unggah/ubah draf tidak menampilkan tanda bintang; required, informasi aksesibel,

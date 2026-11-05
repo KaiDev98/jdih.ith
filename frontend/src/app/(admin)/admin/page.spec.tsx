@@ -108,6 +108,9 @@ describe('DasborAdmin', () => {
       '/superadmin/dokumen/verifikasi/7?versionId=v7',
     );
     expect(await screen.findByRole('link', { name: /Dosen Satu.*Tinjau akun/ })).toBeInTheDocument();
+    const terbaru = screen.getByRole('heading', { name: 'Terakhir Diperbarui' });
+    const tindakan = screen.getByRole('heading', { name: 'Perlu Tindakan' });
+    expect(terbaru.compareDocumentPosition(tindakan) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   for (const peran of ['ADMIN', 'SUPERADMIN']) it(`${peran} tidak melihat atau meminta audit di dashboard meskipun memiliki audit.read`, async () => {
@@ -133,7 +136,7 @@ describe('DasborAdmin', () => {
     izin.daftar = ['templates.manage'];
     siapkanApi();
     render(<DasborAdmin />);
-    expect(screen.queryByText('Perlu tindakan')).not.toBeInTheDocument();
+    expect(screen.queryByText('Perlu Tindakan')).not.toBeInTheDocument();
     expect(screen.queryByText('Aktivitas terbaru')).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Upload dokumen/ })).not.toBeInTheDocument();
   });

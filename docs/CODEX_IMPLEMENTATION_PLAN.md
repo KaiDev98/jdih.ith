@@ -1,5 +1,10 @@
 # CODEX IMPLEMENTATION PLAN — JDIH ITH V2
 
+Revisi dasbor 2026-11-05: panel terbaru di kiri sampai bawah viewport desktop,
+tindakan/pintasan di kanan; gulir internal tanpa gulir halaman. Periksa desktop
+1024/1440/1920, layar pendek, daftar panjang, fokus keyboard, data kosong/loading
+dan ponsel dengan gulir normal; cakupan data/izin tetap sama.
+
 Revisi teks 2026-11-05: kapital awal kata pada judul halaman/breadcrumb; hapus
 bintang label unggah/ubah draf tanpa mengubah required, validasi atau workflow.
 

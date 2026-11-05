@@ -235,8 +235,16 @@ export default function DasborAdmin() {
         .catch(() => setPendaftar([]));
   }, [bolehDokumen, bolehPengguna]);
 
-  const tautanDokumen = (d: Dokumen) => tautanDetailDokumen(d.id, d.versionId,
-    d.statusWorkflow === 'DIAJUKAN' ? 'verifikasi' : ['DRAF', 'REVISI'].includes(d.statusWorkflow) ? 'pengajuan' : 'terverifikasi');
+  const tautanDokumen = (d: Dokumen) =>
+    tautanDetailDokumen(
+      d.id,
+      d.versionId,
+      d.statusWorkflow === 'DIAJUKAN'
+        ? 'verifikasi'
+        : ['DRAF', 'REVISI'].includes(d.statusWorkflow)
+          ? 'pengajuan'
+          : 'terverifikasi',
+    );
   const ketDokumen = (d: Dokumen) => `${d.tipe}${d.nomor ? ` · No. ${d.nomor}` : ''}`;
   const tindakan: Tindakan[] = [
     ...(bolehVerifikasi
@@ -294,12 +302,12 @@ export default function DasborAdmin() {
       label: 'Upload dokumen',
       keterangan: 'Buat draf produk hukum baru',
     },
-      bolehDokumen && {
-        href: '/admin/sop-permohonan-sk',
-        ikon: FileSignature,
-        label: 'SOP Permohonan SK',
-        keterangan: 'Kelola dokumen halaman khusus',
-      },
+    bolehDokumen && {
+      href: '/admin/sop-permohonan-sk',
+      ikon: FileSignature,
+      label: 'SOP Permohonan SK',
+      keterangan: 'Kelola dokumen halaman khusus',
+    },
     punya('templates.manage') && {
       href: '/admin/format-persuratan',
       ikon: FileText,
@@ -315,7 +323,7 @@ export default function DasborAdmin() {
   ].filter((x) => x !== false);
 
   return (
-    <div className="halaman-panel mx-auto w-full">
+    <div className="halaman-panel halaman-dasbor mx-auto w-full">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs text-slate-500">{tanggalPanjang()}</p>
@@ -381,10 +389,70 @@ export default function DasborAdmin() {
       )}
 
       <div className="dasbor-grid mt-4">
-        <div className="contents">
+        {bolehDokumen && (
+          <Card className="dasbor-terbaru p-0 sm:p-0">
+            <KepalaDasbor
+              title="Terakhir Diperbarui"
+              action={
+                <Link
+                  href="/admin/dokumen"
+                  className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-institusi-700 hover:underline sm:min-h-7"
+                >
+                  Semua Dokumen <ArrowRight aria-hidden className="size-3.5" />
+                </Link>
+              }
+            />
+            {terbaru === undefined ? (
+              <div className="px-4 pb-2">
+                <DaftarKerangka baris={4} label="Memuat dokumen" />
+              </div>
+            ) : terbaru.length === 0 ? (
+              <PesanDasbor title="Belum ada dokumen">
+                Dokumen yang diunggah akan tampil di sini.
+              </PesanDasbor>
+            ) : (
+              <ul
+                tabIndex={0}
+                aria-label="Dokumen terakhir diperbarui"
+                data-gulir-panel
+                className={`max-h-80 divide-y divide-sekat border-t border-sekat ${kelasDaftarDasbor}`}
+              >
+                {terbaru.map((d) => {
+                  const tahap = LABEL_TAHAP[kodeTahapTampil(d.statusWorkflow, d.diganti)];
+                  return (
+                    <li key={d.versionId}>
+                      <Link
+                        href={tautanDokumen(d)}
+                        className="flex min-h-14 items-center gap-3 px-4 py-2.5 transition-colors duration-150 outline-none hover:bg-[#faf9f6] focus-visible:bg-[#faf9f6] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-institusi-400"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span
+                            className="block truncate text-sm font-medium text-tinta"
+                            title={d.judul}
+                          >
+                            {d.judul}
+                          </span>
+                          <span className="block truncate text-xs text-slate-500">
+                            {ketDokumen(d)}
+                            {d.nomorVersi ? ` · Versi ${String(d.nomorVersi)}` : ''}
+                          </span>
+                        </span>
+                        {tahap && <Badge color={tahap.warna}>{tahap.teks}</Badge>}
+                        <span className="hidden w-24 shrink-0 text-right text-xs text-slate-500 tabular-nums md:block">
+                          {waktuRelatif(d.diperbarui)}
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </Card>
+        )}
+        <div className="dasbor-samping min-w-0">
           {(bolehDokumen || bolehPengguna) && (
-            <Card className="p-0 sm:p-0">
-              <KepalaDasbor title="Perlu tindakan" />
+            <Card className="dasbor-tindakan p-0 sm:p-0">
+              <KepalaDasbor title="Perlu Tindakan" />
               {!tindakanDimuat ? (
                 <div className="px-4 pb-2">
                   <DaftarKerangka baris={2} label="Memuat pekerjaan" />
@@ -397,6 +465,7 @@ export default function DasborAdmin() {
                 <ul
                   tabIndex={0}
                   aria-label="Pekerjaan yang perlu tindakan"
+                  data-gulir-panel
                   className={`max-h-60 divide-y divide-sekat border-t border-sekat ${kelasDaftarDasbor}`}
                 >
                   {tindakan.map((t) => (
@@ -438,82 +507,24 @@ export default function DasborAdmin() {
               )}
             </Card>
           )}
-
-          {bolehDokumen && (
-            <Card className="p-0 sm:p-0">
-              <KepalaDasbor
-                title="Terakhir diperbarui"
-                action={
-                  <Link
-                    href="/admin/dokumen"
-                    className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-institusi-700 hover:underline sm:min-h-7"
-                  >
-                    Semua dokumen <ArrowRight aria-hidden className="size-3.5" />
-                  </Link>
-                }
-              />
-              {terbaru === undefined ? (
-                <div className="px-4 pb-2">
-                  <DaftarKerangka baris={4} label="Memuat dokumen" />
-                </div>
-              ) : terbaru.length === 0 ? (
-                <PesanDasbor title="Belum ada dokumen">
-                  Dokumen yang diunggah akan tampil di sini.
-                </PesanDasbor>
-              ) : (
-                <ul
-                  tabIndex={0}
-                  aria-label="Dokumen terakhir diperbarui"
-                  className={`max-h-80 divide-y divide-sekat border-t border-sekat ${kelasDaftarDasbor}`}
-                >
-                  {terbaru.map((d) => {
-                    const tahap = LABEL_TAHAP[kodeTahapTampil(d.statusWorkflow, d.diganti)];
-                    return (
-                      <li key={d.versionId}>
-                        <Link
-                          href={tautanDokumen(d)}
-                          className="flex min-h-14 items-center gap-3 px-4 py-2.5 transition-colors duration-150 outline-none hover:bg-[#faf9f6] focus-visible:bg-[#faf9f6] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-institusi-400"
-                        >
-                          <span className="min-w-0 flex-1">
-                            <span
-                              className="block truncate text-sm font-medium text-tinta"
-                              title={d.judul}
-                            >
-                              {d.judul}
-                            </span>
-                            <span className="block truncate text-xs text-slate-500">
-                              {ketDokumen(d)}
-                              {d.nomorVersi ? ` · Versi ${String(d.nomorVersi)}` : ''}
-                            </span>
-                          </span>
-                          {tahap && <Badge color={tahap.warna}>{tahap.teks}</Badge>}
-                          <span className="hidden w-24 shrink-0 text-right text-xs text-slate-500 tabular-nums md:block">
-                            {waktuRelatif(d.diperbarui)}
-                          </span>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </Card>
-          )}
-        </div>
-
-        <div className="dasbor-pintasan min-w-0">
           {pintasan.length > 0 && (
-            <Card className="p-2 sm:p-2">
-              <h2 className="px-2 pt-1 pb-1 text-sm font-semibold text-tinta">Pintasan</h2>
-              <div className="pintasan-grid grid">
-                {pintasan.map((p) => (
-                  <Pintasan key={p.href} {...p} />
-                ))}
-              </div>
-            </Card>
+            <div className="dasbor-pintasan min-w-0">
+              <Card className="p-2 sm:p-2">
+                <h2 className="px-2 pt-1 pb-1 text-sm font-semibold text-tinta">Pintasan</h2>
+                <div
+                  className="pintasan-grid grid"
+                  tabIndex={0}
+                  aria-label="Pintasan dasbor"
+                  data-gulir-panel
+                >
+                  {pintasan.map((p) => (
+                    <Pintasan key={p.href} {...p} />
+                  ))}
+                </div>
+              </Card>
+            </div>
           )}
         </div>
-
-
       </div>
     </div>
   );
