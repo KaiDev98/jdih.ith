@@ -22,6 +22,18 @@
   pointer-events: none;
   transform: translateY(8px);
 }
+.button[data-ringkas] {
+  right: max(12px, env(safe-area-inset-right));
+  bottom: calc(8px + env(safe-area-inset-bottom));
+  width: 44px;
+  height: 44px;
+  justify-content: center;
+  gap: 0;
+  padding: 0;
+}
+.button[data-ringkas] span {
+  display: none;
+}
 .button:hover {
   background: #244966;
 }

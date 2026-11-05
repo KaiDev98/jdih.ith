@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import styles from './kembali-ke-atas.module.css';
 
-export function KembaliKeAtas() {
+export function KembaliKeAtas({ ringkas = false }: { ringkas?: boolean }) {
   const pathname = usePathname();
   const [tampil, setTampil] = useState(false);
   const areaAktif = useRef<HTMLElement | null>(null);
@@ -61,6 +61,8 @@ export function KembaliKeAtas() {
       disabled={!tampil}
       tabIndex={tampil ? 0 : -1}
       className={styles.button}
+      data-ringkas={ringkas || undefined}
+      title={ringkas ? 'Kembali ke atas' : undefined}
       data-visible={tampil}
       onClick={kembali}
     >

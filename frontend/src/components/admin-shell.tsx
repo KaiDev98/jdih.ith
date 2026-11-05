@@ -82,7 +82,7 @@ function RuangKerja({ pengguna, children }: { pengguna: PenggunaAktif; children:
       />
       <div className="kolom-panel flex min-h-0 min-w-0 flex-1 flex-col">
         <HeaderAdmin pengguna={pengguna} menu={menu} hitungan={hitungan} onCari={() => setCari(true)} />
-        <main ref={areaIsi} data-gulir-panel id="isi-utama" tabIndex={-1} className="area-isi-panel min-w-0 flex-1 px-4 pt-5 pb-[calc(4rem+env(safe-area-inset-bottom))] sm:px-5 lg:px-6 lg:pt-5 lg:pb-8">
+        <main ref={areaIsi} data-gulir-panel id="isi-utama" tabIndex={-1} className="area-isi-panel min-w-0 flex-1 px-4 pt-5 pb-[calc(2rem+env(safe-area-inset-bottom))] sm:px-5 lg:px-6 lg:pt-5 lg:pb-8">
           <div className="isi-panel mx-auto w-full max-w-[100rem]">{children}</div>
         </main>
       </div>
@@ -93,7 +93,7 @@ function RuangKerja({ pengguna, children }: { pengguna: PenggunaAktif; children:
         izin={pengguna.izin}
         peran={pengguna.peran}
       />
-      <KembaliKeAtas />
+      <KembaliKeAtas ringkas />
     </div>
   );
 }
