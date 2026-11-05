@@ -149,6 +149,17 @@ describe('pengajuan dan hasil verifikasi dokumen', () => {
     );
     expect(wrongCategory.repo.write).not.toHaveBeenCalled();
   });
+  for (const action of ['SUBMIT', 'APPROVE'] as const) {
+    it(`${action} menerima tanpa kategori sambil tetap memeriksa metadata dan file`, async () => {
+      const { core, repo, files } = setup({ status_workflow: action === 'SUBMIT' ? 'DRAF' : 'DIAJUKAN' });
+      repo.rows.mockImplementation((_db, sql) => Promise.resolve(sql.includes('SELECT v.*')
+        ? [{ ...complete, status_workflow: action === 'SUBMIT' ? 'DRAF' : 'DIAJUKAN' }] : []));
+      await expect(core.transition(action === 'SUBMIT' ? admin : verifier, '50', action)).resolves.toMatchObject({
+        statusWorkflow: action === 'SUBMIT' ? 'DIAJUKAN' : 'DISETUJUI',
+      });
+      expect(files.assertSubmissionReady).toHaveBeenCalledWith(expect.anything(), '50');
+    });
+  }
   it('Admin tidak bisa memverifikasi meski memiliki izin langsung', async () => {
     const { core, repo } = setup({ status_workflow: 'DIAJUKAN' });
     await expect(core.transition(admin, '50', 'APPROVE', 'Sesuai')).rejects.toBeInstanceOf(

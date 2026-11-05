@@ -231,15 +231,17 @@ for (const schema of [c.skemaAjukanDokumen, c.skemaSetujuiDokumen])
       bad(schema, { verifiedBy: '1' });
     },
   );
-test('pengajuan memerlukan seluruh metadata dan kategori', () => {
+test('pengajuan memerlukan metadata wajib; kategori boleh dikosongkan', () => {
   const complete = { judul: 'SOP', deskripsi: 'Prosedur', nomor: '1', tahun: 2026, pic: 'Hukum', tanggalPenetapan: '2026-10-23', tingkatAkses: 'publik', kategoriId: ['1'] };
   ok(c.skemaKesiapanPengajuan, complete);
   for (const field of Object.keys(complete)) {
     const partial = { ...complete };
     delete partial[field];
-    bad(c.skemaKesiapanPengajuan, partial);
+    if (field === 'kategoriId') ok(c.skemaKesiapanPengajuan, partial);
+    else bad(c.skemaKesiapanPengajuan, partial);
   }
-  bad(c.skemaKesiapanPengajuan, { ...complete, kategoriId: [] });
+  ok(c.skemaKesiapanPengajuan, { ...complete, kategoriId: [] });
+  bad(c.skemaKesiapanPengajuan, { ...complete, kategoriId: ['bukan-id'] });
   ok(c.skemaSetujuiDokumen, { catatan: '  ' });
   ok(c.skemaSetujuiDokumen, {});
 });

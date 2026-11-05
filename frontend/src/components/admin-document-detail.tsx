@@ -647,18 +647,6 @@ function DetailDokumen({
                 </p>
               )}
             </Card>
-            <KartuStatusHukum
-              id={id}
-              statusHukum={document.statusHukum}
-              terbit={Boolean(document.currentPublishedVersionId)}
-              keterangan={detail.keteranganStatus}
-              hubungan={detail.statusPeraturan}
-              bolehUpload={
-                document.bolehUbah &&
-                izin.includes('documents.create') &&
-                izin.includes('legal.manage_relations')
-              }
-            />
           </div>
           <aside
             aria-label="Informasi dan riwayat dokumen"
@@ -765,10 +753,33 @@ function DetailDokumen({
             {superadmin && <AdminHapusDokumen id={id} judul={document.judul} />}
           </aside>
         </div>
-        {(superadmin || document.bolehRevisi) && <AntreanPermintaanPenghapusan sumber="DOCUMENT" resourceId={id} onProcessed={(row, keputusan) => {
-          if (keputusan === 'APPROVE' && row.jenis === 'DELETE') router.replace('/admin/dokumen');
-          else setRefresh((n) => n + 1);
-        }} />}
+        <div
+          aria-label="Status hukum dan permintaan dokumen"
+          className={cn('grid min-w-0 items-start gap-3.5', (superadmin || document.bolehRevisi) && 'lg:grid-cols-2')}
+        >
+          <KartuStatusHukum
+            id={id}
+            statusHukum={document.statusHukum}
+            terbit={Boolean(document.currentPublishedVersionId)}
+            keterangan={detail.keteranganStatus}
+            hubungan={detail.statusPeraturan}
+            bolehUpload={
+              document.bolehUbah &&
+              izin.includes('documents.create') &&
+              izin.includes('legal.manage_relations')
+            }
+          />
+          {(superadmin || document.bolehRevisi) && (
+            <AntreanPermintaanPenghapusan
+              sumber="DOCUMENT"
+              resourceId={id}
+              onProcessed={(row, keputusan) => {
+                if (keputusan === 'APPROVE' && row.jenis === 'DELETE') router.replace('/admin/dokumen');
+                else setRefresh((n) => n + 1);
+              }}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

@@ -113,7 +113,8 @@ admin_document_policy:
   sop_permohonan_sk_menu_visible: true
   verification_queue_read_scope: "legal/SOP and pending template queue read-only across authors; management remains owner-scoped; Superadmin alone can verify"
   category_scope: "categories mapped to the Admin account's unit"
-  input_category_visibility: "all categories visible; unauthorized/inactive options disabled; boolean eligibility from server"
+  input_category_visibility: "Pilih kategori first clears selection; eligible active own-unit category second for Admin; other units not offered; backend eligibility remains authoritative"
+  category_required: false
   amendment_target_scope: "own document and own active published version; enforce search, relation POST and resubmission"
   global_menu_items_visible: true
   global_menu_items_disabled: false
@@ -201,7 +202,8 @@ document_workflow:
   own_superadmin_draft_flow: "DRAF/REVISI -> DISETUJUI, without SUBMIT/verification queue; full readiness and audit required"
   return_revision_requires_note: true
   approval_requires_note: false
-  submission_required_metadata: [judul, deskripsi, nomor, tahun, pic, tanggal_penetapan, tingkat_akses, kategori]
+  submission_required_metadata: [judul, deskripsi, nomor, tahun, pic, tanggal_penetapan, tingkat_akses]
+  optional_submission_category: "empty allowed including SOP Permohonan SK; selected categories must match Admin unit; version unit still assigned from account"
   submission_requires_valid_main_file: true
   admin_all_documents_states: [DISETUJUI, TERBIT, DITARIK]
   draft_submission_list_states: [DRAF, REVISI, DIAJUKAN]
@@ -462,6 +464,8 @@ removal_requests:
   previously_published_templates: "deletion still requires Superadmin after withdrawal"
 
 panel_choice_polish:
+  access_selector: "native radios with sliding indicator, 240ms ease-out, keyboard focus and reduced motion; create/edit/template forms"
+  document_status_requests_layout: "Status hukum beside Permintaan Penarikan & Penghapusan on desktop; stacked on mobile; verification queue order unchanged"
   fields: "Jenis Dokumen, Unit Kerja/Kategori, account verification unit and Add Admin unit use shared animated Radix radio choice menu"
   motion: "180ms enter, 120ms exit, chevron rotation; prefers-reduced-motion removes motion; soft blue focus"
   relation_picker: "Pilih peraturan expands/collapses with CSS grid; focus input on open, return to trigger on close"

@@ -97,6 +97,9 @@ describe('Admin membaca dokumen tanpa tindakan Superadmin; SOP khusus Superadmin
     await screen.findByRole('heading', { name: 'Dokumen tinjauan' });
     expect(screen.getByRole('button', { name: 'Setujui' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Kembalikan untuk diperbaiki' })).toBeDisabled();
+    const pair = screen.getByLabelText('Status hukum dan permintaan dokumen');
+    expect(pair).toContainElement(screen.getByRole('heading', { name: 'Status hukum' }));
+    expect(pair).toContainElement(screen.getByRole('heading', { name: /Permintaan Penarikan & Penghapusan/ }));
   });
   for (const own of [true, false])
     it(`tindakan draf mengikuti kepemilikan: ${String(own)}`, async () => {

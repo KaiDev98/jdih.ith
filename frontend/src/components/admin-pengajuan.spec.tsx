@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdminDocumentCreate } from './admin-documents';
 import { AdminDocumentDetail } from './admin-document-detail';
+import { AdminUbahDraf } from './admin-ubah-draf';
 import { DaftarDokumenAdmin } from './admin-daftar-dokumen';
 import { NotifikasiDokumenPanel } from './admin/notifikasi-dokumen';
 import { AdminBerkasReview } from './admin-berkas-review';
@@ -148,7 +149,7 @@ describe('pengajuan dokumen pada panel', () => {
       ),
     );
   });
-  it('semua unit kerja terlihat, tetapi pilihan di luar hak Admin nonaktif', async () => {
+  it('kategori Admin opsional: Pilih kategori teratas, unit akun kedua, unit lain tidak ditawarkan', async () => {
     state.api.mockImplementation((url: string) =>
       Promise.resolve(
         url.endsWith('/kategori')
@@ -162,10 +163,52 @@ describe('pengajuan dokumen pada panel', () => {
     );
     render(<AdminDocumentCreate />);
     await waitFor(() => expect(state.api).toHaveBeenCalledWith('/admin/document-options/kategori'));
-    fireEvent.keyDown(screen.getByLabelText('Unit kerja / kategori *'), { key: 'ArrowDown' });
-    expect(await screen.findByRole('menuitemradio', { name: 'TIK' })).not.toHaveAttribute('data-disabled');
-    expect(screen.getByRole('menuitemradio', { name: 'Hukum (di luar hak akses)' })).toHaveAttribute('data-disabled');
-    expect(screen.getByRole('menuitemradio', { name: 'Unit lama (nonaktif)' })).toHaveAttribute('data-disabled');
+    const trigger = screen.getByLabelText('Kategori (opsional)');
+    expect(trigger).toHaveTextContent('Pilih kategori');
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    const first = await screen.findByRole('menuitemradio', { name: 'Pilih kategori' });
+    expect(screen.getAllByRole('menuitemradio')).toEqual([first, screen.getByRole('menuitemradio', { name: 'TIK' })]);
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'TIK' }));
+    expect(trigger).toHaveTextContent('TIK');
+    await waitFor(() => expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument());
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    fireEvent.click(await screen.findByRole('menuitemradio', { name: 'Pilih kategori' }));
+    expect(trigger).toHaveTextContent('Pilih kategori');
+  });
+  it('Admin membuat draf lengkap tanpa kategori dan mempertahankan pilihan akses', async () => {
+    state.api.mockImplementation((url: string, options?: { method?: string }) => Promise.resolve(
+      options?.method === 'POST' ? { id: '5', versionId: '50' }
+        : url.endsWith('/kategori') ? [] : [{ id: '1', kode: 'SOP', nama: 'SOP', aktif: true }],
+    ));
+    render(<AdminDocumentCreate mode="permohonan-sk" />);
+    await waitFor(() => expect(screen.getByLabelText('Jenis dokumen *')).toHaveTextContent('SOP'));
+    for (const [id, value] of [['doc-description', 'Prosedur lengkap'], ['doc-number', '1'], ['doc-year', '2026'], ['doc-pic', 'Hukum'], ['doc-date', '2026-11-05']])
+      fireEvent.change(document.getElementById(id!)!, { target: { value } });
+    fireEvent.change(document.getElementById('doc-file')!, { target: { files: [new File(['%PDF'], 'sop.pdf', { type: 'application/pdf' })] } });
+    fireEvent.click(screen.getByRole('radio', { name: 'Dosen/Staf' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Buat draf' }));
+    expect(state.api.mock.calls.every(([, options]) => !options?.method)).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
+    await waitFor(() => expect(state.api).toHaveBeenCalledWith('/admin/documents', expect.objectContaining({
+      method: 'POST', muatan: expect.objectContaining({ versi: expect.objectContaining({ kategoriId: [], tingkatAkses: 'internal' }) }),
+    })));
+  });
+  it('ubah draf dapat melepas kategori unit sendiri melalui konfirmasi', async () => {
+    state.api.mockImplementation((url: string) => Promise.resolve(url.endsWith('/kategori')
+      ? [{ id: '3', nama: 'TIK', aktif: true, bolehPilih: true }, { id: '4', nama: 'Hukum', aktif: true, bolehPilih: false }]
+      : url.endsWith('/files') ? [] : { document: { id: '5', versionId: '50', nomorVersi: 1, judul: 'SOP pengujian', statusWorkflow: 'DRAF', tingkatAkses: 'publik', bolehUbah: true }, kategoriId: ['3'] }));
+    render(<AdminUbahDraf id="5" />);
+    const trigger = await screen.findByLabelText('Kategori (opsional)');
+    await waitFor(() => expect(trigger).toHaveTextContent('TIK'));
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    fireEvent.click(await screen.findByRole('menuitemradio', { name: 'Pilih kategori' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Dosen/Staf' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Simpan data' }));
+    expect(state.api.mock.calls.every(([, options]) => !options?.method)).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
+    await waitFor(() => expect(state.api).toHaveBeenCalledWith('/admin/documents/versions/50', expect.objectContaining({
+      method: 'PATCH', muatan: expect.objectContaining({ kategoriId: [], tingkatAkses: 'internal' }),
+    })));
   });
   for (const role of ['SUPERADMIN', 'ADMIN']) {
     it(`${role}: draf milik Superadmin hanya menampilkan persetujuan langsung untuk peran yang sesuai`, async () => {

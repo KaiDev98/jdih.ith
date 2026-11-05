@@ -2,8 +2,10 @@
 
 import Link from '@/components/admin/tautan-panel';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Building2, Check, FileText, Globe2, Pencil, UploadCloud, X, FilePen } from 'lucide-react';
+import { ArrowLeft, Check, FileText, Globe2, Pencil, UploadCloud, X, FilePen } from 'lucide-react';
 import { PemilihIsianPanel } from './admin/pemilih-isian-panel';
+import { PemilihKategoriDokumen } from './admin/pemilih-kategori-dokumen';
+import { PemilihTingkatAkses } from './admin/pemilih-tingkat-akses';
 import { ambilApi, GalatApi } from '@/lib/api-client';
 import { useSession, csrfHeaders } from '@/lib/sesi';
 import { superadminAktif } from '@/lib/panel';
@@ -240,7 +242,6 @@ export function AdminDocumentCreate({
     !year.trim() && 'Tahun',
     !pic.trim() && 'PIC',
     !date && 'Tanggal penetapan',
-    !category && 'Kategori',
     !file && 'File dokumen utama',
   ].filter((x): x is string => Boolean(x));
 
@@ -335,7 +336,6 @@ export function AdminDocumentCreate({
       teks: 'Deskripsi, nomor, tahun, PIC dan tanggal',
       ok: Boolean(description.trim() && number.trim() && year.trim() && pic.trim() && date),
     },
-    { teks: 'Kategori', ok: Boolean(category) },
     { teks: 'Satu file dokumen utama (wajib)', ok: Boolean(file) },
     ...(hubungan
       ? [
@@ -419,46 +419,20 @@ export function AdminDocumentCreate({
                 placeholder="Pilih jenis"
                 opsi={types.filter((x) => x.aktif !== false).map((x) => ({ value: x.id, label: x.nama }))}
               />
-              <PemilihIsianPanel
-                label="Unit kerja / kategori *"
-                required
+              <PemilihKategoriDokumen
                 id="doc-category"
                 value={category}
                 onValueChange={setCategory}
-                ikon={Building2}
-                placeholder="Pilih kategori"
-                opsi={categories.map((x) => ({ value: x.id, disabled: x.bolehPilih === false || x.aktif === false,
-                  label: x.nama + (x.aktif === false ? ' (nonaktif)' : x.bolehPilih === false ? ' (di luar hak akses)' : '') }))}
+                categories={categories}
               />
-              <fieldset className="grid min-w-0 gap-1.5">
-                <legend className="mb-1.5 text-sm font-medium text-slate-800">Tingkat akses</legend>
-                <div className="grid grid-cols-2 rounded-lg bg-slate-100 p-1">
-                  {(['publik', 'internal'] as const).map((v) => (
-                    <label
-                      key={v}
-                      className={`cursor-pointer rounded-md px-3 py-1.5 text-center text-sm font-semibold transition-[background-color,color,box-shadow] duration-150 focus-within:ring-2 focus-within:ring-institusi-500/40 ${access === v ? 'bg-white text-slate-900 shadow-[0_1px_2px_rgb(23_35_64/0.12)]' : 'text-slate-500 hover:text-slate-800'}`}
-                    >
-                      <input
-                        type="radio"
-                        name="doc-access"
-                        value={v}
-                        checked={access === v}
-                        onChange={() => setAccess(v)}
-                        className="sr-only"
-                      />
-                      {v === 'publik' ? 'Publik' : 'Dosen/Staf'}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
+              <PemilihTingkatAkses id="doc-access" value={access} onValueChange={setAccess} />
             </div>
 
             {!khusus &&
               pengguna?.peran.includes('ADMIN') &&
               !pengguna.peran.includes('SUPERADMIN') && (
                 <p className="-mt-2 text-xs text-slate-500">
-                  Semua unit terlihat. Anda hanya dapat memilih unit kerja yang menjadi hak akun
-                  Anda.
+                  Kategori boleh dikosongkan. Jika diperlukan, pilih kategori sesuai unit kerja akun Anda.
                 </p>
               )}
 

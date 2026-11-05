@@ -80,11 +80,11 @@ export const skemaKesiapanPublikasi = skemaBuatVersiDokumen.extend({
   pic: teksWajib(255, 'PIC'),
   tanggalPenetapan: skemaTanggal,
 });
-/** Pengajuan hanya diterima setelah seluruh metadata dan satu berkas lengkap. */
+/** Kategori opsional; metadata wajib dan satu berkas utama tetap diperiksa. */
 export const skemaKesiapanPengajuan = skemaKesiapanPublikasi.extend({
   deskripsi: teksWajib(1000, 'Deskripsi'),
   tahun: skemaTahun,
-  kategoriId: z.array(skemaId).min(1, 'Kategori wajib dipilih'),
+  kategoriId: z.array(skemaId).default([]),
 });
 /** Pesan kelengkapan yang sama untuk panel dan API, tanpa rincian tipe internal Zod. */
 export function pesanKekuranganPengajuan(issues: readonly { path: readonly PropertyKey[] }[]) {

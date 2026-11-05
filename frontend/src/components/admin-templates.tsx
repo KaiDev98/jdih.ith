@@ -15,13 +15,13 @@ import {
   Feedback,
   Field,
   PageTitle,
-  SelectField,
   StateMessage,
   TextAreaField,
 } from '@/components/ui';
 import styles from './admin-templates.module.css';
 import { PratinjauFormat } from './pratinjau-format';
 import { AntreanPermintaanPenghapusan, FormPermintaanPenghapusan } from './admin-removal-requests';
+import { PemilihTingkatAkses } from './admin/pemilih-tingkat-akses';
 
 type Template = {
   id: string;
@@ -445,15 +445,11 @@ export function AdminTemplates() {
                   </details>
                 </>
               )}
-              <SelectField
-                label="Akses"
+              <PemilihTingkatAkses
                 id="template-access"
-                value={access}
-                onChange={(e) => setAccess(e.target.value as typeof access)}
-              >
-                <option value="PUBLIK">Publik</option>
-                <option value="INTERNAL">Dosen/Staf aktif</option>
-              </SelectField>
+                value={access === 'INTERNAL' ? 'internal' : 'publik'}
+                onValueChange={(value) => setAccess(value === 'internal' ? 'INTERNAL' : 'PUBLIK')}
+              />
               <p className={styles.accessNote}>
                 {access === 'PUBLIK'
                   ? 'Dapat diunduh oleh seluruh pengunjung portal.'

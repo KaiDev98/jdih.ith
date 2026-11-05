@@ -3,8 +3,9 @@
 import Link from '@/components/admin/tautan-panel';
 import { useCallback, useEffect, useState } from 'react';
 import type { KemampuanDokumenAdmin, Relasi, PilihanKategoriDokumen } from '@jdih/shared';
-import { ArrowLeft, Building2, FileText, Paperclip, Search, Link2, Save, Trash2, UploadCloud } from 'lucide-react';
-import { PemilihIsianPanel } from './admin/pemilih-isian-panel';
+import { ArrowLeft, FileText, Paperclip, Search, Link2, Save, Trash2, UploadCloud } from 'lucide-react';
+import { PemilihKategoriDokumen } from './admin/pemilih-kategori-dokumen';
+import { PemilihTingkatAkses } from './admin/pemilih-tingkat-akses';
 import { ambilApi, ambilApiBerdaftar, GalatApi } from '@/lib/api-client';
 import { csrfHeaders, useSession } from '@/lib/sesi';
 import {
@@ -22,7 +23,6 @@ import {
   ConfirmAction,
   Field,
   PageTitle,
-  SelectField,
   StateMessage,
   TextAreaField,
 } from '@/components/ui';
@@ -216,7 +216,7 @@ function BagianData({ versi, onTersimpan }: { versi: Versi; onTersimpan: () => v
     <Card>
       <h2 className="text-base font-bold">1. Data dokumen</h2>
       <p className="mt-1 text-sm text-slate-600">
-        Semua data dan tepat satu file dokumen wajib lengkap sebelum diajukan untuk verifikasi.
+        Lengkapi data wajib dan satu file utama sebelum diajukan. Kategori boleh dikosongkan.
       </p>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <Field
@@ -270,27 +270,18 @@ function BagianData({ versi, onTersimpan }: { versi: Versi; onTersimpan: () => v
           value={form.tanggalPenetapan}
           onChange={(e) => ubah('tanggalPenetapan', e.target.value)}
         />
-        <PemilihIsianPanel
-          label="Unit kerja / kategori *"
+        <PemilihKategoriDokumen
           id="ubah-kategori"
           value={category}
           onValueChange={setCategory}
-          ikon={Building2}
-          placeholder="Pilih kategori"
-          opsi={categories.map((c) => ({ value: c.id, disabled: c.bolehPilih === false || c.aktif === false,
-            label: c.nama + (c.aktif === false ? ' (nonaktif)' : c.bolehPilih === false ? ' (di luar hak akses)' : '') }))}
+          categories={categories}
         />
         {galatKategori && <p role="alert" className="text-sm text-red-700">{galatKategori}</p>}
-        <SelectField
-          className="sm:col-span-2"
-          label="Siapa yang boleh melihat"
+        <PemilihTingkatAkses
           id="ubah-akses"
-          value={form.tingkatAkses}
-          onChange={(e) => ubah('tingkatAkses', e.target.value)}
-        >
-          <option value="publik">Publik: semua orang</option>
-          <option value="internal">Dosen/Staf: hanya yang sudah masuk</option>
-        </SelectField>
+          value={form.tingkatAkses === 'internal' ? 'internal' : 'publik'}
+          onValueChange={(value) => ubah('tingkatAkses', value)}
+        />
       </div>
       <div className="mt-5">
         <ConfirmAction

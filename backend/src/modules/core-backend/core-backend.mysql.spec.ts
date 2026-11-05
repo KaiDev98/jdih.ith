@@ -1132,6 +1132,27 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     ).rejects.toThrow();
   });
 
+  it.each([null, 'PERMOHONAN_SK'])('Admin dapat mengajukan tanpa kategori untuk koleksi %s, unit dan batas kategori tetap diperiksa', async (peruntukan) => {
+    const owner = await addAdmin('ADMIN');
+    const [types] = await pool.query<RowDataPacket[]>("SELECT id FROM jenis_dokumen WHERE kode='SOP' AND aktif=1 LIMIT 1");
+    const marker = uid();
+    const payload = { kodeDokumen: marker, slug: `tanpa-kategori-${marker}`, jenisDokumenId: String(types[0]!.id), peruntukan,
+      versi: { ...ready(`Dokumen tanpa kategori ${marker}`), kategoriId: [] } };
+    const d = await service.createDocument(owner, payload);
+    await expect(service.updateVersion(owner, d.versionId, { kategoriId: [defaultCategoryId] })).rejects.toThrow();
+    const before = await service.document(owner, d.id);
+    expect(before.kategoriId).toEqual([]);
+    expect(before.document.unitKerjaId).toBe(owner.unitKerjaId);
+    await files.upload(owner, d.versionId, await incomingFile('tanpa-kategori.pdf', Buffer.from('%PDF-1.7\ncategory optional fixture\n%%EOF\n')), { jenisBerkas: 'UTAMA' });
+    await service.transition(owner, d.versionId, 'SUBMIT');
+    await approve(d.versionId);
+    expect((await service.document(owner, d.id)).document.currentPublishedVersionId).toBeNull();
+    await publish(d.versionId);
+    const published = await service.document(owner, d.id);
+    expect(published.kategoriId).toEqual([]);
+    expect(published.document.currentPublishedVersionId).toBe(d.versionId);
+  });
+
   it.each(['publik', 'internal'] as const)('Admin mengunggah SOP SK %s, meminta revisi dan hanya Superadmin yang menerbitkan', async (level) => {
     const owner = await addAdmin('ADMIN');
     const other = await addAdmin('ADMIN');

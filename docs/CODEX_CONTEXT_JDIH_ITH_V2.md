@@ -1,5 +1,21 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
+Revisi kategori dan akses TERBARU 2026-11-05: kategori dokumen bersifat opsional
+pada unggah, ubah draf, pengajuan dan persetujuan, termasuk SOP Permohonan SK.
+Dropdown menampilkan Pilih kategori sebagai pilihan pertama (mengosongkan
+kategori); pilihan berikutnya hanya kategori aktif yang boleh dipilih. Admin
+hanya ditawarkan kategori sesuai unit akun, sehingga unitnya berada di urutan
+kedua. Validasi server untuk kategori terpilih, unit, pemilik, metadata wajib
+dan satu file utama tetap berlaku. Unit versi tetap mengikuti akun walaupun
+tanpa kategori. Ini menggantikan kewajiban kategori dan tampilan seluruh unit
+nonaktif pada revisi lama; tanpa migrasi atau penghapusan master/data.
+Pilihan Tingkat akses memakai indikator bergeser halus dengan radio native,
+fokus keyboard dan reduced motion, konsisten pada unggah, ubah draf serta format.
+Detail dokumen menempatkan Status hukum dan Permintaan Penarikan & Penghapusan
+berdampingan pada desktop, bertumpuk pada ponsel. Urutan Antrean Verifikasi
+tetap Dokumen, Format Persuratan, kemudian permintaan; notifikasi lintas fitur
+mengikuti aturan aman di bawah.
+
 Revisi antrean dan notifikasi TERBARU 2026-11-05: respons daftar permintaan
 harus sudah berbungkus sukses/data/meta, agar interceptor tidak membungkusnya
 lagi. Daftar kosong adalah array dengan total nyata; kegagalan menampilkan tanda

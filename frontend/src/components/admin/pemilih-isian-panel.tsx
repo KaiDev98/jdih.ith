@@ -77,7 +77,7 @@ export function PemilihIsianPanel({
             className={styles.trigger}
           >
             {Ikon && <Ikon aria-hidden size={16} strokeWidth={1.7} />}
-            <span id={`${triggerId}-value`} data-placeholder={!selected || undefined}>
+            <span id={`${triggerId}-value`} data-placeholder={!selected || value === '' || undefined}>
               {selected?.label ?? placeholder}
             </span>
             <ChevronDown aria-hidden size={16} className={styles.chevron} />

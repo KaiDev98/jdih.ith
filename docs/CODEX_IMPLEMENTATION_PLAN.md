@@ -1,5 +1,13 @@
 # CODEX IMPLEMENTATION PLAN — JDIH ITH V2
 
+Revisi kategori/akses 2026-11-05: kategori opsional pada formulir dan kesiapan
+SUBMIT/APPROVE; pilihan pertama Pilih kategori mengosongkan nilai, pilihan
+berikutnya kategori aktif sesuai hak Admin. Unit versi tetap terikat akun.
+Uji tanpa kategori hingga terbit, penolakan kategori unit lain, pelepasan kategori
+di ubah draf, konfirmasi/CSRF, radio akses keyboard dan reduced motion. Tempatkan
+panel permintaan di sebelah Status hukum pada desktop dan bertumpuk di ponsel.
+Pertahankan serta uji ulang urutan antrean dan notifikasi format/penarikan/hapus.
+
 Revisi antrean dan notifikasi TERBARU 2026-11-05: respons daftar permintaan
 harus sudah berbungkus sukses/data/meta, agar interceptor tidak membungkusnya
 lagi. Daftar kosong adalah array dengan total nyata; kegagalan menampilkan tanda
