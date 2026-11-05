@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import DasborAdmin from './page';
 
@@ -71,7 +71,61 @@ function siapkanApi() {
 }
 
 describe('DasborAdmin', () => {
-  afterEach(() => { vi.unstubAllGlobals(); izin.peran = ['ADMIN']; });
+  afterEach(() => { cleanup(); vi.unstubAllGlobals(); izin.peran = ['ADMIN']; });
+
+  for (const peran of ['ADMIN', 'SUPERADMIN']) it(`membatasi terbaru menjadi 15 dan menggeser item terlama setelah pembaruan untuk ${peran}`, async () => {
+    izin.peran = [peran]; izin.daftar = ['documents.read_admin'];
+    const row = (id: number) => ({ id: String(id), versionId: String(id + 100), judul: `Dokumen terbaru ${id}`, tipe: 'SK Rektor', nomor: String(id), statusWorkflow: 'TERBIT' });
+    let terbaru = Array.from({ length: 16 }, (_, i) => row(16 - i));
+    let gagal = false;
+    const request = vi.fn(async (url: string) => {
+      const latest = new URL(String(url), 'http://localhost').searchParams.get('perHalaman') === '15';
+      if (latest && gagal) throw new Error('Offline');
+      return new Response(JSON.stringify(berdaftar(latest ? terbaru : [], terbaru.length)), { headers: { 'Content-Type': 'application/json' } });
+    });
+    vi.stubGlobal('fetch', request);
+    render(<DasborAdmin />);
+    const list = await screen.findByRole('list', { name: 'Dokumen terakhir diperbarui' });
+    expect(within(list).getAllByRole('listitem')).toHaveLength(15);
+    expect(within(list).queryByText('Dokumen terbaru 1')).not.toBeInTheDocument();
+    expect(request.mock.calls.some(([url]) => String(url).includes('perHalaman=15'))).toBe(true);
+    terbaru = [row(17), ...terbaru];
+    act(() => window.dispatchEvent(new Event('jdih:workflow')));
+    await within(list).findByText('Dokumen terbaru 17');
+    expect(within(list).getAllByRole('listitem')).toHaveLength(15);
+    expect(within(list).queryByText('Dokumen terbaru 2')).not.toBeInTheDocument();
+    gagal = true;
+    const before = request.mock.calls.length;
+    act(() => window.dispatchEvent(new Event('focus')));
+    await waitFor(() => expect(request.mock.calls.length).toBeGreaterThan(before));
+    expect(within(list).getByText('Dokumen terbaru 17')).toBeInTheDocument();
+    expect(request.mock.calls.some(([url]) => String(url).includes('/audit'))).toBe(false);
+  });
+
+  it('respons terbaru yang terlambat tidak mengganti data dari pembaruan yang lebih baru', async () => {
+    izin.daftar = ['documents.read_admin'];
+    const responses: ((response: Response) => void)[] = [];
+    vi.stubGlobal('fetch', vi.fn((url: string) => new URL(String(url), 'http://localhost').searchParams.get('perHalaman') === '15'
+      ? new Promise<Response>((resolve) => responses.push(resolve))
+      : Promise.resolve(new Response(JSON.stringify(berdaftar([], 0)), { headers: { 'Content-Type': 'application/json' } }))));
+    render(<DasborAdmin />);
+    await waitFor(() => expect(responses).toHaveLength(1));
+    act(() => window.dispatchEvent(new Event('focus')));
+    await waitFor(() => expect(responses).toHaveLength(2));
+    const response = (judul: string) => new Response(JSON.stringify(berdaftar([{ id: '5', versionId: '50', judul, tipe: 'SOP', statusWorkflow: 'TERBIT' }], 1)), { headers: { 'Content-Type': 'application/json' } });
+    await act(async () => responses[1]!(response('Data paling baru')));
+    await screen.findByText('Data paling baru');
+    await act(async () => responses[0]!(response('Respons lama')));
+    expect(screen.getByText('Data paling baru')).toBeInTheDocument();
+    expect(screen.queryByText('Respons lama')).not.toBeInTheDocument();
+  });
+
+  it('Admin tetap tidak ditawari verifikasi Dosen/Staf walaupun diberi users.approve langsung', async () => {
+    izin.peran = ['ADMIN']; izin.daftar = ['documents.read_admin', 'users.read', 'users.approve'];
+    siapkanApi(); render(<DasborAdmin />);
+    await screen.findByRole('link', { name: /Akun menunggu\s*2/ });
+    expect(screen.queryByRole('link', { name: /Tinjau akun/ })).not.toBeInTheDocument();
+  });
 
   for (const peran of ['ADMIN', 'SUPERADMIN']) it(`pintasan SOP khusus Superadmin: ${peran}`, () => {
     izin.peran = [peran]; izin.daftar = ['documents.read_admin', 'documents.create'];

@@ -139,6 +139,7 @@ panel_routes:
   notification_document_navigation: "full-page link; SUBMIT/APPROVE -> verification, RETURN -> submissions, PUBLISH -> all documents"
 
 panel_layout:
+  dashboard_recent_limit: "latest 15 accessible document/version rows; server sorted before LIMIT, client cap; new row displaces oldest from view only; workflow/focus/visibility/30s refresh; preserve existing data on refresh failure"
   mobile_bottom_spacing: "32px plus safe-area inset; Admin/Superadmin use a compact 44px circular scroll-to-top button 8px above the bottom, desktop spacing unchanged"
   dashboard_desktop: "at >=1024px: latest documents on the left filling remaining viewport height; actions and shortcuts on the right; independent inner scrolling, no page scrolling; mobile normal scroll"
   account_order: "Superadmin first, current Admin second, then newest; sort before API pagination"

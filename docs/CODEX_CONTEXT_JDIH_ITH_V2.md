@@ -1,5 +1,14 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
+Revisi dasbor TERBARU 2026-11-06: Terakhir Diperbarui memuat maksimal 15
+baris dokumen/versi terbaru sesuai akses akun, urutan updated_at DESC/id DESC
+dari API sebelum LIMIT 15. Baris baru menggeser baris terlama keluar dari panel,
+tanpa menghapus dokumen/riwayat DB. Muat ulang saat workflow, fokus, tab terlihat
+dan setiap 30 detik ketika tab aktif; respons lama tidak menimpa yang lebih baru.
+Kegagalan pembaruan mempertahankan data yang sudah tampil. Dashboard tetap tanpa
+feed audit. Verifikasi akun Dosen/Staf tetap Superadmin aktif berizin khusus;
+Admin tidak mendapat tindakan verifikasi, termasuk jika diberi users.approve.
+
 Revisi permintaan TERBARU 2026-11-06: Catatan keputusan Superadmin opsional
 untuk APPROVE maupun DECLINE; alasan permintaan Admin tetap wajib. Saat
 penarikan tanpa catatan, alasan penarikan memakai alasan Admin, sehingga

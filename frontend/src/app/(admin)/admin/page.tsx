@@ -35,6 +35,7 @@ type Dokumen = {
 };
 type Pendaftar = { id: string; nama: string; email: string };
 type Daftar = { data: readonly Dokumen[]; total: number };
+const BATAS_TERBARU = 15;
 
 type Ikon = React.ComponentType<{ className?: string; 'aria-hidden'?: boolean }>;
 
@@ -204,7 +205,7 @@ export default function DasborAdmin() {
   const bolehVerifikasi = punya('workflow.approve', 'workflow.return');
   const bolehTerbit = punya('workflow.publish');
   const bolehUbah = punya('documents.edit');
-  const bolehSetujuiAkun = punya('users.approve');
+  const bolehSetujuiAkun = pengguna?.peran.includes('SUPERADMIN') === true && punya('users.approve');
 
   const [antrean, setAntrean] = useState<Daftar>();
   const [revisi, setRevisi] = useState<Daftar>();
@@ -214,26 +215,55 @@ export default function DasborAdmin() {
   const [pendaftar, setPendaftar] = useState<readonly Pendaftar[]>();
 
   useEffect(() => {
+    let aktif = true;
+    let urutanTerbaru = 0;
     const daftar = (
       kueri: Record<string, string | number>,
       simpan: (d: Daftar) => void,
       jalur = '/admin/documents',
     ) =>
       ambilApiBerdaftar<Dokumen>(jalur, { kueri: { halaman: 1, perHalaman: 5, ...kueri } })
-        .then((r) => simpan({ data: r.data, total: r.meta.totalButir }))
-        .catch(() => simpan({ data: [], total: 0 }));
+        .then((r) => { if (aktif) simpan({ data: r.data, total: r.meta.totalButir }); })
+        .catch(() => { if (aktif) simpan({ data: [], total: 0 }); });
+    const muatTerbaru = () => {
+      if (!bolehDokumen) return;
+      const urutan = ++urutanTerbaru;
+      void ambilApiBerdaftar<Dokumen>('/admin/documents', {
+        kueri: { halaman: 1, perHalaman: BATAS_TERBARU },
+      })
+        .then((r) => {
+          if (aktif && urutan === urutanTerbaru) setTerbaru(r.data.slice(0, BATAS_TERBARU));
+        })
+        .catch(() => {
+          if (aktif && urutan === urutanTerbaru) setTerbaru((sebelumnya) => sebelumnya ?? []);
+        });
+    };
     if (bolehDokumen) {
       void daftar({ statusWorkflow: 'DIAJUKAN' }, setAntrean, '/admin/documents/verification-queue');
       void daftar({ statusWorkflow: 'REVISI', cakupan: 'PENGAJUAN' }, setRevisi);
       void daftar({ statusWorkflow: 'DISETUJUI' }, setDisetujui, '/admin/documents/verification-queue');
       void daftar({ statusWorkflow: 'TERBIT', perHalaman: 1 }, (d) => setTerbit(d.total));
-      void daftar({ perHalaman: 6 }, (d) => setTerbaru(d.data));
+      muatTerbaru();
     }
     if (bolehPengguna)
       ambilApi<Pendaftar[]>('/admin/users', { kueri: { halaman: 1, perHalaman: 100 } })
-        .then(setPendaftar)
-        .catch(() => setPendaftar([]));
-  }, [bolehDokumen, bolehPengguna]);
+        .then((data) => { if (aktif) setPendaftar(data); })
+        .catch(() => { if (aktif) setPendaftar([]); });
+    const perbarui = () => {
+      if (document.visibilityState === 'visible') muatTerbaru();
+    };
+    const timer = bolehDokumen ? window.setInterval(perbarui, 30_000) : undefined;
+    window.addEventListener('focus', perbarui);
+    window.addEventListener('jdih:workflow', perbarui);
+    document.addEventListener('visibilitychange', perbarui);
+    return () => {
+      aktif = false;
+      window.clearInterval(timer);
+      window.removeEventListener('focus', perbarui);
+      window.removeEventListener('jdih:workflow', perbarui);
+      document.removeEventListener('visibilitychange', perbarui);
+    };
+  }, [bolehDokumen, bolehPengguna, pengguna?.id]);
 
   const tautanDokumen = (d: Dokumen) =>
     tautanDetailDokumen(

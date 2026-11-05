@@ -1,5 +1,12 @@
 # CODEX IMPLEMENTATION PLAN — JDIH ITH V2
 
+Revisi batas dasbor 2026-11-06: maksimal 15 dokumen/versi Terakhir Diperbarui,
+urutan terbaru dari API; verifikasi item baru menggantikan item ke-15 tanpa
+penghapusan data. Uji polling/fokus/workflow, respons terlambat, kegagalan,
+batas pada kedua peran dan gulir internal desktop. Verifikasi akun Dosen/Staf
+tetap khusus Superadmin; jangan menawarkan tindakan kepada Admin yang diberi
+izin langsung. Dashboard tidak meminta feed audit. Tanpa migrasi.
+
 Revisi permintaan 2026-11-06: catatan keputusan opsional di shared/UI/API dan
 CHECK DB (patch-026, aman diulang); penarikan tanpa catatan memakai alasan Admin.
 Uji APPROVE/DECLINE kosong, batas panjang, rollback/CSRF/otorisasi, serta
