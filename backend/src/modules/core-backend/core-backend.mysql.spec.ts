@@ -1177,7 +1177,7 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     expect((await search.permohonanSk({ q: marker }, await addStaff())).data).toHaveLength(0);
     await publish(d.versionId);
     expect((await service.notifications(owner)).some(row => row.versionId === d.versionId && row.action === 'APPROVE')).toBe(true);
-    expect((await service.notifications(actor)).some(row => row.versionId === d.versionId)).toBe(false);
+    expect((await service.notifications(actor)).some(row => (!row.jenis || row.jenis === 'DOCUMENT') && row.versionId === d.versionId)).toBe(false);
     expect((await search.permohonanSk({ q: marker })).data).toHaveLength(level === 'publik' ? 1 : 0);
     expect((await search.permohonanSk({ q: marker }, await addStaff())).data).toHaveLength(1);
     const [events] = await pool.query<RowDataPacket[]>('SELECT action FROM dokumen_workflow WHERE dokumen_versi_id=? ORDER BY id', [d.versionId]);

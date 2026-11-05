@@ -128,7 +128,7 @@ describe.skipIf(!enabled)('MySQL 8.4 identity/security integration', () => {
   }
   it('schema and seed are present; account verification belongs to Superadmin', async () => {
     const [tables] = await pool.query<RowDataPacket[]>('SHOW TABLES');
-    expect(tables).toHaveLength(30);
+    expect(tables).toHaveLength(31);
     const [verifier] = await repo.rows<RowDataPacket & { total: number }>(
       pool,
       "SELECT COUNT(*) total FROM peran WHERE kode='VERIFIER'",

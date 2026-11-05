@@ -6,6 +6,7 @@ import { FileX2, History, RefreshCw, Trash2, XCircle } from 'lucide-react';
 import Link from '@/components/admin/tautan-panel';
 import { ambilApi, ambilApiBerdaftar, GalatApi } from '@/lib/api-client';
 import { csrfHeaders, useSession } from '@/lib/sesi';
+import { usePanelAnchor } from '@/lib/use-panel-anchor';
 import { Badge, Button, Card, ConfirmAction, Feedback, StateMessage, TextAreaField } from './ui';
 
 export function FormPermintaanPenghapusan({
@@ -104,22 +105,28 @@ export function AntreanPermintaanPenghapusan({
   sumber,
   resourceId,
   onProcessed,
+  requestId,
+  showHistory = false,
 }: {
   sumber?: SumberPermintaanPenghapusan;
   resourceId?: string;
   onProcessed?: (row: PermintaanPenghapusan, keputusan: 'APPROVE' | 'DECLINE') => void;
+  requestId?: string;
+  showHistory?: boolean;
 }) {
   const { pengguna, csrfToken } = useSession();
   const superadmin = pengguna?.peran.includes('SUPERADMIN') === true;
   const [rows, setRows] = useState<readonly PermintaanPenghapusan[]>([]);
   const [page, setPage] = useState(1);
-  const [semua, setSemua] = useState(false);
+  const [semua, setSemua] = useState(showHistory);
+  const [targetRequest, setTargetRequest] = useState(requestId);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [refresh, setRefresh] = useState(0);
   const [catatan, setCatatan] = useState<Record<string, string>>({});
+  usePanelAnchor('permintaan-penghapusan', !loading && !error);
   useEffect(() => {
     const muat = () => {
       if (document.visibilityState === 'visible') setRefresh((n) => n + 1);
@@ -139,6 +146,7 @@ export function AntreanPermintaanPenghapusan({
       kueri: {
         sumber,
         resourceId,
+        requestId: targetRequest,
         halaman: page,
         perHalaman: 5,
         status: semua ? 'ALL' : 'PENDING',
@@ -163,7 +171,7 @@ export function AntreanPermintaanPenghapusan({
     return () => {
       active = false;
     };
-  }, [sumber, resourceId, page, semua, refresh]);
+  }, [sumber, resourceId, targetRequest, page, semua, refresh]);
   async function putuskan(row: PermintaanPenghapusan, keputusan: 'APPROVE' | 'DECLINE') {
     await ambilApi(`/admin/removal-requests/${row.id}/decision`, {
       method: 'POST',
@@ -189,8 +197,8 @@ export function AntreanPermintaanPenghapusan({
         </span>
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold">
-            Permintaan penarikan &amp; penghapusan{' '}
-            <span className="text-slate-500">{loading ? '—' : total}</span>
+            Permintaan Penarikan &amp; Penghapusan{' '}
+            <span className="text-slate-500">{loading || error ? '—' : total}</span>
           </h2>
           <p className="mt-1 text-xs leading-5 text-slate-500">
             {superadmin
@@ -199,6 +207,7 @@ export function AntreanPermintaanPenghapusan({
           </p>
         </div>
         <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
+          {targetRequest && <Button ukuran="kecil" tone="secondary" onClick={() => { setTargetRequest(undefined); setPage(1); }}>Semua permintaan</Button>}
           <Button
             className="flex-1 sm:flex-none"
             ukuran="kecil"
@@ -217,6 +226,7 @@ export function AntreanPermintaanPenghapusan({
             aria-label="Segarkan permintaan"
             disabled={loading}
             onClick={() => {
+            setError('');
               setLoading(true);
               setRefresh((n) => n + 1);
             }}
@@ -234,6 +244,7 @@ export function AntreanPermintaanPenghapusan({
         <div className="p-5">
           <StateMessage kind="error" title="Permintaan gagal dimuat">
             {error}
+            <Button tone="secondary" ukuran="kecil" disabled={loading} onClick={() => { setError(''); setLoading(true); setRefresh((n) => n + 1); }}>Coba lagi</Button>
           </StateMessage>
         </div>
       ) : loading ? (

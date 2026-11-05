@@ -37,6 +37,22 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 describe('permintaan penarikan dan penghapusan', () => {
+  it('menampilkan kegagalan dengan hitungan tidak tersedia dan dapat dimuat ulang', async () => {
+    state.list.mockRejectedValueOnce(new Error('Temporary failure')).mockResolvedValue({ data: [request], meta: { totalButir: 1 } });
+    render(<AntreanPermintaanPenghapusan />);
+    await screen.findByText('Permintaan gagal dimuat');
+    expect(screen.getByRole('heading', { name: /Permintaan Penarikan & Penghapusan/ })).toHaveTextContent('—');
+    fireEvent.click(screen.getByRole('button', { name: 'Coba lagi' }));
+    await screen.findByText('Peraturan pengujian');
+    expect(screen.queryByText('Permintaan gagal dimuat')).not.toBeInTheDocument();
+  });
+  it('tautan keputusan membuka riwayat pada permintaan yang tepat dan dapat kembali ke seluruh daftar', async () => {
+    render(<AntreanPermintaanPenghapusan requestId="9" showHistory />);
+    await screen.findByText('Peraturan pengujian');
+    expect(state.list).toHaveBeenCalledWith('/admin/removal-requests', expect.objectContaining({ kueri: expect.objectContaining({ requestId: '9', status: 'ALL' }) }));
+    fireEvent.click(screen.getByRole('button', { name: 'Semua permintaan' }));
+    await waitFor(() => expect(state.list).toHaveBeenLastCalledWith('/admin/removal-requests', expect.objectContaining({ kueri: expect.objectContaining({ requestId: undefined, status: 'ALL' }) })));
+  });
   it('memerlukan alasan dan konfirmasi, membatalkan tanpa menulis, lalu mengirim CSRF satu kali', async () => {
     let done!: () => void;
     state.api.mockImplementation(

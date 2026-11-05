@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotifikasiDokumenPanel } from './notifikasi-dokumen';
+import type { NotifikasiDokumen } from '@jdih/shared';
 
 const state = vi.hoisted(() => ({ api: vi.fn(), role: 'ADMIN' }));
 vi.mock('next/navigation', () => ({ usePathname: () => '/admin' }));
@@ -27,6 +28,7 @@ beforeEach(() => {
   inbox = [item()];
   state.api.mockReset();
   state.api.mockImplementation((_url, options) => {
+    if (String(_url).endsWith('/snapshot')) return Promise.resolve({ sampaiId: '91' });
     if (options?.method === 'DELETE') {
       inbox = [];
       return Promise.resolve({ jumlahDihapus: 1 });
@@ -44,6 +46,83 @@ async function open() {
 const mutations = () => state.api.mock.calls.filter(([, options]) => options?.method === 'DELETE');
 
 describe('penghapusan notifikasi', () => {
+  it('tautan bagian di halaman yang sama menutup panel notifikasi', async () => {
+    window.history.replaceState(null, '', '/superadmin/dokumen/verifikasi');
+    state.role = 'SUPERADMIN';
+    state.api.mockResolvedValue([{ ...item('e-41'), action: 'TEMPLATE_SUBMIT', jenis: 'TEMPLATE' }]);
+    render(<NotifikasiDokumenPanel />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Notifikasi dokumen (1 terbaru)' }));
+    fireEvent.click(await screen.findByRole('link', { name: /Tinjau pengajuan/ }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    window.history.replaceState(null, '', '/');
+    expect(mutations()).toHaveLength(0);
+  });
+  it('menutup panel membatalkan persiapan hapus semua tanpa memunculkan dialog terlambat', async () => {
+    await open();
+    let selesai!: (value: unknown) => void;
+    state.api.mockImplementation((url) => String(url).endsWith('/snapshot') ? new Promise((resolve) => { selesai = resolve; }) : Promise.resolve([...inbox]));
+    fireEvent.click(screen.getByRole('button', { name: 'Hapus semua' }));
+    expect(screen.getByRole('button', { name: 'Hapus semua' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Tutup menu' }));
+    await act(async () => selesai({ sampaiId: '91' }));
+    expect(screen.queryByRole('dialog', { name: 'Hapus semua notifikasi?' })).not.toBeInTheDocument();
+    expect(mutations()).toHaveLength(0);
+  });
+  it('Superadmin mendapat tautan antrean format, permintaan dan pendaftaran akun', async () => {
+    state.role = 'SUPERADMIN';
+    const events: NotifikasiDokumen[] = [
+      { ...item('e-41'), action: 'TEMPLATE_SUBMIT', jenis: 'TEMPLATE' },
+      { ...item('e-42'), action: 'REMOVAL_REQUEST', jenis: 'REMOVAL', requestId: '8' },
+      { ...item('e-43'), action: 'ACCOUNT_REGISTER', jenis: 'ACCOUNT' },
+    ];
+    state.api.mockResolvedValue(events);
+    render(<NotifikasiDokumenPanel />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Notifikasi dokumen (3 terbaru)' }));
+    const links = await screen.findAllByRole('link');
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([
+      '/superadmin/dokumen/verifikasi#antrean-format',
+      '/superadmin/dokumen/verifikasi?permintaanId=8&riwayatPermintaan=0#permintaan-penghapusan',
+      '/superadmin/pengguna?kelompok=DOSEN_STAF',
+    ]);
+  });
+  it('Admin melihat hasil publikasi, keputusan permintaan dan penghapusan dengan tautan yang sesuai', async () => {
+    const events: NotifikasiDokumen[] = [
+      { ...item('e-51'), action: 'TEMPLATE_PUBLISH', jenis: 'TEMPLATE' },
+      { ...item('e-52'), action: 'REMOVAL_APPROVE', jenis: 'REMOVAL', requestId: '9', dokumenId: null, versionId: null },
+      { ...item('e-53'), action: 'DOCUMENT_DELETE', jenis: 'DOCUMENT', dokumenId: null, versionId: null },
+    ];
+    state.api.mockResolvedValue(events);
+    render(<NotifikasiDokumenPanel />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Notifikasi dokumen (3 terbaru)' }));
+    const links = await screen.findAllByRole('link');
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([
+      '/admin/format-persuratan',
+      '/admin/dokumen/verifikasi?permintaanId=9&riwayatPermintaan=1#permintaan-penghapusan',
+      '/admin/dokumen',
+    ]);
+  });
+  it('hapus semua notifikasi campuran memakai snapshot terpisah dan tidak menghapus yang baru datang', async () => {
+    let rows: NotifikasiDokumen[] = [{ ...item('91'), action: 'APPROVE' }, { ...item('e-21'), action: 'TEMPLATE_APPROVE', jenis: 'TEMPLATE' }];
+    state.api.mockImplementation((_url, options) => {
+      if (String(_url).endsWith('/snapshot')) return Promise.resolve({ sampaiId: '91', sampaiEventId: '21' });
+      if (options?.method === 'DELETE') {
+        rows = rows.filter((row) => row.id === '92' || row.id === 'e-22');
+        return Promise.resolve({ jumlahDihapus: 2 });
+      }
+      return Promise.resolve([...rows]);
+    });
+    render(<NotifikasiDokumenPanel />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Notifikasi dokumen (2 terbaru)' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Hapus semua' }));
+    await screen.findByRole('dialog', { name: 'Hapus semua notifikasi?' });
+    rows.push({ ...item('92'), action: 'RETURN' }, { ...item('e-22'), action: 'TEMPLATE_PUBLISH', jenis: 'TEMPLATE' });
+    await act(async () => { window.dispatchEvent(new Event('focus')); });
+    fireEvent.click(screen.getByRole('button', { name: 'Ya, hapus semua' }));
+    await waitFor(() => expect(state.api).toHaveBeenCalledWith('/admin/documents/notifications', expect.objectContaining({ method: 'DELETE', muatan: { sampaiId: '91', sampaiEventId: '21' } })));
+    await screen.findByRole('button', { name: 'Hapus notifikasi Dokumen 92' });
+    expect(screen.getByRole('button', { name: 'Hapus notifikasi Dokumen e-22' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Hapus notifikasi Dokumen 91' })).not.toBeInTheDocument();
+  });
   for (const [role, action, path, label] of [
     ['SUPERADMIN', 'SUBMIT', '/superadmin/dokumen/verifikasi/5?versionId=50', 'Tinjau pengajuan'],
     ['ADMIN', 'APPROVE', '/admin/dokumen/5?versionId=50', 'Buka dokumen'],

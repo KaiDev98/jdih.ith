@@ -41,7 +41,7 @@ type PendingUser = {
  * Pengguna: antrean pendaftaran Dosen/Staf (ringkas bila kosong) lalu daftar
  * semua akun. Persetujuan dan penolakan dilakukan di dialog Tinjau.
  */
-export function AdminUsers() {
+export function AdminUsers({ kelompokAwal = 'ADMIN' }: { kelompokAwal?: 'ADMIN' | 'DOSEN_STAF' } = {}) {
   const { csrfToken, pengguna } = useSession();
   const superadmin = pengguna?.status === 'AKTIF' && pengguna.peran.includes('SUPERADMIN');
   const [rows, setRows] = useState<PendingUser[]>([]);
@@ -53,7 +53,7 @@ export function AdminUsers() {
   const [notice, setNotice] = useState('');
   const [refresh, setRefresh] = useState(0);
   const [termuat, setTermuat] = useState(false);
-  const [kelompok, setKelompok] = useState<'ADMIN' | 'DOSEN_STAF'>('ADMIN');
+  const [kelompok, setKelompok] = useState<'ADMIN' | 'DOSEN_STAF'>(kelompokAwal);
   const [tambahAdmin, setTambahAdmin] = useState(false);
   const bolehTambahAdmin = superadmin && pengguna.izin.includes('users.read');
   useEffect(() => {
@@ -95,6 +95,7 @@ export function AdminUsers() {
     setSelected(undefined);
     setReason('');
     setRefresh((x) => x + 1);
+    window.dispatchEvent(new Event('jdih:workflow'));
   }
   return (
     <div className="halaman-panel mx-auto w-full">

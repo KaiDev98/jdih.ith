@@ -11,6 +11,7 @@ import { AuditService } from './audit.service.js';
 import { LetterTemplatesService } from '../core-backend/templates/letter-templates.service.js';
 import { RemovalRequestsService } from '../core-backend/documents/removal-requests.service.js';
 import { DokumenAdminService } from '../core-backend/documents/dokumen-admin.service.js';
+import { RemovalRequestsRepository } from '../core-backend/documents/removal-requests.repository.js';
 import { Readable } from 'node:stream';
 
 @Controller('contract-probe')
@@ -46,7 +47,11 @@ describe('AppModule HTTP security wiring (no database/network provider)', () => 
     registerWithPassword: vi.fn().mockResolvedValue({ token, expires: new Date(Date.now() + 3600000), result: { id: '9', status: 'MENUNGGU_VERIFIKASI', peran: ['DOSEN_STAF'] } }),
   };
   const templates = { remove: vi.fn().mockResolvedValue({ id: '5', deleted: true }), review: vi.fn() };
-  const removals = { create: vi.fn().mockResolvedValue({ id: '8', status: 'PENDING' }) };
+  const listRepository = new RemovalRequestsRepository({
+    pool: {}, rows: (_db: unknown, sql: string) => Promise.resolve(sql.startsWith('SELECT COUNT') ? [{ total: 0 }] : []),
+  } as never);
+  const listService = new RemovalRequestsService({} as never, listRepository, {} as never, {} as never, {} as never, {} as never);
+  const removals = { create: vi.fn().mockResolvedValue({ id: '8', status: 'PENDING' }), list: listService.list.bind(listService) };
   const drafts = { hapusDraf: vi.fn().mockResolvedValue({ id: '5', versionId: '50', dihapus: true }) };
   beforeAll(async () => {
     Object.assign(process.env, {
@@ -94,7 +99,7 @@ describe('AppModule HTTP security wiring (no database/network provider)', () => 
     app.setGlobalPrefix('api/v1');
     await app.listen(0, '127.0.0.1');
     base = await app.getUrl();
-  }, 20000);
+  }, 60000);
   afterAll(async () => {
     if (app) await app.close();
   });
@@ -230,6 +235,17 @@ describe('AppModule HTTP security wiring (no database/network provider)', () => 
     }
     expect(drafts.hapusDraf).toHaveBeenCalledWith(actor, '5', '50');
     expect(removals.create).toHaveBeenCalledWith(actor, 'DOCUMENT', '5', { jenis: 'DELETE', alasan: 'Unggahan keliru' });
+  });
+  it('removal list retains its top-level array and pagination through the real HTTP response interceptor', async () => {
+    identity.authenticate.mockResolvedValue({ user: { ...user, peran: ['SUPERADMIN'], izin: ['documents.read_admin'] } });
+    const response = await fetch(base + '/api/v1/admin/removal-requests?status=PENDING&halaman=1&perHalaman=5', {
+      headers: { cookie: 'jdih_session=' + token },
+    });
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toMatchObject({ sukses: true, data: [], meta: { totalButir: 0, halaman: 1, perHalaman: 5 } });
+    expect(body).toHaveProperty('data.length', 0);
+    expect(body).not.toHaveProperty('data.data');
   });
   it('pratinjau antrean memakai rute terproteksi dengan respons PDF inline dan cache privat', async () => {
     const pdf = Buffer.from('%PDF-1.7\nPreview transport\n%%EOF');

@@ -19,6 +19,7 @@ export function AdminHapusDokumen({ id, judul }: { id: string; judul: string }) 
 
   async function hapus() {
     await ambilApi(`/admin/documents/${id}`, { method: 'DELETE', headers: csrfHeaders(csrfToken) });
+    window.dispatchEvent(new Event('jdih:workflow'));
     router.replace('/admin/dokumen');
   }
 

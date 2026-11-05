@@ -1,6 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Pool, PoolConnection, RowDataPacket, ResultSetHeader } from 'mysql2/promise';
 import { KOLAM_KONEKSI } from '../../database/database.module.js';
+import type { PenggunaAktif } from '@jdih/shared';
+import { notificationEventScope } from './notification-events.js';
 
 @Injectable()
 export class CoreBackendRepository {
@@ -34,6 +36,35 @@ export class CoreBackendRepository {
       "SELECT id FROM pengguna WHERE id=? AND status='AKTIF' AND deleted_at IS NULL FOR UPDATE",
       [actorId],
     );
+  }
+  async eventNotificationList(actor: PenggunaAktif) {
+    const scope = notificationEventScope(actor);
+    const rows = await this.rows(this.pool,
+      `SELECT e.* FROM (${scope.sql}) e WHERE NOT EXISTS (SELECT 1 FROM notifikasi_event_dihapus n WHERE n.pengguna_id=? AND n.audit_id=e.id)
+       ORDER BY e.createdAt DESC,CAST(e.id AS UNSIGNED) DESC LIMIT 30`, [...scope.values, actor.id]);
+    return rows.map((row) => ({ ...row, id: `e-${String(row.id)}` }));
+  }
+  async notificationSnapshot(actor: PenggunaAktif) {
+    const workflow = this.notificationScope(actor.id, actor.peran.includes('SUPERADMIN'));
+    const events = notificationEventScope(actor);
+    const [row] = await this.rows<RowDataPacket & { sampaiId: string | null; sampaiEventId: string | null }>(this.pool,
+      `SELECT
+        (SELECT CAST(MAX(w.id) AS CHAR) FROM dokumen_workflow w JOIN dokumen_versi v ON v.id=w.dokumen_versi_id JOIN dokumen d ON d.id=v.dokumen_id
+          WHERE ${workflow.where} AND NOT EXISTS (SELECT 1 FROM notifikasi_dihapus n WHERE n.pengguna_id=? AND n.workflow_id=w.id)) sampaiId,
+        (SELECT CAST(MAX(CAST(e.id AS UNSIGNED)) AS CHAR) FROM (${events.sql}) e
+          WHERE NOT EXISTS (SELECT 1 FROM notifikasi_event_dihapus n WHERE n.pengguna_id=? AND n.audit_id=e.id)) sampaiEventId`,
+      [...workflow.values, actor.id, ...events.values, actor.id]);
+    return { ...(row?.sampaiId ? { sampaiId: row.sampaiId } : {}), ...(row?.sampaiEventId ? { sampaiEventId: row.sampaiEventId } : {}) };
+  }
+  async eventNotificationExists(db: PoolConnection, actor: PenggunaAktif, id: string) {
+    const scope = notificationEventScope(actor);
+    return (await this.rows(db, `SELECT e.id FROM (${scope.sql}) e WHERE e.id=?`, [...scope.values, id])).length > 0;
+  }
+  async insertEventNotificationDismissals(db: PoolConnection, actor: PenggunaAktif, id: string, all: boolean) {
+    const scope = notificationEventScope(actor);
+    return this.write(db,
+      `INSERT IGNORE INTO notifikasi_event_dihapus(pengguna_id,audit_id) SELECT ?,e.id FROM (${scope.sql}) e WHERE CAST(e.id AS UNSIGNED)${all ? '<=' : '='}CAST(? AS UNSIGNED)`,
+      [actor.id, ...scope.values, id]);
   }
   private notificationSelection(actorId: string, superadmin: boolean, id: string, all: boolean) {
     const scope = this.notificationScope(actorId, superadmin);

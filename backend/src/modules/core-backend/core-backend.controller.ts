@@ -83,6 +83,9 @@ export class DocumentsController {
   @Get('notifications') @Izin('documents.read_admin') notifications(@Aktor() actor: PenggunaAktif) {
     return this.core.notifications(actor);
   }
+  @Get('notifications/snapshot') @Izin('documents.read_admin') notificationSnapshot(@Aktor() actor: PenggunaAktif) {
+    return this.core.notificationSnapshot(actor);
+  }
   @Delete('notifications/:id') @Izin('documents.read_admin') dismissNotification(
     @Param('id') id: string, @Aktor() actor: PenggunaAktif,
   ) {

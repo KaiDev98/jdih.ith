@@ -81,6 +81,7 @@ export class RemovalRequestsRepository {
     filter: {
       sumber?: SumberPermintaanPenghapusan;
       resourceId?: string;
+      requestId?: string;
       status: string;
       halaman: number;
       perHalaman: number;
@@ -100,6 +101,7 @@ export class RemovalRequestsRepository {
       where.push('r.resource_id=?');
       values.push(filter.resourceId);
     }
+    if (filter.requestId) { where.push('r.id=?'); values.push(filter.requestId); }
     if (filter.status !== 'ALL') {
       where.push('r.status=?');
       values.push(filter.status);
@@ -116,6 +118,7 @@ export class RemovalRequestsRepository {
       [...values, filter.perHalaman, (filter.halaman - 1) * filter.perHalaman],
     );
     return {
+      sukses: true as const,
       data: data.map(({ requestedBy: _owner, ...row }) => row),
       meta: {
         halaman: filter.halaman,

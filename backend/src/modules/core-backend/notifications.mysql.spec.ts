@@ -11,6 +11,9 @@ import { IdentityRepository } from '../identity/identity.repository.js';
 import { AuditService } from '../identity/audit.service.js';
 import { CoreBackendRepository } from './core-backend.repository.js';
 import { CoreBackendService } from './core-backend.service.js';
+import { DokumenAdminService } from './documents/dokumen-admin.service.js';
+import { RemovalRequestsRepository } from './documents/removal-requests.repository.js';
+import { RemovalRequestsService } from './documents/removal-requests.service.js';
 
 /** Opt-in local MySQL checks. All fixtures, dismissals and audit rows are rolled back. */
 describe.skipIf(!process.env.NOTIFICATIONS_MYSQL_ENV)('notifikasi MySQL dengan rollback', () => {
@@ -64,7 +67,9 @@ describe.skipIf(!process.env.NOTIFICATIONS_MYSQL_ENV)('notifikasi MySQL dengan r
       surel: 'fixture@ith.ac.id',
       status: 'AKTIF',
       peran: [role],
-      izin: ['documents.read_admin'],
+      izin: role === 'SUPERADMIN'
+        ? ['documents.read_admin', 'documents.edit', 'documents.delete', 'workflow.withdraw', 'templates.manage', 'users.read']
+        : ['documents.read_admin', 'documents.edit', 'templates.manage'],
       avatarUrl: null,
       unitKerjaId: null,
       unitManual: null,
@@ -97,7 +102,7 @@ describe.skipIf(!process.env.NOTIFICATIONS_MYSQL_ENV)('notifikasi MySQL dengan r
       ],
     );
   }
-  function newService() {
+  function newRepository() {
     const repo = new CoreBackendRepository(db as unknown as Pool);
     vi.spyOn(repo, 'transaction').mockImplementation(async (fn) => {
       await db.query('SAVEPOINT notification_action');
@@ -108,7 +113,31 @@ describe.skipIf(!process.env.NOTIFICATIONS_MYSQL_ENV)('notifikasi MySQL dengan r
         throw e;
       }
     });
-    return new CoreBackendService(repo, audit, {} as never, {} as never, {} as never);
+    return repo;
+  }
+  function newService() {
+    return new CoreBackendService(newRepository(), audit, {} as never, {} as never, {} as never);
+  }
+  async function auditEvent(action: string, entityId: string, module: 'documents' | 'letter-templates' | 'workflow' = 'documents',
+    entityType = 'dokumen', extra: { before?: Record<string, string>; after?: Record<string, string> } = {}) {
+    await audit.recordDomain({ module, action, entityType, entityId, actorId: superadmin.id, ...extra }, db);
+    const [rows] = await db.query<RowDataPacket[]>('SELECT CAST(LAST_INSERT_ID() AS CHAR) id');
+    return String(rows[0]!.id);
+  }
+  async function template(author: PenggunaAktif) {
+    const uid = randomUUID();
+    const id = await insert('INSERT INTO template_surat(slug,nama,aktif,created_by) VALUES(?,?,0,?)', [uid, 'Format fixture', author.id]);
+    const vid = await insert("INSERT INTO template_surat_versi(template_surat_id,nomor_versi,tingkat_akses,status,storage_key,nama_asli,mime_type,size_bytes,checksum,created_by) VALUES(?,1,'PUBLIK','PENDING_REVIEW',?,'fixture.pdf','application/pdf',12,UNHEX(REPEAT('00',32)),?)", [id, uid, author.id]);
+    const eventId = await auditEvent('CREATE_VERSION', vid, 'letter-templates', 'template_surat_versi');
+    return { id, vid, eventId };
+  }
+  async function published(author: PenggunaAktif) {
+    const vid = await version(author);
+    await db.execute("UPDATE dokumen_versi SET status_workflow='TERBIT',nomor='1',pic='Hukum',tanggal_penetapan='2026-11-05',verified_by=?,approved_at=UTC_TIMESTAMP(6),published_by=?,published_at=UTC_TIMESTAMP(6) WHERE id=?", [superadmin.id, superadmin.id, vid]);
+    const [rows] = await db.query<RowDataPacket[]>('SELECT CAST(dokumen_id AS CHAR) id FROM dokumen_versi WHERE id=?', [vid]);
+    const id = String(rows[0]!.id);
+    await db.execute('UPDATE dokumen SET current_published_version_id=? WHERE id=?', [vid, id]);
+    return { id, vid };
   }
   beforeEach(async () => {
     db = await pool.getConnection();
@@ -188,7 +217,7 @@ describe.skipIf(!process.env.NOTIFICATIONS_MYSQL_ENV)('notifikasi MySQL dengan r
     await db.execute("UPDATE dokumen_versi SET status_workflow='DIAJUKAN' WHERE id=?", [versionId]);
     const incoming = await service.notifications(superadmin);
     expect(incoming.some((r) => r.id === first)).toBe(true);
-    expect(incoming.every((r) => r.action === 'SUBMIT')).toBe(true);
+    expect(incoming.filter((r) => !r.jenis || r.jenis === 'DOCUMENT').every((r) => r.action === 'SUBMIT')).toBe(true);
     await service.dismissNotification(superadmin, first);
     await db.execute("UPDATE dokumen_versi SET status_workflow='REVISI' WHERE id=?", [versionId]);
     const returned = await insert(
@@ -198,7 +227,7 @@ describe.skipIf(!process.env.NOTIFICATIONS_MYSQL_ENV)('notifikasi MySQL dengan r
     expect((await service.notifications(owner)).find((r) => r.id === returned)?.catatan).toBe(
       'Perbaiki tanda tangan',
     );
-    expect((await service.notifications(superadmin)).some((r) => r.versionId === versionId)).toBe(
+    expect((await service.notifications(superadmin)).some((r) => (!r.jenis || r.jenis === 'DOCUMENT') && r.versionId === versionId)).toBe(
       false,
     );
     const resubmitted = await insert(
@@ -208,12 +237,12 @@ describe.skipIf(!process.env.NOTIFICATIONS_MYSQL_ENV)('notifikasi MySQL dengan r
     await db.execute("UPDATE dokumen_versi SET status_workflow='DIAJUKAN' WHERE id=?", [versionId]);
     expect(
       (await service.notifications(superadmin))
-        .filter((r) => r.versionId === versionId)
+        .filter((r) => (!r.jenis || r.jenis === 'DOCUMENT') && r.versionId === versionId)
         .map((r) => r.id),
     ).toEqual([resubmitted]);
     expect(
       (await service.notifications(otherSuperadmin))
-        .filter((r) => r.versionId === versionId)
+        .filter((r) => (!r.jenis || r.jenis === 'DOCUMENT') && r.versionId === versionId)
         .map((r) => r.id),
     ).toEqual([resubmitted]);
     await db.execute(
@@ -222,8 +251,107 @@ describe.skipIf(!process.env.NOTIFICATIONS_MYSQL_ENV)('notifikasi MySQL dengan r
     );
     const approved = await event(versionId);
     expect((await service.notifications(owner)).some((r) => r.id === approved)).toBe(true);
-    expect((await service.notifications(superadmin)).some((r) => r.versionId === versionId)).toBe(
+    expect((await service.notifications(superadmin)).some((r) => (!r.jenis || r.jenis === 'DOCUMENT') && r.versionId === versionId)).toBe(
       false,
     );
+  });
+  it('pending formats enter all authorized Superadmin inboxes; approval/publication reach only their owner', async () => {
+    const t = await template(owner);
+    expect((await service.notifications(superadmin)).find((r) => r.id === `e-${t.eventId}`)).toMatchObject({ jenis: 'TEMPLATE', action: 'TEMPLATE_SUBMIT', resourceId: t.id });
+    expect((await service.notifications({ ...superadmin, izin: ['documents.read_admin'] })).some((r) => r.id === `e-${t.eventId}`)).toBe(false);
+    await service.dismissNotification(superadmin, `e-${t.eventId}`);
+    expect((await newService().notifications(superadmin)).some((r) => r.id === `e-${t.eventId}`)).toBe(false);
+    expect((await service.notifications(otherSuperadmin)).some((r) => r.id === `e-${t.eventId}`)).toBe(true);
+    await db.execute("UPDATE template_surat_versi SET status='APPROVED',verified_by=?,approved_at=UTC_TIMESTAMP(6) WHERE id=?", [superadmin.id, t.vid]);
+    const approved = await auditEvent('APPROVE_VERSION', t.vid, 'letter-templates', 'template_surat_versi');
+    expect((await service.notifications(otherSuperadmin)).some((r) => r.id === `e-${t.eventId}`)).toBe(false);
+    expect((await service.notifications(owner)).find((r) => r.id === `e-${approved}`)?.action).toBe('TEMPLATE_APPROVE');
+    expect((await service.notifications(other)).some((r) => r.id === `e-${approved}`)).toBe(false);
+    await db.execute("UPDATE template_surat_versi SET status='ACTIVE',activated_at=UTC_TIMESTAMP(6) WHERE id=?", [t.vid]);
+    await db.execute('UPDATE template_surat SET current_version_id=?,aktif=1 WHERE id=?', [t.vid, t.id]);
+    const active = await auditEvent('PUBLISH_VERSION', t.vid, 'letter-templates', 'template_surat_versi');
+    expect((await service.notifications(owner)).find((r) => r.id === `e-${active}`)?.action).toBe('TEMPLATE_PUBLISH');
+    await expect(service.dismissNotification(other, `e-${active}`)).rejects.toBeInstanceOf(NotFoundException);
+  });
+  it('removal decisions survive physical deletion and do not duplicate the underlying action', async () => {
+    const repo = newRepository();
+    const documents = new DokumenAdminService(repo, audit, { delete: vi.fn() } as never);
+    const requests = new RemovalRequestsService(repo, new RemovalRequestsRepository(repo), audit, documents, service, {} as never);
+    const d = await published(owner);
+    const first = await requests.create(owner, 'DOCUMENT', d.id, { jenis: 'WITHDRAW', alasan: 'Periksa dahulu' });
+    expect((await service.notifications(superadmin)).find((r) => r.requestId === first.id)?.action).toBe('REMOVAL_REQUEST');
+    await requests.decide(superadmin, first.id, { keputusan: 'DECLINE', catatan: 'Dokumen masih berlaku' });
+    expect((await service.notifications(superadmin)).some((r) => r.requestId === first.id)).toBe(false);
+    expect((await service.notifications(owner)).find((r) => r.requestId === first.id)).toMatchObject({ action: 'REMOVAL_DECLINE', catatan: 'Dokumen masih berlaku' });
+    const removal = await requests.create(owner, 'DOCUMENT', d.id, { jenis: 'DELETE', alasan: 'Unggahan salah' });
+    await requests.decide(superadmin, removal.id, { keputusan: 'APPROVE', catatan: 'Hapus sesuai permintaan' });
+    const result = await service.notifications(owner);
+    expect(result.filter((r) => r.requestId === removal.id)).toHaveLength(1);
+    expect(result.find((r) => r.requestId === removal.id)).toMatchObject({ jenis: 'REMOVAL', action: 'REMOVAL_APPROVE', judul: 'Fixture notifikasi', catatan: 'Hapus sesuai permintaan' });
+    expect(result.some((r) => r.resourceId === d.id && r.action === 'DOCUMENT_DELETE')).toBe(false);
+    expect((await service.notifications(other)).some((r) => r.requestId === removal.id)).toBe(false);
+    const [rows] = await db.query<RowDataPacket[]>('SELECT id FROM dokumen WHERE id=?', [d.id]);
+    expect(rows).toHaveLength(0);
+  });
+  it('direct Superadmin withdrawal, document deletion and draft cancellation notify only the owner', async () => {
+    const d = await published(owner);
+    const publication = await auditEvent('PUBLISH', d.vid, 'workflow', 'dokumen_versi');
+    expect((await service.notifications(owner)).find((r) => r.id === `e-${publication}`)?.action).toBe('PUBLISH');
+    await service.withdraw(superadmin, d.id, { alasan: 'Koreksi isi' });
+    expect((await service.notifications(owner)).find((r) => r.resourceId === d.id && r.action === 'WITHDRAW')?.catatan).toBe('Koreksi isi');
+    const documents = new DokumenAdminService(newRepository(), audit, { delete: vi.fn() } as never);
+    await documents.hapusPermanen(superadmin, d.id);
+    expect((await service.notifications(owner)).find((r) => r.resourceId === d.id && r.action === 'DOCUMENT_DELETE')).toMatchObject({ dokumenId: null, versionId: null, judul: 'Fixture notifikasi' });
+    const draftId = await version(owner);
+    const [rows] = await db.query<RowDataPacket[]>('SELECT CAST(dokumen_id AS CHAR) id FROM dokumen_versi WHERE id=?', [draftId]);
+    const parentId = String(rows[0]!.id);
+    await documents.hapusDraf(superadmin, parentId, draftId);
+    expect((await service.notifications(owner)).find((r) => r.resourceId === parentId && r.action === 'DOCUMENT_DRAFT_DELETE')).toBeTruthy();
+    expect((await service.notifications(other)).some((r) => [d.id, parentId].includes(r.resourceId ?? ''))).toBe(false);
+  });
+  it('mixed notification dismissal uses separate snapshots and rolls back preference writes if audit fails', async () => {
+    const before = await auditEvent('DELETE_PERMANENT', '900001', 'documents', 'dokumen', { before: { ownerId: owner.id, judul: 'Snapshot sebelum' } });
+    const after = await auditEvent('DELETE_PERMANENT', '900002', 'documents', 'dokumen', { before: { ownerId: owner.id, judul: 'Snapshot sesudah' } });
+    const latest = await event(versionId);
+    await service.clearNotifications(owner, { sampaiId: hiddenEvent, sampaiEventId: before });
+    const result = await newService().notifications(owner);
+    expect(result.map((r) => r.id).sort()).toEqual([latest, `e-${after}`].sort());
+    vi.spyOn(audit, 'recordDomain').mockRejectedValueOnce(new Error('Audit failure'));
+    await expect(service.dismissNotification(owner, `e-${after}`)).rejects.toThrow('Audit failure');
+    expect((await service.notifications(owner)).some((r) => r.id === `e-${after}`)).toBe(true);
+    const [rows] = await db.query<RowDataPacket[]>('SELECT id FROM audit_log WHERE id IN (?,?)', [before, after]);
+    expect(rows).toHaveLength(2);
+  });
+  it('dismissal compares numeric event IDs correctly across a decimal digit boundary', async () => {
+    const [maxRows] = await db.query<RowDataPacket[]>('SELECT CAST(COALESCE(MAX(id),0) AS CHAR) id FROM audit_log');
+    const boundary = 10n ** BigInt((BigInt(String(maxRows[0]!.id)) + 1000n).toString().length);
+    const cutoff = (boundary - 1n).toString();
+    // Explicit fixture ID creates a digit boundary without inserting thousands of rows.
+    await db.execute("INSERT INTO audit_log(id,actor_id,module,action,entity_type,entity_id,before_json,request_id) VALUES(?,?,'documents','DELETE_PERMANENT','dokumen','900003',JSON_OBJECT('ownerId',?,'judul','Sebelum batas'),?)", [cutoff, superadmin.id, owner.id, randomUUID()]);
+    const next = await auditEvent('DELETE_PERMANENT', '900004', 'documents', 'dokumen', { before: { ownerId: owner.id, judul: 'Setelah batas' } });
+    expect(BigInt(next)).toBeGreaterThan(BigInt(cutoff));
+    await service.clearNotifications(owner, { sampaiEventId: cutoff });
+    const rows = await service.notifications(owner);
+    expect(rows.some((row) => row.id === `e-${cutoff}`)).toBe(false);
+    expect(rows.some((row) => row.id === `e-${next}`)).toBe(true);
+  });
+  it('server snapshots include both sources even when one source is absent from the latest 30 notifications', async () => {
+    for (let i = 0; i < 35; i++) await auditEvent('DELETE_PERMANENT', String(910000 + i), 'documents', 'dokumen', { before: { ownerId: owner.id, judul: `Peristiwa ${i}` } });
+    expect((await service.notifications(owner)).every((row) => row.id.startsWith('e-'))).toBe(true);
+    const snapshot = await service.notificationSnapshot(owner);
+    expect(snapshot.sampaiId).toBe(hiddenEvent);
+    expect(snapshot.sampaiEventId).toBeTruthy();
+    const latestWorkflow = await event(versionId);
+    const latestEvent = await auditEvent('DELETE_PERMANENT', '920000', 'documents', 'dokumen', { before: { ownerId: owner.id, judul: 'Setelah dialog' } });
+    await service.clearNotifications(owner, snapshot);
+    expect((await newService().notifications(owner)).map((row) => row.id).sort()).toEqual([latestWorkflow, `e-${latestEvent}`].sort());
+  });
+  it('pending staff registrations notify eligible Superadmin accounts and disappear after verification', async () => {
+    const id = await insert("INSERT INTO pengguna(email,nama,status) VALUES(?,'Dosen baru','MENUNGGU_VERIFIKASI')", [`registration-${randomUUID()}@contoh.id`]);
+    await audit.record({ action: 'REGISTER', actorId: id, targetId: id, afterStatus: 'MENUNGGU_VERIFIKASI' }, db);
+    expect((await service.notifications(superadmin)).some((r) => r.action === 'ACCOUNT_REGISTER' && r.resourceId === id)).toBe(true);
+    expect((await service.notifications(owner)).some((r) => r.action === 'ACCOUNT_REGISTER')).toBe(false);
+    await db.execute("UPDATE pengguna SET status='AKTIF',verified_by=?,verified_at=UTC_TIMESTAMP(6) WHERE id=?", [superadmin.id, id]);
+    expect((await service.notifications(superadmin)).some((r) => r.action === 'ACCOUNT_REGISTER' && r.resourceId === id)).toBe(false);
   });
 });

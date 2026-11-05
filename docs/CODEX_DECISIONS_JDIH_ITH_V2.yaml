@@ -466,3 +466,16 @@ panel_choice_polish:
   motion: "180ms enter, 120ms exit, chevron rotation; prefers-reduced-motion removes motion; soft blue focus"
   relation_picker: "Pilih peraturan expands/collapses with CSS grid; focus input on open, return to trigger on close"
   action_icons: "decorative Lucide icons for edit/save/submit/approve/return/publish/revise/withdraw/delete; retain text and confirmation"
+
+verification_notifications:
+  queue_order: [Dokumen, Antrean Format Persuratan, Permintaan Penarikan & Penghapusan]
+  removal_list_envelope: "sukses/data/meta at top level; do not double-wrap"
+  pending_inbox: "eligible Superadmin: SUBMIT, TEMPLATE_SUBMIT, REMOVAL_REQUEST, ACCOUNT_REGISTER; current pending state only"
+  owner_inbox: "Admin own approval/return/publish/withdraw/delete, template decisions/publication/removal and removal request decisions"
+  safe_event_projection: "allowlisted business audit events; no raw audit data or audit.read permission granted"
+  durable_deletion_receipt: "owner/title snapshot survives permanent deletion; request-backed action gives one decision receipt"
+  identifiers: "workflow numeric IDs; business event e-<audit ID>; BIGINT strings throughout"
+  dismiss_all_snapshot: "GET /admin/documents/notifications/snapshot; independent server maxima for both eligible sources, including outside visible 30; SQL UNSIGNED comparisons"
+  dismissal: "per-account preferences; audit atomic; source workflow/audit retained; after-snapshot arrivals preserved"
+  navigation: "format queue anchor, request-specific history and staff account group; deleted resources link to an available list/history"
+  migration: "patch-025-notifikasi-fitur-panel after patch-024; additive and idempotent"

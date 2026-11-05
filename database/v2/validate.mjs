@@ -23,15 +23,15 @@ const expected = [
   'sesi_pengguna','password_reset_tokens','password_reset_emails','jenis_dokumen','kategori','tag','dokumen','dokumen_versi',
   'dokumen_versi_kategori','dokumen_versi_tag','dokumen_berkas','dokumen_relasi',
   'dokumen_akses_rahasia','dokumen_workflow','notifikasi_dihapus','dokumen_status_hukum_riwayat',
-  'template_surat','template_surat_versi','kontak_kantor_butir','kunjungan_harian','dokumen_statistik','audit_log','permintaan_penghapusan'
+  'template_surat','template_surat_versi','kontak_kantor_butir','kunjungan_harian','dokumen_statistik','audit_log','permintaan_penghapusan','notifikasi_event_dihapus'
 ].sort();
 const fks = [...schema.matchAll(/CONSTRAINT (\w+) FOREIGN KEY/g)].map(m => m[1]).sort();
 const checks = [...schema.matchAll(/CONSTRAINT (\w+) CHECK/g)].map(m => m[1]).sort();
 const unique = [...schema.matchAll(/UNIQUE KEY (\w+)/g)].map(m => m[1]).sort();
 const indexes = [...schema.matchAll(/^ {2}(?:UNIQUE )?KEY (\w+)/gm)].map(m => m[1]).sort();
 assert.deepEqual(names, expected);
-assert.equal((schema.match(/ON DELETE RESTRICT ON UPDATE RESTRICT/g) ?? []).length, fks.length - 4);
-assert.equal((schema.match(/ON DELETE CASCADE ON UPDATE RESTRICT/g) ?? []).length, 4);
+assert.equal((schema.match(/ON DELETE RESTRICT ON UPDATE RESTRICT/g) ?? []).length, fks.length - 6);
+assert.equal((schema.match(/ON DELETE CASCADE ON UPDATE RESTRICT/g) ?? []).length, 6);
 for (const fk of ['fk_notifikasi_pengguna', 'fk_notifikasi_workflow', 'fk_password_reset_user', 'fk_password_reset_email_token'])
   assert.match(schema, new RegExp(`CONSTRAINT ${fk} FOREIGN KEY[^\\n]+ON DELETE CASCADE ON UPDATE RESTRICT`));
 // Structural review of our deliberately regular DDL; not a MySQL syntax parser.

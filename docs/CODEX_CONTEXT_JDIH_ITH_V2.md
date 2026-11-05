@@ -1,5 +1,31 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
+Revisi antrean dan notifikasi TERBARU 2026-11-05: respons daftar permintaan
+harus sudah berbungkus sukses/data/meta, agar interceptor tidak membungkusnya
+lagi. Daftar kosong adalah array dengan total nyata; kegagalan menampilkan tanda
+tidak tersedia dan tombol coba lagi, bukan angka nol palsu. Urutan Antrean
+Verifikasi: Dokumen, Antrean Format Persuratan, Permintaan Penarikan & Penghapusan.
+Judul memakai kapital tersebut. Tautan notifikasi menarget bagian/permintaan
+tepat, termasuk riwayat keputusan atas dokumen yang sudah dihapus.
+
+Inbox mencakup workflow hukum/SOP, format pending/approval/publish/withdraw/delete,
+permintaan masuk dan keputusan, penghapusan dokumen/draf oleh Superadmin, serta
+pendaftaran akun pending. Superadmin hanya menerima item masuk sesuai akses;
+Admin menerima hasil untuk miliknya. Hasil keputusan tetap tersimpan setelah
+dokumen dihapus. Aksi melalui permintaan tidak menghasilkan dua notifikasi
+untuk keputusan dan aksi yang sama. Perubahan sendiri memakai feedback tindakan.
+Peristiwa tambahan dibaca dari proyeksi bisnis audit yang terbatas, bukan API
+atau isi audit mentah; hak audit.read dan larangan feed audit dashboard tetap.
+
+Patch-025 menambah preferensi notifikasi event per akun, tanpa menghapus unggahan
+atau riwayat. ID workflow tetap desimal, event memakai e-<audit-id>. Hapus satu
+memeriksa penerima di server; hapus semua mengambil snapshot server kedua sumber,
+termasuk baris di luar 30 item tampilan. Notifikasi setelah konfirmasi dibuka
+tetap ada. Perbandingan event SQL memakai UNSIGNED agar pergantian jumlah digit
+ID tidak menghapus peristiwa baru. Preferensi dan audit penghapusan atomik;
+riwayat workflow/audit tidak dihapus. Panel memperbarui saat fokus, setiap 30 detik,
+dan setelah tindakan berhasil. Jalankan patch-024 lalu patch-025 sebelum backend.
+
 Revisi tampilan panel terbaru 2026-11-04: kartu Jenis Dokumen desktop mengikuti
 tinggi isi, dibatasi ruang viewport; daftar panjang tetap bergulir di dalam.
 Kategori SOP mempertahankan tinggi ruang kerjanya. Menu jenis dokumen dan unit

@@ -12,6 +12,7 @@ export const skemaKeputusanPenghapusan = z.strictObject({
 export const skemaDaftarPermintaanPenghapusan = z.strictObject({
   sumber: z.enum(['DOCUMENT', 'TEMPLATE']).optional(),
   resourceId: skemaId.optional(),
+  requestId: skemaId.optional(),
   halaman: z.coerce.number().int().min(1).max(100000).default(1),
   perHalaman: z.coerce.number().int().min(1).max(50).default(10),
   status: z.enum(['PENDING', 'APPROVED', 'DECLINED', 'OBSOLETE', 'ALL']).default('PENDING'),

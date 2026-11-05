@@ -90,6 +90,7 @@ function UbahStatusAkun({
           headers: csrfHeaders(csrfToken),
         });
         setAlasan('');
+          window.dispatchEvent(new Event('jdih:workflow'));
         onSelesai();
       }}
     >
@@ -146,6 +147,7 @@ export function DaftarAkun({
 
   async function hapus(id: string) {
     await ambilApi(`/admin/users/${id}`, { method: 'DELETE', headers: csrfHeaders(csrfToken) });
+    window.dispatchEvent(new Event('jdih:workflow'));
     muat();
   }
 

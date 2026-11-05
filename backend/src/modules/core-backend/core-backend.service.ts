@@ -30,8 +30,9 @@ import {
   skemaDaftarDokumenPanel,
   skemaKemampuanDokumenAdmin,
   skemaNotifikasiDokumen,
+  skemaIdNotifikasi,
+  skemaBatasNotifikasi,
   skemaSetujuiDokumen,
-  skemaId,
   skemaHapusSemuaNotifikasi,
   skemaPilihanKategoriDokumen,
 } from '@jdih/shared';
@@ -213,35 +214,53 @@ export class CoreBackendService {
   /** Riwayat workflow menjadi notifikasi persisten dalam transaksi yang sama. */
   async notifications(actor: Actor) {
     cekBacaPanel(actor, 'documents.read_admin');
-    const rows = await this.repo.notificationList(actor.id, actor.peran.includes('SUPERADMIN'));
-    return rows.map((r) => skemaNotifikasiDokumen.parse(r));
+    const [workflow, events] = await Promise.all([
+      this.repo.notificationList(actor.id, actor.peran.includes('SUPERADMIN')),
+      this.repo.eventNotificationList(actor),
+    ]);
+    return [...workflow, ...events].map((r) => skemaNotifikasiDokumen.parse(r)).sort((a, b) => {
+      const time = b.createdAt.replace('T', ' ').localeCompare(a.createdAt.replace('T', ' '));
+      if (time) return time;
+      const left = BigInt(a.id.replace('e-', '')), right = BigInt(b.id.replace('e-', ''));
+      return left === right ? 0 : left > right ? -1 : 1;
+    }).slice(0, 30);
   }
 
   async dismissNotification(actor: Actor, rawId: unknown) {
     cekBacaPanel(actor, 'documents.read_admin');
-    return this.dismissNotifications(actor, skemaId.parse(rawId), false);
+    const id = skemaIdNotifikasi.parse(rawId);
+    return this.dismissNotifications(actor, id.startsWith('e-') ? undefined : id, false, id.startsWith('e-') ? id.slice(2) : undefined);
+  }
+  async notificationSnapshot(actor: Actor) {
+    cekBacaPanel(actor, 'documents.read_admin');
+    return skemaBatasNotifikasi.parse(await this.repo.notificationSnapshot(actor));
   }
 
   async clearNotifications(actor: Actor, raw: unknown) {
     cekBacaPanel(actor, 'documents.read_admin');
-    return this.dismissNotifications(actor, skemaHapusSemuaNotifikasi.parse(raw).sampaiId, true);
+    const bounds = skemaHapusSemuaNotifikasi.parse(raw);
+    return this.dismissNotifications(actor, bounds.sampaiId, true, bounds.sampaiEventId);
   }
 
-  private async dismissNotifications(actor: Actor, id: string, all: boolean) {
+  private async dismissNotifications(actor: Actor, id: string | undefined, all: boolean, eventId?: string) {
     const superadmin = actor.peran.includes('SUPERADMIN');
     return this.repo.transaction(async (db) => {
       // Serialisasi penghapusan untuk akun yang sama; daftar akun lain tidak berubah.
       const account = await this.repo.lockNotificationAccount(db, actor.id);
       if (!account.length) throw new ForbiddenException();
-      if (!all && !await this.repo.notificationExists(db, actor.id, superadmin, id))
+      if (!all && id && !await this.repo.notificationExists(db, actor.id, superadmin, id))
         throw new NotFoundException('Notifikasi tidak ditemukan.');
-      const result = await this.repo.insertNotificationDismissals(db, actor.id, superadmin, id, all);
-      if (result.affectedRows > 0) await this.audit.recordDomain({
+      if (!all && eventId && !await this.repo.eventNotificationExists(db, actor, eventId))
+        throw new NotFoundException('Notifikasi tidak ditemukan.');
+      const legacy = id ? await this.repo.insertNotificationDismissals(db, actor.id, superadmin, id, all) : undefined;
+      const events = eventId ? await this.repo.insertEventNotificationDismissals(db, actor, eventId, all) : undefined;
+      const jumlahDihapus = (legacy?.affectedRows ?? 0) + (events?.affectedRows ?? 0);
+      if (jumlahDihapus > 0) await this.audit.recordDomain({
         module: 'settings', action: all ? 'DISMISS_ALL_NOTIFICATIONS' : 'DISMISS_NOTIFICATION',
-        entityType: 'notifikasi', entityId: all ? actor.id : id, actorId: actor.id,
-        after: { jumlahDihapus: result.affectedRows, ...(all ? { sampaiId: id } : {}) },
+        entityType: eventId && !id ? 'notifikasi_event' : 'notifikasi', entityId: all ? actor.id : (id ?? eventId!), actorId: actor.id,
+        after: { jumlahDihapus, ...(all && id ? { sampaiId: id } : {}), ...(eventId ? { sampaiEventId: eventId } : {}) },
       }, db);
-      return { jumlahDihapus: result.affectedRows };
+      return { jumlahDihapus };
     });
   }
 
@@ -1372,7 +1391,7 @@ export class CoreBackendService {
     const reason = skemaTarikDokumen.parse(raw).alasan;
     return this.repo.transaction((db) => this.withdrawInTransaction(db, actor, id, reason));
   }
-  async withdrawInTransaction(db: PoolConnection, actor: Actor, id: string, reason: string) {
+  async withdrawInTransaction(db: PoolConnection, actor: Actor, id: string, reason: string, requestId?: string) {
     cekSuperadmin(actor);
     this.allow(actor, 'workflow.withdraw');
     reason = skemaTarikDokumen.parse({ alasan: reason }).alasan;
@@ -1418,7 +1437,7 @@ export class CoreBackendService {
         entityId: vid,
         actorId: actor.id,
         before: { status: 'TERBIT' },
-        after: { status: 'DITARIK', reason },
+        after: { status: 'DITARIK', reason, ...(requestId ? { requestId } : {}) },
       },
       db,
     );

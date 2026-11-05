@@ -51,6 +51,14 @@ afterEach(() => {
 });
 
 describe('pengajuan dokumen pada panel', () => {
+  it('antrean berurutan Dokumen, Format Persuratan, lalu Permintaan Penarikan & Penghapusan', async () => {
+    render(<DaftarDokumenAdmin verificationOnly />);
+    const legal = await screen.findByRole('heading', { name: /^Dokumen\s+0$/ });
+    const format = screen.getByRole('heading', { name: /^Antrean Format Persuratan\s+0$/ });
+    const removal = screen.getByRole('heading', { name: /^Permintaan Penarikan & Penghapusan\s+0$/ });
+    expect(legal.compareDocumentPosition(format) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(format.compareDocumentPosition(removal) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
   it('SOP Permohonan SK menyediakan pilihan Publik dan Dosen/Staf', async () => {
     state.role = 'SUPERADMIN';
     state.api.mockImplementation((url: string) =>

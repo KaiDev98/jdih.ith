@@ -111,11 +111,11 @@ export class RemovalRequestsService {
       if (data.keputusan === 'APPROVE') {
         if (request.sumber === 'DOCUMENT') {
           if (request.jenis === 'WITHDRAW')
-            await this.core.withdrawInTransaction(db, actor, request.resourceId, data.catatan);
-          else files = await this.documents.hapusDalamTransaksi(db, actor, request.resourceId);
+            await this.core.withdrawInTransaction(db, actor, request.resourceId, data.catatan, id);
+          else files = await this.documents.hapusDalamTransaksi(db, actor, request.resourceId, id);
         } else if (request.jenis === 'WITHDRAW')
-          await this.templates.withdrawInTransaction(db, actor, request.resourceId, data.catatan);
-        else await this.templates.removeInTransaction(db, actor, request.resourceId);
+          await this.templates.withdrawInTransaction(db, actor, request.resourceId, data.catatan, id);
+        else await this.templates.removeInTransaction(db, actor, request.resourceId, id);
       }
       await this.audit.recordDomain(
         {

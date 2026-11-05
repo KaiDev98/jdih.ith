@@ -16,6 +16,7 @@ interface BarisDokumen extends RowDataPacket {
   kode_dokumen: string;
   slug: string;
   status_hukum: 'BERLAKU' | 'DIUBAH' | 'DICABUT';
+  created_by: string;
 }
 
 /** `IN (?,?,…)` untuk daftar id; daftar kosong tidak pernah cocok. */
@@ -39,7 +40,7 @@ export class DokumenAdminService {
     const row = (
       await this.repo.rows<BarisDokumen>(
         db,
-        'SELECT CAST(id AS CHAR) id,kode_dokumen,slug,status_hukum FROM dokumen WHERE id=? AND deleted_at IS NULL FOR UPDATE',
+        'SELECT CAST(id AS CHAR) id,kode_dokumen,slug,status_hukum,CAST(created_by AS CHAR) created_by FROM dokumen WHERE id=? AND deleted_at IS NULL FOR UPDATE',
         [id],
       )
     )[0];
@@ -64,7 +65,7 @@ export class DokumenAdminService {
   }
 
   /** Dipakai keputusan permintaan dalam transaksi yang sama dengan audit keputusan. */
-  async hapusDalamTransaksi(db: PoolConnection, actor: PenggunaAktif, id: string) {
+  async hapusDalamTransaksi(db: PoolConnection, actor: PenggunaAktif, id: string, requestId?: string) {
     cekSuperadmin(actor);
     cekIzin(actor, ['documents.delete']);
     const d = await this.kunci(db, id);
@@ -116,6 +117,7 @@ export class DokumenAdminService {
         entityId: id,
         actorId: actor.id,
         before: {
+          ownerId: String(d.created_by),
           kodeDokumen: d.kode_dokumen,
           slug: d.slug,
           judul: versi[0]?.judul ?? null,
@@ -123,6 +125,7 @@ export class DokumenAdminService {
           jumlahBerkas: berkas.length,
           relasiMasukDihapus: relasiMasuk.affectedRows,
         },
+        ...(requestId ? { after: { requestId } } : {}),
       },
       db,
     );
@@ -201,7 +204,7 @@ export class DokumenAdminService {
           entityType: 'dokumen_versi',
           entityId: versionId,
           actorId: actor.id,
-          before: { judul: version.judul, status: version.status_workflow },
+          before: { judul: version.judul, status: version.status_workflow, ownerId: String(parent.created_by) },
           after: { targetId: id },
         },
         db,

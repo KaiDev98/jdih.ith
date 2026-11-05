@@ -237,9 +237,13 @@ const PER_HALAMAN = 20;
 export function DaftarDokumenAdmin({
   verificationOnly = false,
   pengajuan = false,
+  requestId,
+  showHistory = false,
 }: {
   verificationOnly?: boolean;
   pengajuan?: boolean;
+  requestId?: string;
+  showHistory?: boolean;
 }) {
   const { pengguna } = useSession();
   const bolehBuat = pengguna?.izin.includes('documents.create') ?? false;
@@ -401,9 +405,8 @@ export function DaftarDokumenAdmin({
           ) : undefined
         }
       />
-      {verificationOnly && <AdminTemplateVerificationQueue />}
-      {verificationOnly && <AntreanPermintaanPenghapusan />}
       <Card className={cn('overflow-hidden p-0 sm:p-0', semuaDokumen && 'koleksi-dokumen-panel')}>
+        {verificationOnly && <div className="flex items-center gap-2 border-b border-sekat px-5 py-4"><ClipboardCheck aria-hidden className="size-5 text-institusi-700" /><h2 className="text-sm font-semibold">Dokumen <span className="ml-1 text-slate-500">{loading || error ? '—' : meta.totalButir}</span></h2></div>}
         <div className="grid gap-3 border-b border-sekat p-4">
           <div className="flex flex-wrap items-center gap-3">
             {semuaDokumen && (
@@ -633,6 +636,8 @@ export function DaftarDokumenAdmin({
           </div>
         )}
       </Card>
+      {verificationOnly && <div id="antrean-format" className="mt-5 scroll-mt-20 lg:scroll-mt-6"><AdminTemplateVerificationQueue /></div>}
+      {verificationOnly && <div id="permintaan-penghapusan" className="scroll-mt-20 lg:scroll-mt-6"><AntreanPermintaanPenghapusan key={`${requestId ?? ''}:${showHistory}`} requestId={requestId} showHistory={showHistory} /></div>}
     </div>
   );
 }
@@ -641,6 +646,6 @@ export function AdminDocuments() {
   return <DaftarDokumenAdmin />;
 }
 
-export function AdminVerificationQueue() {
-  return <DaftarDokumenAdmin verificationOnly />;
+export function AdminVerificationQueue(props: { requestId?: string; showHistory?: boolean }) {
+  return <DaftarDokumenAdmin verificationOnly {...props} />;
 }

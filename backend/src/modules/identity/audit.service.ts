@@ -87,6 +87,10 @@ export class AuditService {
         'relasiMasukDihapus',
         'sampaiId',
         'jalur',
+        'ownerId',
+        'requestId',
+        'sampaiEventId',
+        'deleted',
       ];
       return JSON.stringify(
         Object.fromEntries(

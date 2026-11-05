@@ -39,6 +39,17 @@ test('notification dismissal validates snapshot ID without accepting another rec
   ok(c.skemaHasilHapusNotifikasi, { jumlahDihapus: 0 });
   bad(c.skemaHasilHapusNotifikasi, { jumlahDihapus: -1 });
 });
+test('multi-source notification identifiers and independent snapshots preserve BIGINT bounds', () => {
+  ok(c.skemaIdNotifikasi, 'e-18446744073709551615');
+  for (const id of ['e-0', 'e-01', 'e-18446744073709551616', 'e-1 OR 1=1', 'e--1']) bad(c.skemaIdNotifikasi, id);
+  ok(c.skemaHapusSemuaNotifikasi, { sampaiEventId: '9007199254740993' });
+  ok(c.skemaHapusSemuaNotifikasi, { sampaiId: '3', sampaiEventId: '7' });
+  bad(c.skemaHapusSemuaNotifikasi, { sampaiEventId: '0' });
+  bad(c.skemaHapusSemuaNotifikasi, { sampaiEventId: '7', penggunaId: '1' });
+  const event = { id: 'e-7', jenis: 'REMOVAL', requestId: '3', resourceId: '8', dokumenId: null, versionId: null, judul: 'Dokumen dihapus', action: 'REMOVAL_APPROVE', catatan: 'Sudah diproses', createdAt: '2026-11-05 00:00:00' };
+  ok(c.skemaNotifikasiDokumen, event);
+  bad(c.skemaNotifikasiDokumen, { ...event, requestId: '0' });
+});
 test('administrative read capability flags are boolean server output', () => {
   ok(c.skemaKemampuanDokumenAdmin, { bolehUbah: false, bolehRevisi: false });
   bad(c.skemaKemampuanDokumenAdmin, { bolehUbah: 'true', bolehRevisi: false });

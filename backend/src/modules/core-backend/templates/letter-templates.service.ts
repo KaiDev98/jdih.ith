@@ -426,7 +426,7 @@ export class LetterTemplatesService {
     return this.repo.transaction((db) => this.removeInTransaction(db, actor, templateId));
   }
 
-  async removeInTransaction(db: PoolConnection, actor: PenggunaAktif, templateId: string) {
+  async removeInTransaction(db: PoolConnection, actor: PenggunaAktif, templateId: string, requestId?: string) {
     this.cekPengelola(actor);
     const template = (
       await this.repo.rows<
@@ -476,7 +476,7 @@ export class LetterTemplatesService {
           aktif: Boolean(template.aktif),
           currentVersionId: template.current_version_id,
         },
-        after: { deleted: true },
+        after: { deleted: true, ...(requestId ? { requestId } : {}) },
       },
       db,
     );
@@ -486,7 +486,7 @@ export class LetterTemplatesService {
     return { id: templateId, deleted: true };
   }
 
-  async withdrawInTransaction(db: PoolConnection, actor: PenggunaAktif, templateId: string, reason: string) {
+  async withdrawInTransaction(db: PoolConnection, actor: PenggunaAktif, templateId: string, reason: string, requestId?: string) {
     cekSuperadmin(actor);
     cekIzin(actor, ['templates.manage']);
     const template = await this.lockTemplate(db, templateId);
@@ -495,7 +495,7 @@ export class LetterTemplatesService {
     await this.repo.write(db, "UPDATE template_surat_versi SET status='ARCHIVED',archived_at=UTC_TIMESTAMP(6) WHERE id=? AND status='ACTIVE'", [versionId]);
     await this.repo.write(db, 'UPDATE template_surat SET current_version_id=NULL,aktif=0 WHERE id=?', [templateId]);
     await this.audit.recordDomain({ module: 'letter-templates', action: 'WITHDRAW', entityType: 'template_surat', entityId: templateId,
-      actorId: actor.id, before: { status: 'ACTIVE' }, after: { status: 'WITHDRAWN', reason } }, db);
+      actorId: actor.id, before: { status: 'ACTIVE' }, after: { status: 'WITHDRAWN', reason, ...(requestId ? { requestId } : {}) } }, db);
   }
 
   async list(rawQuery: unknown, actor?: PenggunaAktif) {

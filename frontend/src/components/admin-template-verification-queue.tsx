@@ -8,6 +8,7 @@ import { ambilApi, ambilApiBerdaftar, GalatApi } from '@/lib/api-client';
 import { csrfHeaders, useSession } from '@/lib/sesi';
 import { Badge, Button, Card, ConfirmAction, Feedback, StateMessage } from '@/components/ui';
 import { PratinjauFormat } from './pratinjau-format';
+import { usePanelAnchor } from '@/lib/use-panel-anchor';
 
 /** Antrean format terpisah dari dokumen hukum, dalam halaman verifikasi yang sama. */
 export function AdminTemplateVerificationQueue() {
@@ -24,6 +25,7 @@ export function AdminTemplateVerificationQueue() {
   const [notice, setNotice] = useState('');
   const [refresh, setRefresh] = useState(0);
   const perHalaman = 10;
+  usePanelAnchor('antrean-format', !loading && !error);
 
   useEffect(() => {
     const muat = () => {

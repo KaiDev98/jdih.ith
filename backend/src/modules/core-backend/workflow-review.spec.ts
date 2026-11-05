@@ -239,7 +239,7 @@ describe('pengajuan dan hasil verifikasi dokumen', () => {
   it('notifikasi Admin hanya berisi keputusan dokumen sendiri; Superadmin menerima pengajuan', async () => {
     const { core, repo } = setup();
     await core.notifications(admin);
-    expect(repo.rows).toHaveBeenLastCalledWith(
+    expect(repo.rows).toHaveBeenCalledWith(
       repo.pool,
       expect.stringContaining(
         "w.action IN ('RETURN','APPROVE') AND v.created_by=? AND d.created_by=?",
@@ -247,7 +247,7 @@ describe('pengajuan dan hasil verifikasi dokumen', () => {
       ['11', '11', '11'],
     );
     await core.notifications(verifier);
-    expect(repo.rows).toHaveBeenLastCalledWith(
+    expect(repo.rows).toHaveBeenCalledWith(
       repo.pool,
       expect.stringContaining("w.action='SUBMIT'"),
       ['12'],

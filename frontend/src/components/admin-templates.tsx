@@ -143,6 +143,7 @@ export function AdminTemplates() {
     );
     reset();
     setRefresh((x) => x + 1);
+    window.dispatchEvent(new Event('jdih:workflow'));
   }
   async function publish(row: Template) {
     if (!bolehVerifikasi || !row.pendingVersionId || row.pendingStatus !== 'APPROVED')
@@ -154,6 +155,7 @@ export function AdminTemplates() {
     });
     setNotice(`Versi ${row.pendingNomorVersi} ${row.nama} berhasil diterbitkan.`);
     setRefresh((value) => value + 1);
+    window.dispatchEvent(new Event('jdih:workflow'));
   }
   async function remove(row: Template) {
     if (!bolehHapus(row))
@@ -167,6 +169,7 @@ export function AdminTemplates() {
     setRows((data) => data.filter((item) => item.id !== row.id));
     if (selected?.id === row.id) reset();
     setRefresh((x) => x + 1);
+    window.dispatchEvent(new Event('jdih:workflow'));
   }
   const aktif = rows.filter((row) => row.aktif).length;
   const menungguVerifikasi = rows.filter(

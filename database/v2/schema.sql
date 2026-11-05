@@ -565,3 +565,14 @@ CREATE TABLE permintaan_penghapusan (
     (status<>'PENDING' AND decided_by IS NOT NULL AND decided_at IS NOT NULL AND catatan IS NOT NULL AND CHAR_LENGTH(TRIM(catatan))>0)
   )
 ) ENGINE=InnoDB;
+
+-- Preferensi notifikasi fitur baru per akun. Riwayat audit/workflow tidak dihapus.
+CREATE TABLE notifikasi_event_dihapus (
+  pengguna_id BIGINT UNSIGNED NOT NULL,
+  audit_id BIGINT UNSIGNED NOT NULL,
+  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (pengguna_id, audit_id),
+  KEY idx_notifikasi_event_audit (audit_id),
+  CONSTRAINT fk_notifikasi_event_user FOREIGN KEY (pengguna_id) REFERENCES pengguna (id) ON DELETE CASCADE ON UPDATE RESTRICT,
+  CONSTRAINT fk_notifikasi_event_audit FOREIGN KEY (audit_id) REFERENCES audit_log (id) ON DELETE CASCADE ON UPDATE RESTRICT
+) ENGINE=InnoDB;

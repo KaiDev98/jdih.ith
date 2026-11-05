@@ -1,5 +1,10 @@
 # Physical Database JDIH ITH V2 — Phase 1
 
+Revisi terbaru 2026-11-05: jalankan `patch-025-notifikasi-fitur-panel.sql` setelah
+patch-024 dan sebelum backend terbaru. Patch hanya menambah preferensi hapus
+notifikasi event per akun serta audit migrasi; riwayat audit/workflow dan unggahan
+tetap utuh. Aman diulang. Instalasi kosong sudah memuat 31 tabel.
+
 Revisi terbaru 2026-11-04: jalankan `patch-024-permintaan-penghapusan.sql` setelah
 patch-023, sebelum backend terbaru. Patch hanya menambah tabel permintaan,
 indeks/constraint dan audit migrasi; tidak menghapus unggahan atau master.

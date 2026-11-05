@@ -19,7 +19,14 @@ import {
   Undo2,
 } from 'lucide-react';
 import type { HasilHapusNotifikasi, NotifikasiDokumen } from '@jdih/shared';
-import { alamatPanel, tautanDetailDokumen } from '@/lib/panel';
+import { alamatPanel } from '@/lib/panel';
+import {
+  AKSI_NOTIFIKASI_MASUK,
+  notifikasiSetelahBatas,
+  tautanNotifikasi,
+  type BatasNotifikasi,
+} from '@/lib/notifikasi-panel';
+import { skemaBatasNotifikasi } from '@jdih/shared';
 import { ambilApi } from '@/lib/api-client';
 import { csrfHeaders, useSession } from '@/lib/sesi';
 import { Feedback } from '@/components/ui';
@@ -43,7 +50,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 
-const TAMPILAN = {
+const TAMPILAN_DASAR = {
   SUBMIT: {
     ikon: ClipboardCheck,
     label: 'Pengajuan baru',
@@ -69,6 +76,81 @@ const TAMPILAN = {
     titik: 'bg-rose-500',
   },
 } as const;
+const TAMPILAN = {
+  ...TAMPILAN_DASAR,
+  PUBLISH: {
+    ...TAMPILAN_DASAR.APPROVE,
+    ikon: FileText,
+    label: 'Terbit',
+    teks: 'Dokumen sudah diterbitkan di portal',
+  },
+  WITHDRAW: {
+    ...TAMPILAN_DASAR.RETURN,
+    ikon: Undo2,
+    label: 'Ditarik',
+    teks: 'Dokumen sudah ditarik dari portal',
+  },
+  DOCUMENT_DELETE: {
+    ...TAMPILAN_DASAR.RETURN,
+    ikon: Trash2,
+    label: 'Dokumen dihapus',
+    teks: 'Superadmin telah menghapus dokumen dan seluruh versinya',
+  },
+  DOCUMENT_DRAFT_DELETE: {
+    ...TAMPILAN_DASAR.RETURN,
+    ikon: Trash2,
+    label: 'Draf dihapus',
+    teks: 'Superadmin telah menghapus draf dokumen',
+  },
+  TEMPLATE_SUBMIT: {
+    ...TAMPILAN_DASAR.SUBMIT,
+    ikon: FileText,
+    label: 'Format baru',
+    teks: 'Format Persuratan menunggu persetujuan',
+  },
+  TEMPLATE_APPROVE: {
+    ...TAMPILAN_DASAR.APPROVE,
+    label: 'Format disetujui',
+    teks: 'Format Persuratan disetujui dan menunggu diterbitkan',
+  },
+  TEMPLATE_PUBLISH: {
+    ...TAMPILAN_DASAR.APPROVE,
+    ikon: FileText,
+    label: 'Format terbit',
+    teks: 'Format Persuratan sudah tersedia di portal',
+  },
+  TEMPLATE_WITHDRAW: {
+    ...TAMPILAN_DASAR.RETURN,
+    label: 'Format ditarik',
+    teks: 'Format Persuratan sudah ditarik dari portal',
+  },
+  TEMPLATE_DELETE: {
+    ...TAMPILAN_DASAR.RETURN,
+    ikon: Trash2,
+    label: 'Format dihapus',
+    teks: 'Superadmin telah menghapus Format Persuratan',
+  },
+  REMOVAL_REQUEST: {
+    ...TAMPILAN_DASAR.SUBMIT,
+    label: 'Permintaan baru',
+    teks: 'Permintaan Penarikan/Penghapusan menunggu keputusan',
+  },
+  REMOVAL_APPROVE: {
+    ...TAMPILAN_DASAR.APPROVE,
+    label: 'Permintaan disetujui',
+    teks: 'Penarikan atau penghapusan sudah dijalankan oleh Superadmin',
+  },
+  REMOVAL_DECLINE: {
+    ...TAMPILAN_DASAR.RETURN,
+    label: 'Permintaan tidak disetujui',
+    teks: 'Superadmin memberikan catatan atas permintaan Anda',
+  },
+  ACCOUNT_REGISTER: {
+    ...TAMPILAN_DASAR.SUBMIT,
+    label: 'Akun baru',
+    teks: 'Pendaftaran Dosen/Staf menunggu verifikasi',
+  },
+} as const;
 
 export function NotifikasiDokumenPanel() {
   const pathname = usePathname();
@@ -79,15 +161,53 @@ export function NotifikasiDokumenPanel() {
   const [error, setError] = useState('');
   const [ulangi, setUlangi] = useState(0);
   const [target, setTarget] = useState<
-    { mode: 'one'; id: string; judul: string } | { mode: 'all'; sampaiId: string }
+    { mode: 'one'; id: string; judul: string } | ({ mode: 'all' } & BatasNotifikasi)
   >();
   const [sibuk, setSibuk] = useState(false);
   const [galatHapus, setGalatHapus] = useState('');
   const [sukses, setSukses] = useState('');
+  const [menyiapkan, setMenyiapkan] = useState(false);
+  const snapshotBerjalan = useRef(false);
+  const generasiSnapshot = useRef(0);
   const generasi = useRef(0);
   const sedangMenghapus = useRef(false);
   const pemicuHapus = useRef<HTMLButtonElement | null>(null);
   const judulDaftar = useRef<HTMLHeadingElement | null>(null);
+  function ubahBuka(nilai: boolean) {
+    if (target || sibuk) return;
+    if (!nilai) {
+      generasiSnapshot.current++;
+      snapshotBerjalan.current = false;
+      setMenyiapkan(false);
+    }
+    setBuka(nilai);
+  }
+  async function siapkanSemua(trigger: HTMLButtonElement) {
+    if (snapshotBerjalan.current) return;
+    snapshotBerjalan.current = true;
+    const versi = ++generasiSnapshot.current;
+    setMenyiapkan(true);
+    pemicuHapus.current = trigger;
+    setGalatHapus('');
+    try {
+      const bounds = skemaBatasNotifikasi.parse(
+        await ambilApi('/admin/documents/notifications/snapshot'),
+      );
+      if (versi !== generasiSnapshot.current) return;
+      if (!bounds.sampaiId && !bounds.sampaiEventId) {
+        setUlangi((n) => n + 1);
+        setSukses('Tidak ada notifikasi yang perlu dihapus.');
+      } else setTarget({ mode: 'all', ...bounds });
+    } catch {
+      if (versi === generasiSnapshot.current)
+        setError('Notifikasi belum dapat disiapkan untuk dihapus. Silakan coba lagi.');
+    } finally {
+      if (versi === generasiSnapshot.current) {
+        snapshotBerjalan.current = false;
+        setMenyiapkan(false);
+      }
+    }
+  }
   async function hapus() {
     if (!target || sedangMenghapus.current) return;
     sedangMenghapus.current = true;
@@ -101,13 +221,15 @@ export function NotifikasiDokumenPanel() {
         {
           method: 'DELETE',
           headers: csrfHeaders(csrfToken),
-          ...(target.mode === 'all' ? { muatan: { sampaiId: target.sampaiId } } : {}),
+          ...(target.mode === 'all'
+            ? { muatan: { sampaiId: target.sampaiId, sampaiEventId: target.sampaiEventId } }
+            : {}),
         },
       );
       generasi.current++;
       setData((lama) =>
         lama?.filter((r) =>
-          target.mode === 'one' ? r.id !== target.id : BigInt(r.id) > BigInt(target.sampaiId),
+          target.mode === 'one' ? r.id !== target.id : notifikasiSetelahBatas(r, target),
         ),
       );
       setSukses(
@@ -156,16 +278,12 @@ export function NotifikasiDokumenPanel() {
       window.removeEventListener('focus', muat);
     };
   }, [pathname, buka, ulangi]);
-  const daftar = data?.filter((r) => (superadmin ? r.action === 'SUBMIT' : r.action !== 'SUBMIT'));
+  const masuk = (action: string) => AKSI_NOTIFIKASI_MASUK.some((value) => value === action);
+  const daftar = data?.filter((r) => (superadmin ? masuk(r.action) : !masuk(r.action)));
   const jumlah = daftar?.length ?? 0;
-  const kategori: (keyof typeof TAMPILAN)[] = superadmin ? ['SUBMIT'] : ['APPROVE', 'RETURN'];
+  const kategori = [...new Set(daftar?.map((row) => row.action) ?? [])].slice(0, 4);
   return (
-    <Sheet
-      open={buka}
-      onOpenChange={(nilai) => {
-        if (!target && !sibuk) setBuka(nilai);
-      }}
-    >
+    <Sheet open={buka} onOpenChange={ubahBuka}>
       <SheetTrigger asChild>
         <Button
           variant="ghost"
@@ -225,8 +343,8 @@ export function NotifikasiDokumenPanel() {
           </SheetTitle>
           <SheetDescription className="mt-2 max-w-xs text-sm leading-relaxed text-slate-300">
             {superadmin
-              ? 'Tinjau pengajuan baru dan dokumen yang diajukan kembali setelah diperbaiki.'
-              : 'Pantau hasil verifikasi dan catatan perbaikan untuk dokumen Anda.'}
+              ? 'Tinjau pengajuan dokumen, format, permintaan penarikan/penghapusan, dan pendaftaran akun.'
+              : 'Pantau verifikasi, penerbitan, serta keputusan penarikan dan penghapusan untuk unggahan Anda.'}
           </SheetDescription>
           <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-slate-200">
             <span aria-hidden className="size-1.5 rounded-full bg-institusi-400" />
@@ -239,14 +357,14 @@ export function NotifikasiDokumenPanel() {
         {jumlah > 0 && (
           <div
             className={cn(
-              'grid shrink-0 divide-x divide-sekat border-b border-sekat bg-white px-2 py-4',
-              superadmin ? 'grid-cols-1' : 'grid-cols-2',
+              'grid shrink-0 border-b border-sekat bg-white px-2 py-4',
+              kategori.length === 1 ? 'grid-cols-1' : 'grid-cols-2',
             )}
           >
             {kategori.map((action) => {
               const t = TAMPILAN[action];
               return (
-                <div key={action} className="grid justify-items-center gap-1 px-1">
+                <div key={action} className={cn('grid justify-items-center gap-1 px-1', kategori.length > 1 && 'odd:border-r odd:border-sekat')}>
                   <span className="text-xl leading-none font-semibold text-tinta tabular-nums">
                     {daftar?.filter((r) => r.action === action).length}
                   </span>
@@ -336,30 +454,41 @@ export function NotifikasiDokumenPanel() {
                   variant="ghost"
                   size="sm"
                   className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                  disabled={menyiapkan}
+                  aria-busy={menyiapkan}
                   onClick={(e) => {
                     if (!daftar?.[0]) return;
-                    pemicuHapus.current = e.currentTarget;
-                    setGalatHapus('');
-                    setTarget({ mode: 'all', sampaiId: daftar[0].id });
+                    void siapkanSemua(e.currentTarget);
                   }}
                 >
-                  <Trash2 aria-hidden /> Hapus semua
+                  {menyiapkan ? (
+                    <LoaderCircle aria-hidden className="animate-spin" />
+                  ) : (
+                    <Trash2 aria-hidden />
+                  )}{' '}
+                  Hapus semua
                 </Button>
               </div>
               <ul className="grid content-start gap-3">
                 {daftar?.map((r, index) => {
                   const t = TAMPILAN[r.action];
                   const Ikon = t.ikon;
-                  // Navigasi dokumen penuh juga memuat ulang detail saat notifikasi
-                  // menunjuk URL yang sedang terbuka; tidak memakai cache router.
+                  // Tautan biasa membuka versi/konteks tepat; tautan bagian pada
+                  // halaman yang sama juga menutup panel notifikasi.
                   return (
                     <li key={r.id} className="relative">
                       <a
-                        href={alamatPanel(
-                          pengguna?.peran ?? [],
-                          tautanDetailDokumen(r.dokumenId, r.versionId,
-                            r.action === 'SUBMIT' ? 'verifikasi' : r.action === 'RETURN' ? 'pengajuan' : 'terverifikasi'),
-                        )}
+                        onClick={(event) => {
+                          if (
+                            event.button === 0 &&
+                            !event.ctrlKey &&
+                            !event.metaKey &&
+                            !event.shiftKey &&
+                            !event.altKey
+                          )
+                            ubahBuka(false);
+                        }}
+                        href={alamatPanel(pengguna?.peran ?? [], tautanNotifikasi(r))}
                         className={cn(
                           styles.kartu,
                           'group block rounded-2xl border bg-white p-4 outline-none hover:border-institusi-300 focus-visible:ring-2 focus-visible:ring-institusi-500 focus-visible:ring-offset-2',
@@ -397,10 +526,10 @@ export function NotifikasiDokumenPanel() {
                           <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50/80 p-3">
                             <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold tracking-wide text-slate-500 uppercase">
                               <MessageSquareText aria-hidden className="size-3" />
-                              {r.action === 'SUBMIT' ? 'Catatan pengajuan' : 'Catatan pemeriksaan'}
+                              {masuk(r.action) ? 'Catatan pengajuan' : 'Catatan pemeriksaan'}
                             </div>
                             <p className="text-xs leading-relaxed whitespace-pre-wrap text-slate-600 [overflow-wrap:anywhere]">
-                              {r.action === 'SUBMIT' ? r.catatan : `Alasan: ${r.catatan}`}
+                              {masuk(r.action) ? r.catatan : `Alasan: ${r.catatan}`}
                             </p>
                           </div>
                         )}
@@ -410,7 +539,13 @@ export function NotifikasiDokumenPanel() {
                           </span>
                           <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 group-hover:text-institusi-700">
                             <FileText aria-hidden className="size-3" />
-                            {superadmin ? 'Tinjau pengajuan' : 'Buka dokumen'}
+                            {superadmin
+                              ? 'Tinjau pengajuan'
+                              : r.jenis === 'REMOVAL'
+                                ? 'Lihat keputusan'
+                                : r.jenis === 'TEMPLATE'
+                                  ? 'Buka format'
+                                  : 'Buka dokumen'}
                             <ArrowUpRight aria-hidden className={cn(styles.panah, 'size-3.5')} />
                           </span>
                         </div>
@@ -421,6 +556,7 @@ export function NotifikasiDokumenPanel() {
                         className="absolute top-2.5 right-2.5 size-8 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
                         aria-label={`Hapus notifikasi ${r.judul}`}
                         title="Hapus notifikasi"
+                        disabled={menyiapkan}
                         onClick={(e) => {
                           pemicuHapus.current = e.currentTarget;
                           setGalatHapus('');
