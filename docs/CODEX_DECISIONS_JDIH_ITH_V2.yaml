@@ -223,6 +223,9 @@ document_workflow:
   withdrawal_preserves_history: true
 
 legal:
+  manual_revocation: "active Superadmin with workflow.withdraw; direct version-bound revoke or own Admin REVOKE request; published current only, not already revoked; DICABUT while retaining TERBIT/current pointer/files/access"
+  revocation_history: "atomic legal history source_version_id NULL, mandatory reason/date/actor and audit; no replacement required; optional decision note falls back to Admin reason; no status changes to other documents"
+  revocation_compatibility: "patch-027 adds REVOKE after patch-026; legacy WITHDRAW records/decisions unchanged, no automatic republication; templates retain withdrawal"
   statuses:
     - "BERLAKU"
     - "DIUBAH"
@@ -460,13 +463,15 @@ removal_requests:
   template_management: "owner ADMIN only; SUPERADMIN global; verification queue remains cross-owner read-only"
   requesters: "active owner ADMIN; documents.edit or templates.manage"
   resources: [DOCUMENT, TEMPLATE]
-  actions: [WITHDRAW, DELETE]
+  actions: [REVOKE, DELETE, WITHDRAW]
+  new_document_requests: "REVOKE or DELETE only; WITHDRAW creation rejected for legal/SOP; templates accept WITHDRAW/DELETE, reject REVOKE"
   decisions: "active SUPERADMIN with action permission; APPROVE/DECLINE notes optional; action and audit atomic; withdrawal without a note uses Admin request reason; patch-026 before API"
   storage: "patch-024-permintaan-penghapusan; one pending per resource; durable snapshot without resource FK preserves deletion history"
   stale_requests: "current version must match snapshot; otherwise 409 and reasoned refusal/re-request"
   queue: "Antrean Verifikasi; Superadmin all, Admin own only; pending never expires; completed rows visible less than 24 hours since decided_at, server UTC filter before count/pagination including requestId; stored history/audit retained"
   navigation_badge: "sum of legal/SOP submitted/approved, template pending/approved and pending withdrawal/deletion requests; workflow/focus/visibility/navigation/30s refresh; no partial total on error"
   withdrawn_visibility: "owner/Superadmin panel retains withdrawn documents/files, direct link in approved withdrawal result, list/detail refresh; public access remains closed"
+  revoked_visibility: "DICABUT legal status while TERBIT workflow; remains in portal search/detail/download under existing access rules; reason/date displayed without inventing a replacement"
   direct_superadmin_action: "mark matching pending requests OBSOLETE in transaction"
   previously_published_templates: "deletion still requires Superadmin after withdrawal"
 
@@ -480,7 +485,7 @@ panel_choice_polish:
   action_icons: "decorative Lucide icons for edit/save/submit/approve/return/publish/revise/withdraw/delete; retain text and confirmation"
 
 verification_notifications:
-  queue_order: [Dokumen, Antrean Format Persuratan, Permintaan Penarikan & Penghapusan]
+  queue_order: [Dokumen, Antrean Format Persuratan, Permintaan Pencabutan & Penghapusan]
   removal_list_envelope: "sukses/data/meta at top level; do not double-wrap"
   pending_inbox: "eligible Superadmin: SUBMIT, TEMPLATE_SUBMIT, REMOVAL_REQUEST, ACCOUNT_REGISTER; current pending state only"
   owner_inbox: "Admin own approval/return/publish/withdraw/delete, template decisions/publication/removal and removal request decisions"

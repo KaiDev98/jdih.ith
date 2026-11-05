@@ -76,7 +76,7 @@ export function notificationEventScope(actor: PenggunaAktif) {
       'a.action',
       "JSON_UNQUOTE(JSON_EXTRACT(a.after_json,'$.reason'))",
       'JOIN dokumen_versi v ON v.id=a.entity_id JOIN dokumen d ON d.id=v.dokumen_id',
-      "a.module='workflow' AND a.entity_type='dokumen_versi' AND a.action IN ('PUBLISH','WITHDRAW') AND d.created_by=? AND a.actor_id<>? AND JSON_EXTRACT(a.after_json,'$.requestId') IS NULL",
+      "((a.module='workflow' AND a.action IN ('PUBLISH','WITHDRAW')) OR (a.module='legal-relations' AND a.action='REVOKE')) AND a.entity_type='dokumen_versi' AND d.created_by=? AND a.actor_id<>? AND JSON_EXTRACT(a.after_json,'$.requestId') IS NULL",
       [actor.id, actor.id],
     );
     select(
@@ -108,7 +108,7 @@ export function notificationEventScope(actor: PenggunaAktif) {
       'r.alasan',
       'JOIN permintaan_penghapusan r ON r.id=a.entity_id',
       `a.module='documents' AND a.entity_type='permintaan_penghapusan' AND a.action='REQUEST_REMOVAL' AND r.status='PENDING'
-       AND ((r.sumber='TEMPLATE' AND ${template}=1) OR (r.sumber='DOCUMENT' AND ((r.jenis='WITHDRAW' AND ${withdraw}=1) OR (r.jenis='DELETE' AND ${remove}=1))))`,
+       AND ((r.sumber='TEMPLATE' AND ${template}=1) OR (r.sumber='DOCUMENT' AND ((r.jenis IN ('WITHDRAW','REVOKE') AND ${withdraw}=1) OR (r.jenis='DELETE' AND ${remove}=1))))`,
     );
     if (actor.izin.includes('users.read')) {
       select(

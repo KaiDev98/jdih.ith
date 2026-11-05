@@ -7,6 +7,8 @@ const state = vi.hoisted(() => ({
   peran: ['ADMIN'],
   status: 'DIAJUKAN',
   own: false,
+  current: null as string | null,
+  hukum: 'BERLAKU',
   api: vi.fn(),
   daftar: vi.fn(),
 }));
@@ -26,6 +28,7 @@ vi.mock('@/lib/sesi', () => ({
         'workflow.submit',
         'workflow.approve',
         'workflow.return',
+        'workflow.withdraw',
       ],
     },
     csrfToken: 'csrf',
@@ -40,6 +43,8 @@ vi.mock('@/lib/api-client', async (original) => ({
 afterEach(() => {
   cleanup();
   state.peran = ['ADMIN'];
+  state.current = null;
+  state.hukum = 'BERLAKU';
   state.daftar.mockClear();
 });
 
@@ -65,10 +70,10 @@ function setupDetail() {
               slug: 'dokumen',
               judul: 'Dokumen tinjauan',
               statusWorkflow: state.status,
-              statusHukum: 'BERLAKU',
+              statusHukum: state.hukum,
               tingkatAkses: 'publik',
               nomorVersi: 1,
-              currentPublishedVersionId: null,
+              currentPublishedVersionId: state.current,
               tanggalPenetapan: '2026-10-01',
               deskripsi: 'Deskripsi lengkap',
               nomor: '1',
@@ -89,6 +94,22 @@ function setupDetail() {
 }
 
 describe('Admin membaca dokumen tanpa tindakan Superadmin; SOP khusus Superadmin', () => {
+  it('pencabutan langsung memakai versi terbit, alasan wajib dan konfirmasi; status Dicabut tetap menyimpan berkas', async () => {
+    state.peran = ['SUPERADMIN']; state.status = 'TERBIT'; state.own = true; state.current = '50';
+    setupDetail(); render(<AdminDocumentDetail id="5" />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Cabut Dokumen' }));
+    expect(screen.getByRole('button', { name: 'Ya, cabut' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Alasan pencabutan (wajib)'), { target: { value: 'Pencabutan tanpa pengganti' } });
+    state.hukum = 'DICABUT';
+    fireEvent.click(screen.getByRole('button', { name: 'Ya, cabut' }));
+    await waitFor(() => expect(state.api).toHaveBeenCalledWith('/admin/documents/5/revoke', {
+      method: 'POST', headers: {}, muatan: { versionId: '50', alasan: 'Pencabutan tanpa pengganti' },
+    }));
+    await screen.findByText('Dokumen ini telah dicabut. Berkas dan riwayatnya tetap tersimpan.');
+    expect(screen.queryByRole('button', { name: 'Cabut Dokumen' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Berkas' })).toBeInTheDocument();
+    expect(state.api).toHaveBeenCalledWith('/admin/documents/versions/50/files');
+  });
   it('tombol verifikasi nonaktif bagi Admin meskipun ada izin langsung', async () => {
     state.status = 'DIAJUKAN';
     state.own = true;
@@ -99,7 +120,7 @@ describe('Admin membaca dokumen tanpa tindakan Superadmin; SOP khusus Superadmin
     expect(screen.getByRole('button', { name: 'Kembalikan untuk diperbaiki' })).toBeDisabled();
     const pair = screen.getByLabelText('Status hukum dan permintaan dokumen');
     expect(pair).toContainElement(screen.getByRole('heading', { name: 'Status hukum' }));
-    expect(pair).toContainElement(screen.getByRole('heading', { name: /Permintaan Penarikan & Penghapusan/ }));
+    expect(pair).toContainElement(screen.getByRole('heading', { name: /Permintaan Pencabutan & Penghapusan/ }));
   });
   it('Superadmin menempatkan Status hukum di samping Hapus permanen, lalu permintaan di bawah keduanya', async () => {
     state.peran = ['SUPERADMIN'];
@@ -111,7 +132,7 @@ describe('Admin membaca dokumen tanpa tindakan Superadmin; SOP khusus Superadmin
     const pair = screen.getByLabelText('Status hukum dan penghapusan permanen');
     const status = screen.getByRole('heading', { name: 'Status hukum' });
     const remove = screen.getByRole('heading', { name: 'Hapus permanen' });
-    const requests = screen.getByRole('heading', { name: /Permintaan Penarikan & Penghapusan/ });
+    const requests = screen.getByRole('heading', { name: /Permintaan Pencabutan & Penghapusan/ });
     expect(pair.children[0]).toContainElement(status);
     expect(pair.children[1]).toContainElement(remove);
     expect(pair.children[2]).toContainElement(requests);

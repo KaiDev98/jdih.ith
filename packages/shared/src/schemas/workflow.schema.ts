@@ -35,6 +35,7 @@ export const skemaNotifikasiDokumen = z.strictObject({
     'APPROVE',
     'PUBLISH',
     'WITHDRAW',
+    'REVOKE',
     'DOCUMENT_DELETE',
     'DOCUMENT_DRAFT_DELETE',
     'TEMPLATE_SUBMIT',
@@ -66,6 +67,7 @@ export type HasilHapusNotifikasi = z.infer<typeof skemaHasilHapusNotifikasi>;
 /** An empty impact list still requires confirmation; readiness uses stored version metadata, never client assertions. */
 export const skemaTerbitkanDokumen = z.strictObject({ konfirmasi: skemaKonfirmasiDampakPublikasi });
 export const skemaTarikDokumen = z.strictObject({ alasan: teksWajib(1000, 'Alasan penarikan') });
+export const skemaCabutDokumen = z.strictObject({ versionId: skemaId, alasan: teksWajib(1000, 'Alasan pencabutan') });
 export type MuatanAjukanDokumen = z.infer<typeof skemaAjukanDokumen>;
 export type MuatanKembalikanRevisi = z.infer<typeof skemaKembalikanRevisi>;
 export type MuatanSetujuiDokumen = z.infer<typeof skemaSetujuiDokumen>;

@@ -23,6 +23,7 @@ export function FormPermintaanPenghapusan({
   const { csrfToken } = useSession();
   const [alasan, setAlasan] = useState('');
   const [terkirim, setTerkirim] = useState(false);
+  const jenisPencabutan = sumber === 'DOCUMENT' ? 'REVOKE' : 'WITHDRAW';
   useEffect(() => {
     if (!terkirim) return;
     let active = true;
@@ -44,7 +45,7 @@ export function FormPermintaanPenghapusan({
       window.removeEventListener('focus', periksa);
     };
   }, [terkirim, sumber, resourceId]);
-  async function kirim(jenis: 'WITHDRAW' | 'DELETE') {
+  async function kirim(jenis: PermintaanPenghapusan['jenis']) {
     await ambilApi(
       `/admin/${sumber === 'DOCUMENT' ? 'documents' : 'letter-templates'}/${resourceId}/removal-requests`,
       {
@@ -59,19 +60,19 @@ export function FormPermintaanPenghapusan({
   }
   return (
     <div className="flex flex-wrap gap-2">
-      {(['WITHDRAW', 'DELETE'] as const)
-        .filter((jenis) => jenis !== 'WITHDRAW' || bisaTarik)
+      {([jenisPencabutan, 'DELETE'] as const)
+        .filter((jenis) => jenis === 'DELETE' || bisaTarik)
         .map((jenis) => (
           <ConfirmAction
             key={jenis}
-            icon={jenis === 'WITHDRAW' ? FileX2 : Trash2}
+            icon={jenis !== 'DELETE' ? FileX2 : Trash2}
             ukuran="kecil"
             tone={jenis === 'DELETE' ? 'danger' : 'secondary'}
-            label={jenis === 'WITHDRAW' ? 'Minta Penarikan' : 'Minta Penghapusan'}
+            label={jenis === 'REVOKE' ? 'Minta Pencabutan' : jenis === 'WITHDRAW' ? 'Minta Penarikan' : 'Minta Penghapusan'}
             title={
-              jenis === 'WITHDRAW' ? 'Minta Penarikan dari Portal?' : 'Minta Penghapusan Dokumen?'
+              jenis === 'REVOKE' ? 'Minta Pencabutan Dokumen?' : jenis === 'WITHDRAW' ? 'Minta Penarikan dari Portal?' : 'Minta Penghapusan Dokumen?'
             }
-            description={`Permintaan untuk “${judul}” dikirim ke Superadmin. ${jenis === 'WITHDRAW' ? 'Dokumen tetap tersedia sampai penarikan disetujui.' : 'Penghapusan seluruh versi dan berkas baru dilakukan setelah persetujuan Superadmin.'}`}
+            description={`Permintaan untuk “${judul}” dikirim ke Superadmin. ${jenis === 'REVOKE' ? 'Setelah disetujui, dokumen tetap tersedia dengan status hukum Dicabut, tanpa dokumen pengganti. Alasan permintaan menjadi keterangan pencabutan jika Superadmin tidak mengisi catatan keputusan.' : jenis === 'WITHDRAW' ? 'Dokumen tetap tersedia sampai penarikan disetujui.' : 'Penghapusan seluruh versi dan berkas baru dilakukan setelah persetujuan Superadmin.'}`}
             disabled={terkirim}
             confirmLabel="Kirim permintaan"
             confirmDisabled={!alasan.trim()}
@@ -182,6 +183,8 @@ export function AntreanPermintaanPenghapusan({
     setNotice(
       keputusan === 'DECLINE'
         ? 'Permintaan tidak disetujui. Keputusan telah disimpan untuk Admin.'
+        : row.jenis === 'REVOKE'
+          ? 'Dokumen berhasil dicabut. Dokumen tetap tersedia dengan status Dicabut.'
         : row.jenis === 'WITHDRAW'
           ? 'Dokumen berhasil ditarik dari portal.'
           : 'Dokumen berhasil dihapus.',
@@ -197,7 +200,7 @@ export function AntreanPermintaanPenghapusan({
         </span>
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold">
-            Permintaan Penarikan &amp; Penghapusan{' '}
+            Permintaan {sumber === 'TEMPLATE' ? 'Penarikan' : 'Pencabutan'} &amp; Penghapusan{' '}
             <span className="text-slate-500">{loading || error ? '—' : total}</span>
           </h2>
           <p className="mt-1 text-xs leading-5 text-slate-500">
@@ -262,7 +265,7 @@ export function AntreanPermintaanPenghapusan({
         <ul
           className="max-h-[26rem] divide-y divide-sekat overflow-y-auto overscroll-contain"
           data-gulir-panel
-          aria-label="Daftar permintaan penarikan dan penghapusan"
+          aria-label="Daftar permintaan pencabutan dan penghapusan"
         >
           {rows.map((row) => {
             const bolehPutuskan =
@@ -270,7 +273,7 @@ export function AntreanPermintaanPenghapusan({
               pengguna?.izin.includes(
                 row.sumber === 'TEMPLATE'
                   ? 'templates.manage'
-                  : row.jenis === 'WITHDRAW'
+                  : row.jenis !== 'DELETE'
                     ? 'workflow.withdraw'
                     : 'documents.delete',
               );
@@ -281,11 +284,11 @@ export function AntreanPermintaanPenghapusan({
                     <h3 className="text-sm font-semibold [overflow-wrap:anywhere]">{row.judul}</h3>
                     <p className="mt-1 text-xs text-slate-500">
                       {row.pemohon} · {row.sumber === 'TEMPLATE' ? 'Format Persuratan' : 'Dokumen'}{' '}
-                      · {row.jenis === 'WITHDRAW' ? 'Tarik dari portal' : 'Hapus dokumen'}
+                      · {row.jenis === 'REVOKE' ? 'Cabut Dokumen' : row.jenis === 'WITHDRAW' ? 'Tarik dari portal (penarikan)' : 'Hapus dokumen'}
                     </p>
                   </div>
                   <Badge color={row.status === 'PENDING' ? 'amber' : 'slate'}>
-                    {statusLabel[row.status]}
+                    {statusLabel[row.status]}{row.status === 'APPROVED' && row.jenis === 'REVOKE' ? ' · Dicabut' : ''}
                   </Badge>
                 </div>
                 <p className="whitespace-pre-wrap text-sm text-slate-600 [overflow-wrap:anywhere]">
@@ -297,7 +300,7 @@ export function AntreanPermintaanPenghapusan({
                   </p>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  {(row.status === 'PENDING' || (row.status === 'APPROVED' && row.jenis === 'WITHDRAW')) && (
+                  {(row.status === 'PENDING' || (row.status === 'APPROVED' && row.jenis !== 'DELETE')) && (
                     <Link
                       href={
                         row.sumber === 'TEMPLATE'
@@ -306,7 +309,7 @@ export function AntreanPermintaanPenghapusan({
                       }
                       className="inline-flex min-h-11 items-center text-xs font-semibold text-institusi-700 underline underline-offset-4"
                     >
-                      {row.status === 'PENDING' ? 'Tinjau dokumen' : 'Lihat dokumen ditarik'}
+                      {row.status === 'PENDING' ? 'Tinjau dokumen' : row.jenis === 'REVOKE' ? 'Lihat Dokumen Dicabut' : 'Lihat dokumen ditarik'}
                     </Link>
                   )}
                   {row.status === 'PENDING' &&
@@ -314,12 +317,14 @@ export function AntreanPermintaanPenghapusan({
                     (['APPROVE', 'DECLINE'] as const).map((keputusan) => (
                       <ConfirmAction
                         key={keputusan}
-                        icon={keputusan === 'DECLINE' ? XCircle : row.jenis === 'WITHDRAW' ? FileX2 : Trash2}
+                        icon={keputusan === 'DECLINE' ? XCircle : row.jenis !== 'DELETE' ? FileX2 : Trash2}
                         ukuran="kecil"
                         tone={keputusan === 'APPROVE' ? 'danger' : 'secondary'}
                         label={
                           keputusan === 'DECLINE'
                             ? 'Tidak setujui'
+                            : row.jenis === 'REVOKE'
+                              ? 'Setujui & Cabut'
                             : row.jenis === 'WITHDRAW'
                               ? 'Setujui & tarik'
                               : 'Setujui & hapus'
@@ -327,6 +332,8 @@ export function AntreanPermintaanPenghapusan({
                         title={
                           keputusan === 'DECLINE'
                             ? 'Tidak menyetujui permintaan?'
+                            : row.jenis === 'REVOKE'
+                              ? 'Setujui pencabutan dokumen?'
                             : row.jenis === 'WITHDRAW'
                               ? 'Setujui penarikan dokumen?'
                               : 'Setujui penghapusan dokumen?'
@@ -334,6 +341,8 @@ export function AntreanPermintaanPenghapusan({
                         description={
                           keputusan === 'DECLINE'
                             ? 'Dokumen tetap seperti semula. Catatan akan tampil untuk Admin pemohon.'
+                            : row.jenis === 'REVOKE'
+                              ? `“${row.judul}” tetap tersedia dengan status hukum Dicabut. Berkas dan riwayat tetap tersimpan. Catatan keputusan menjadi keterangan pencabutan; bila kosong, alasan Admin digunakan.`
                             : row.jenis === 'WITHDRAW'
                               ? `“${row.judul}” langsung ditarik dari portal. Riwayat tetap tersimpan.`
                               : `“${row.judul}” beserta seluruh versinya dihapus dari aplikasi. Untuk dokumen hukum, berkas dihapus permanen. Tindakan ini tidak dapat dibatalkan.`

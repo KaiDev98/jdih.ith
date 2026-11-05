@@ -8,7 +8,7 @@ import {
   type PermintaanBerpengguna,
 } from '../../common/decorators/otorisasi.decorator.js';
 import type { PenggunaAktif } from '@jdih/shared';
-import { skemaAjukanDokumen, skemaKembalikanRevisi, skemaSetujuiDokumen } from '@jdih/shared';
+import { skemaAjukanDokumen, skemaKembalikanRevisi, skemaSetujuiDokumen, skemaId } from '@jdih/shared';
 import { CoreBackendService } from './core-backend.service.js';
 import { IdentityService } from '../identity/identity.service.js';
 import { cookie, SESSION_COOKIE } from '../identity/identity.guard.js';
@@ -197,6 +197,13 @@ export class WorkflowController {
     @Aktor() actor: PenggunaAktif,
   ) {
     return this.core.withdraw(actor, id, body);
+  }
+  @Post(':id/revoke') @Izin('workflow.withdraw') revoke(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Aktor() actor: PenggunaAktif,
+  ) {
+    return this.core.revoke(actor, skemaId.parse(id), body);
   }
 }
 

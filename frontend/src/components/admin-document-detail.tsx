@@ -537,30 +537,30 @@ function DetailDokumen({
                 onConfirm={buatRevisi}
               />
             )}
-            {superadmin && document.currentPublishedVersionId && (
+            {superadmin && document.currentPublishedVersionId && document.statusHukum !== 'DICABUT' && (
               <ConfirmAction
                 disabled={!superadmin || !izin.includes('workflow.withdraw')}
                 tone="danger"
-                label="Tarik dari portal" icon={FileX2}
-                title="Tarik dokumen dari portal?"
+                label="Cabut Dokumen" icon={FileX2}
+                title="Cabut dokumen ini?"
                 description={
-                  // Penarikan selalu mengenai versi yang sedang tampil, yang
+                  // Pencabutan selalu mengenai versi yang sedang tampil, yang
                   // bisa berbeda dari versi yang sedang dibuka di halaman ini.
                   versiPublik && versiPublik.versionId !== document.versionId
-                    ? `Versi ${String(versiPublik.nomorVersi)} yang sedang tampil akan ditarik, sehingga dokumen tidak lagi tampil di portal publik.`
-                    : 'Dokumen tidak lagi tampil di portal publik. Riwayat dan alasannya tetap tercatat.'
+                    ? `Dokumen dengan versi terbit ${String(versiPublik.nomorVersi)} akan berstatus Dicabut. Dokumen tetap tersedia di portal sesuai hak akses, tanpa memerlukan dokumen pengganti.`
+                    : 'Status hukum menjadi Dicabut. Dokumen dan berkasnya tetap tersedia sesuai hak akses, tanpa memerlukan dokumen pengganti.'
                 }
-                confirmLabel="Ya, tarik"
+                confirmLabel="Ya, cabut"
                 confirmDisabled={!note.trim()}
-                onConfirm={() => post(`/admin/documents/${id}/withdraw`, { alasan: note })}
+                onConfirm={() => post(`/admin/documents/${id}/revoke`, { versionId: document.currentPublishedVersionId, alasan: note })}
               >
-                {kolomCatatan('Alasan penarikan (wajib)', 'alasan-tarik')}
+                {kolomCatatan('Alasan pencabutan (wajib)', 'alasan-cabut')}
               </ConfirmAction>
             )}
           </div>
           {!superadmin && document.bolehRevisi && !bisaDiubah && izin.includes('documents.edit') && (
             <div className="mt-4 border-t border-sekat pt-4"><p className="mb-2 text-xs text-slate-500">Penarikan atau penghapusan memerlukan keputusan Superadmin.</p>
-              <FormPermintaanPenghapusan sumber="DOCUMENT" resourceId={id} judul={document.judul} bisaTarik={!!document.currentPublishedVersionId} /></div>
+              <FormPermintaanPenghapusan sumber="DOCUMENT" resourceId={id} judul={document.judul} bisaTarik={!!document.currentPublishedVersionId && document.statusHukum !== 'DICABUT'} /></div>
           )}
           {bisaDiubah && kekurangan.length > 0 && (
             <div role="status" className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
@@ -816,10 +816,8 @@ const LABEL_HUBUNGAN: Record<StatusPeraturan['jenis'], string> = {
 };
 
 /**
- * Status hukum, seperti JDIH BPK: tidak diubah manual. Dokumen ini menjadi
- * Diubah/Dicabut saat dokumen pengubah/pencabutnya terbit. Karena itu kartu
- * ini menyediakan jalan ke "Upload dokumen" yang langsung terhubung sebagai
- * pengubah atau pencabut dokumen ini.
+ * Status hukum melalui dokumen pengubah/pencabut atau keputusan pencabutan
+ * Superadmin tanpa dokumen pengganti. Publikasi dan berkas tetap dipertahankan.
  */
 function KartuStatusHukum({
   id,
@@ -883,13 +881,13 @@ function KartuStatusHukum({
         </dl>
       ) : (
         <p className="mt-2 text-sm text-slate-600">
-          Belum ada dokumen yang mengubah atau mencabut dokumen ini.
+          {dicabut ? 'Dokumen ini telah dicabut. Berkas dan riwayatnya tetap tersimpan.' : 'Belum ada dokumen yang mengubah atau mencabut dokumen ini.'}
         </p>
       )}
       <div className="mt-4 border-t border-slate-100 pt-4">
         <p className="text-sm text-slate-600">
-          Status berubah otomatis saat dokumen pengubah atau pencabutnya terbit. Untuk mengubah atau
-          mencabut dokumen ini, upload dokumen barunya.
+          Status dapat berubah saat dokumen pengubah atau pencabutnya terbit. Superadmin juga dapat
+          mencabut dokumen terbit tanpa dokumen pengganti; dokumennya tetap tersedia dengan status Dicabut.
         </p>
         {!terbit ? (
           <p className="mt-2 text-xs text-slate-500">

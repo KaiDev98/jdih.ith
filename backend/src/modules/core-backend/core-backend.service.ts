@@ -20,6 +20,7 @@ import {
   pesanKekuranganPengajuan,
   skemaTerbitkanDokumen,
   skemaTarikDokumen,
+  skemaCabutDokumen,
   skemaStatusMaster,
   skemaJenisDokumen,
   skemaKategori,
@@ -784,7 +785,7 @@ export class CoreBackendService {
   private async keteranganStatus(dokumenId: string, status: string, actor?: Actor) {
     const rows = (await this.repo.rows(
       this.repo.pool,
-      "SELECT DATE_FORMAT(h.confirmed_at,'%Y-%m-%d') tanggal,h.alasan,CAST(sv.dokumen_id AS CHAR) sumberId,IF(h.status_asal<=>h.status_tujuan AND h.source_version_id IS NULL,1,0) hanyaAlasan FROM dokumen_status_hukum_riwayat h LEFT JOIN dokumen_versi sv ON sv.id=h.source_version_id WHERE h.dokumen_id=? AND h.status_tujuan=? ORDER BY h.confirmed_at DESC,h.id DESC LIMIT 50",
+      "SELECT DATE_FORMAT(CONVERT_TZ(h.confirmed_at,'+00:00','+08:00'),'%Y-%m-%d') tanggal,h.alasan,CAST(sv.dokumen_id AS CHAR) sumberId,IF(h.status_asal<=>h.status_tujuan AND h.source_version_id IS NULL,1,0) hanyaAlasan FROM dokumen_status_hukum_riwayat h LEFT JOIN dokumen_versi sv ON sv.id=h.source_version_id WHERE h.dokumen_id=? AND h.status_tujuan=? ORDER BY h.confirmed_at DESC,h.id DESC LIMIT 50",
       [dokumenId, status],
     )) as any[];
     const iPindah = rows.findIndex((h) => Number(h.hanyaAlasan) === 0);
@@ -1240,6 +1241,8 @@ export class CoreBackendService {
       "SELECT CAST(d.id AS CHAR) targetDocumentId,d.status_hukum statusSaatIni,r.jenis_relasi FROM dokumen_relasi r JOIN dokumen d ON d.id=r.target_document_id WHERE r.source_version_id=? AND r.jenis_relasi IN ('MENGUBAH','MENCABUT') ORDER BY d.id",
       [id],
     )) as any[];
+    if (rows.some((r) => r.statusSaatIni === 'DICABUT' && r.jenis_relasi === 'MENGUBAH'))
+      throw new ConflictException('Dokumen sasaran sudah dicabut dan tidak dapat diubah. Periksa kembali relasi dokumen.');
     const dampak = rows.map((r) => ({
       targetDocumentId: r.targetDocumentId,
       statusSaatIni: r.statusSaatIni,
@@ -1385,6 +1388,42 @@ export class CoreBackendService {
     );
     return { id, statusWorkflow: 'TERBIT', currentPublishedVersionId: id };
   }
+  async revoke(actor: Actor, id: string, raw: unknown) {
+    cekSuperadmin(actor);
+    this.allow(actor, 'workflow.withdraw');
+    const input = skemaCabutDokumen.parse(raw);
+    return this.repo.transaction((db) => this.revokeInTransaction(db, actor, id, input.versionId, input.alasan));
+  }
+
+  async revokeInTransaction(db: PoolConnection, actor: Actor, id: string, versionId: string, reason: string, requestId?: string) {
+    cekSuperadmin(actor);
+    this.allow(actor, 'workflow.withdraw');
+    const input = skemaCabutDokumen.parse({ versionId, alasan: reason });
+    const d = (await this.repo.rows(db,
+      'SELECT id,current_published_version_id,status_hukum FROM dokumen WHERE id=? AND deleted_at IS NULL FOR UPDATE', [id]))[0] as any;
+    if (!d) throw new NotFoundException();
+    if (!d.current_published_version_id || String(d.current_published_version_id) !== input.versionId)
+      throw new ConflictException('Versi terbit telah berubah atau tidak tersedia. Muat ulang dokumen sebelum mencabut.');
+    if (d.status_hukum === 'DICABUT') throw new ConflictException('Dokumen sudah dicabut.');
+    const v = (await this.repo.rows(db,
+      "SELECT id FROM dokumen_versi WHERE id=? AND dokumen_id=? AND status_workflow='TERBIT' FOR UPDATE", [input.versionId, id]))[0];
+    if (!v) throw new ConflictException('Hanya dokumen yang sudah diterbitkan dapat dicabut.');
+    const now = utc();
+    // Pencabutan adalah status hukum, bukan penarikan publikasi. Pointer/file tetap utuh.
+    await this.repo.write(db, "UPDATE dokumen SET status_hukum='DICABUT' WHERE id=?", [id]);
+    await this.repo.write(db, 'UPDATE dokumen_versi SET updated_at=? WHERE id=?', [now, input.versionId]);
+    await this.repo.write(db,
+      "INSERT INTO dokumen_status_hukum_riwayat(dokumen_id,status_asal,status_tujuan,source_version_id,alasan,actor_id,confirmed_at) VALUES(?,?,'DICABUT',NULL,?,?,?)",
+      [id, d.status_hukum, input.alasan, actor.id, now]);
+    await this.audit.recordDomain({ module: 'legal-relations', action: 'REVOKE', entityType: 'dokumen_versi', entityId: input.versionId,
+      actorId: actor.id, before: { statusHukum: d.status_hukum },
+      after: { statusHukum: 'DICABUT', reason: input.alasan, ...(requestId ? { requestId } : {}) } }, db);
+    await this.repo.write(db,
+      "UPDATE permintaan_penghapusan SET status='OBSOLETE',catatan='Dokumen sudah dicabut melalui tindakan Superadmin.',decided_by=?,decided_at=UTC_TIMESTAMP(6) WHERE sumber='DOCUMENT' AND resource_id=? AND jenis='REVOKE' AND status='PENDING'",
+      [actor.id, id]);
+    return { id, versionId: input.versionId, currentPublishedVersionId: input.versionId, statusWorkflow: 'TERBIT', statusHukum: 'DICABUT' };
+  }
+
   async withdraw(actor: Actor, id: string, raw: unknown) {
     cekSuperadmin(actor);
     this.allow(actor, 'workflow.withdraw');

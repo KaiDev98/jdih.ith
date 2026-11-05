@@ -41,7 +41,7 @@ describe('permintaan penarikan dan penghapusan', () => {
     state.list.mockRejectedValueOnce(new Error('Temporary failure')).mockResolvedValue({ data: [request], meta: { totalButir: 1 } });
     render(<AntreanPermintaanPenghapusan />);
     await screen.findByText('Permintaan gagal dimuat');
-    expect(screen.getByRole('heading', { name: /Permintaan Penarikan & Penghapusan/ })).toHaveTextContent('—');
+    expect(screen.getByRole('heading', { name: /Permintaan Pencabutan & Penghapusan/ })).toHaveTextContent('—');
     fireEvent.click(screen.getByRole('button', { name: 'Coba lagi' }));
     await screen.findByText('Peraturan pengujian');
     expect(screen.queryByText('Permintaan gagal dimuat')).not.toBeInTheDocument();
@@ -156,5 +156,31 @@ describe('permintaan penarikan dan penghapusan', () => {
     expect(await screen.findByRole('link', { name: 'Lihat dokumen ditarik' })).toHaveAttribute('href', '/admin/dokumen/5?versionId=50');
     expect(screen.getByText(/Keputusan tampil selama 24 jam/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Setujui & tarik' })).not.toBeInTheDocument();
+  });
+  it('Admin meminta pencabutan dokumen terbit dengan alasan dan konfirmasi, tanpa permintaan penarikan baru', async () => {
+    render(<FormPermintaanPenghapusan sumber="DOCUMENT" resourceId="5" judul="Peraturan pengujian" bisaTarik />);
+    expect(screen.queryByRole('button', { name: 'Minta Penarikan' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Minta Pencabutan' }));
+    expect(screen.getByText(/dokumen tetap tersedia dengan status hukum Dicabut/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Kirim permintaan' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Alasan permintaan'), { target: { value: 'Tidak berlaku lagi tanpa pengganti' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Kirim permintaan' }));
+    await waitFor(() => expect(state.api).toHaveBeenCalledExactlyOnceWith('/admin/documents/5/removal-requests', {
+      method: 'POST', headers: { 'x-csrf-token': 'csrf' }, muatan: { jenis: 'REVOKE', alasan: 'Tidak berlaku lagi tanpa pengganti' },
+    }));
+  });
+  it('Superadmin menyetujui pencabutan tanpa catatan dan hasilnya tetap menaut ke dokumen Dicabut', async () => {
+    state.role = 'SUPERADMIN';
+    state.list.mockResolvedValue({ data: [{ ...request, jenis: 'REVOKE' }], meta: { totalButir: 1 } });
+    render(<AntreanPermintaanPenghapusan showHistory />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Setujui & Cabut' }));
+    expect(screen.getByText(/tetap tersedia dengan status hukum Dicabut/)).toBeInTheDocument();
+    state.list.mockResolvedValue({ data: [{ ...request, jenis: 'REVOKE', status: 'APPROVED' }], meta: { totalButir: 1 } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
+    await screen.findByText('Dokumen berhasil dicabut. Dokumen tetap tersedia dengan status Dicabut.');
+    expect(await screen.findByRole('link', { name: 'Lihat Dokumen Dicabut' })).toHaveAttribute('href', '/superadmin/dokumen/5?versionId=50');
+    expect(state.api).toHaveBeenCalledExactlyOnceWith('/admin/removal-requests/9/decision', {
+      method: 'POST', headers: { 'x-csrf-token': 'csrf' }, muatan: { keputusan: 'APPROVE', catatan: '' },
+    });
   });
 });

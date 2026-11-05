@@ -278,7 +278,7 @@ describe.skipIf(!process.env.NOTIFICATIONS_MYSQL_ENV)('notifikasi MySQL dengan r
     const documents = new DokumenAdminService(repo, audit, { delete: vi.fn() } as never);
     const requests = new RemovalRequestsService(repo, new RemovalRequestsRepository(repo), audit, documents, service, {} as never);
     const d = await published(owner);
-    const first = await requests.create(owner, 'DOCUMENT', d.id, { jenis: 'WITHDRAW', alasan: 'Periksa dahulu' });
+    const first = await requests.create(owner, 'DOCUMENT', d.id, { jenis: 'REVOKE', alasan: 'Periksa dahulu' });
     expect((await service.notifications(superadmin)).find((r) => r.requestId === first.id)?.action).toBe('REMOVAL_REQUEST');
     await requests.decide(superadmin, first.id, { keputusan: 'DECLINE', catatan: 'Dokumen masih berlaku' });
     expect((await service.notifications(superadmin)).some((r) => r.requestId === first.id)).toBe(false);
@@ -293,18 +293,18 @@ describe.skipIf(!process.env.NOTIFICATIONS_MYSQL_ENV)('notifikasi MySQL dengan r
     const [rows] = await db.query<RowDataPacket[]>('SELECT id FROM dokumen WHERE id=?', [d.id]);
     expect(rows).toHaveLength(0);
   });
-  it('notifies pending withdrawal work and a decision without a note without duplicate action messages', async () => {
+  it('notifies pending revocation work and a decision without a note without duplicate action messages', async () => {
     const repo = newRepository();
     const documents = new DokumenAdminService(repo, audit, { delete: vi.fn() } as never);
     const requests = new RemovalRequestsService(repo, new RemovalRequestsRepository(repo), audit, documents, service, {} as never);
     const d = await published(owner);
-    const request = await requests.create(owner, 'DOCUMENT', d.id, { jenis: 'WITHDRAW', alasan: 'Koreksi dari Admin' });
+    const request = await requests.create(owner, 'DOCUMENT', d.id, { jenis: 'REVOKE', alasan: 'Koreksi dari Admin' });
     expect((await service.notifications(superadmin)).find((r) => r.requestId === request.id)?.action).toBe('REMOVAL_REQUEST');
     await requests.decide(superadmin, request.id, { keputusan: 'APPROVE' });
     const result = await service.notifications(owner);
     expect(result.filter((r) => r.requestId === request.id)).toHaveLength(1);
     expect(result.find((r) => r.requestId === request.id)).toMatchObject({ action: 'REMOVAL_APPROVE', catatan: null });
-    expect(result.some((r) => r.resourceId === d.id && r.action === 'WITHDRAW')).toBe(false);
+    expect(result.some((r) => r.resourceId === d.id && r.action === 'REVOKE')).toBe(false);
     expect((await service.notifications(superadmin)).some((r) => r.requestId === request.id)).toBe(false);
   });
   it('direct Superadmin withdrawal, document deletion and draft cancellation notify only the owner', async () => {
@@ -322,6 +322,13 @@ describe.skipIf(!process.env.NOTIFICATIONS_MYSQL_ENV)('notifikasi MySQL dengan r
     await documents.hapusDraf(superadmin, parentId, draftId);
     expect((await service.notifications(owner)).find((r) => r.resourceId === parentId && r.action === 'DOCUMENT_DRAFT_DELETE')).toBeTruthy();
     expect((await service.notifications(other)).some((r) => [d.id, parentId].includes(r.resourceId ?? ''))).toBe(false);
+  });
+  it('notifies only the owner after direct legal revocation with a working document link', async () => {
+    const d = await published(owner);
+    await service.revoke(superadmin, d.id, { versionId: d.vid, alasan: 'Keputusan pencabutan' });
+    expect((await service.notifications(owner)).find((r) => r.resourceId === d.id && r.action === 'REVOKE')).toMatchObject({ dokumenId: d.id, versionId: d.vid, catatan: 'Keputusan pencabutan' });
+    expect((await service.notifications(other)).some((r) => r.resourceId === d.id)).toBe(false);
+    expect((await service.notifications(superadmin)).some((r) => r.resourceId === d.id)).toBe(false);
   });
   it('mixed notification dismissal uses separate snapshots and rolls back preference writes if audit fails', async () => {
     const before = await auditEvent('DELETE_PERMANENT', '900001', 'documents', 'dokumen', { before: { ownerId: owner.id, judul: 'Snapshot sebelum' } });

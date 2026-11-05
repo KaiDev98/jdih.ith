@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { skemaId, teksWajib } from './common.schema.js';
 
 export const skemaPermintaanPenghapusan = z.strictObject({
-  jenis: z.enum(['WITHDRAW', 'DELETE']),
+  jenis: z.enum(['WITHDRAW', 'DELETE', 'REVOKE']),
   alasan: teksWajib(1000, 'Alasan permintaan'),
 });
 export const skemaKeputusanPenghapusan = z.strictObject({
@@ -24,7 +24,7 @@ export interface PermintaanPenghapusan {
   resourceId: string;
   versionId: string | null;
   judul: string;
-  jenis: 'WITHDRAW' | 'DELETE';
+  jenis: 'WITHDRAW' | 'DELETE' | 'REVOKE';
   alasan: string;
   status: 'PENDING' | 'APPROVED' | 'DECLINED' | 'OBSOLETE';
   pemohon: string;

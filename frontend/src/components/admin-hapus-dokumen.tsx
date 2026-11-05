@@ -8,8 +8,8 @@ import { Card, ConfirmAction } from '@/components/ui';
 
 /**
  * Hapus dokumen secara permanen; hanya tampil bila akun memiliki izinnya.
- * Status hukum tidak diubah dari sini: Diubah/Dicabut hanya terjadi lewat
- * dokumen pengubah/pencabut yang terbit (lihat kartu Status hukum).
+ * Status hukum tidak diubah dari sini; pencabutan mempertahankan dokumen,
+ * sedangkan tindakan ini menghapus dokumen beserta berkasnya.
  */
 export function AdminHapusDokumen({ id, judul }: { id: string; judul: string }) {
   const { pengguna, csrfToken } = useSession();

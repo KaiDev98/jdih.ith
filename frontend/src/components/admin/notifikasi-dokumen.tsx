@@ -90,6 +90,12 @@ const TAMPILAN = {
     label: 'Ditarik',
     teks: 'Dokumen sudah ditarik dari portal',
   },
+  REVOKE: {
+    ...TAMPILAN_DASAR.RETURN,
+    ikon: FileText,
+    label: 'Dicabut',
+    teks: 'Dokumen berstatus Dicabut dan tetap tersedia di portal sesuai hak akses',
+  },
   DOCUMENT_DELETE: {
     ...TAMPILAN_DASAR.RETURN,
     ikon: Trash2,
@@ -133,12 +139,12 @@ const TAMPILAN = {
   REMOVAL_REQUEST: {
     ...TAMPILAN_DASAR.SUBMIT,
     label: 'Permintaan baru',
-    teks: 'Permintaan Penarikan/Penghapusan menunggu keputusan',
+    teks: 'Permintaan pencabutan atau penghapusan menunggu keputusan',
   },
   REMOVAL_APPROVE: {
     ...TAMPILAN_DASAR.APPROVE,
     label: 'Permintaan disetujui',
-    teks: 'Penarikan atau penghapusan sudah dijalankan oleh Superadmin',
+    teks: 'Tindakan yang diminta sudah dijalankan oleh Superadmin',
   },
   REMOVAL_DECLINE: {
     ...TAMPILAN_DASAR.RETURN,

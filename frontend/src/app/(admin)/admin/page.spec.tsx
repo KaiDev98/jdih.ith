@@ -75,7 +75,7 @@ describe('DasborAdmin', () => {
 
   for (const peran of ['ADMIN', 'SUPERADMIN']) it(`membatasi terbaru menjadi 15 dan menggeser item terlama setelah pembaruan untuk ${peran}`, async () => {
     izin.peran = [peran]; izin.daftar = ['documents.read_admin'];
-    const row = (id: number) => ({ id: String(id), versionId: String(id + 100), judul: `Dokumen terbaru ${id}`, tipe: 'SK Rektor', nomor: String(id), statusWorkflow: 'TERBIT' });
+    const row = (id: number) => ({ id: String(id), versionId: String(id + 100), judul: `Dokumen terbaru ${id}`, tipe: 'SK Rektor', nomor: String(id), statusWorkflow: 'TERBIT', statusHukum: id === 17 ? 'DICABUT' : 'BERLAKU' });
     let terbaru = Array.from({ length: 16 }, (_, i) => row(16 - i));
     let gagal = false;
     const request = vi.fn(async (url: string) => {
@@ -92,6 +92,7 @@ describe('DasborAdmin', () => {
     terbaru = [row(17), ...terbaru];
     act(() => window.dispatchEvent(new Event('jdih:workflow')));
     await within(list).findByText('Dokumen terbaru 17');
+    expect(within(list).getByText('Dicabut')).toBeInTheDocument();
     expect(within(list).getAllByRole('listitem')).toHaveLength(15);
     expect(within(list).queryByText('Dokumen terbaru 2')).not.toBeInTheDocument();
     gagal = true;

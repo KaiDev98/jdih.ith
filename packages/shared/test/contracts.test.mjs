@@ -14,6 +14,11 @@ test('removal requests cannot set owners or decisions and require bounded reason
 });
 
 test('removal decisions allow absent notes without weakening bounds or Admin reasons', () => {
+  ok(c.skemaPermintaanPenghapusan, { jenis: 'REVOKE', alasan: 'Dicabut tanpa pengganti' });
+  ok(c.skemaCabutDokumen, { versionId: '7', alasan: 'Dicabut tanpa pengganti' });
+  bad(c.skemaCabutDokumen, { alasan: 'Versi tidak disebutkan' });
+  bad(c.skemaCabutDokumen, { versionId: '7', alasan: ' ' });
+  bad(c.skemaCabutDokumen, { versionId: '7', alasan: 'Sah', statusHukum: 'BERLAKU' });
   for (const keputusan of ['APPROVE', 'DECLINE']) {
     for (const value of [{ keputusan }, { keputusan, catatan: '' }, { keputusan, catatan: ' \n\t ' }])
       assert.deepEqual(c.skemaKeputusanPenghapusan.parse(value), { keputusan, catatan: '' });

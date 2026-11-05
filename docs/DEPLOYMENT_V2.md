@@ -8,6 +8,12 @@ credentials.
 
 ## Target architecture
 
+Legal revocation update (2026-11-06): apply
+`database/v2/patch-027-permintaan-pencabutan.sql` after patch-026 before starting
+this API release. It adds the REVOKE request kind without changing existing
+requests, withdrawn documents or visibility. New revocations retain publication
+and files while setting legal status DICABUT; old withdrawals remain distinct.
+
 Latest request-decision update (2026-11-06): after patches 021–025, apply
 `database/v2/patch-026-catatan-keputusan-opsional.sql` to existing databases
 before starting this API release. It permits an absent decision note while
@@ -164,7 +170,7 @@ skips those suites; that alone is not a complete release test. The workflow
 does not deploy or access institutional secrets.
 
 For a new empty database, the current `database/v2/schema.sql` and `seed.sql`
-already incorporate patches 001–026; do not blindly replay patches after that
+already incorporate patches 001–027; do not blindly replay patches after that
 baseline import. For an existing V2 database, inspect its current columns,
 constraints and applied changes, back it up together with its private object
 storage, and apply only missing patches in order through a separate operations

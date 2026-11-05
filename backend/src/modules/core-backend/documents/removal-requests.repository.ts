@@ -9,6 +9,8 @@ export type ResourcePenghapusan = RowDataPacket & {
   currentId: string | null;
   versionId: string | null;
   judul: string;
+  statusHukum: string | null;
+  currentStatus: string | null;
 };
 export type BarisPermintaan = RowDataPacket & PermintaanPenghapusan & { requestedBy: string };
 @Injectable()
@@ -22,11 +24,12 @@ export class RemovalRequestsRepository {
   ): Promise<ResourcePenghapusan | undefined> {
     const sql =
       sumber === 'DOCUMENT'
-        ? `SELECT CAST(d.id AS CHAR) id,CAST(d.created_by AS CHAR) createdBy,CAST(d.current_published_version_id AS CHAR) currentId,
+        ? `SELECT CAST(d.id AS CHAR) id,CAST(d.created_by AS CHAR) createdBy,CAST(d.current_published_version_id AS CHAR) currentId,d.status_hukum statusHukum,
+          (SELECT v.status_workflow FROM dokumen_versi v WHERE v.id=d.current_published_version_id) currentStatus,
           CAST(COALESCE(d.current_published_version_id,(SELECT MAX(v.id) FROM dokumen_versi v WHERE v.dokumen_id=d.id)) AS CHAR) versionId,
           COALESCE((SELECT v.judul FROM dokumen_versi v WHERE v.id=COALESCE(d.current_published_version_id,(SELECT MAX(x.id) FROM dokumen_versi x WHERE x.dokumen_id=d.id))),d.kode_dokumen) judul
          FROM dokumen d WHERE d.id=? AND d.deleted_at IS NULL FOR UPDATE`
-        : `SELECT CAST(t.id AS CHAR) id,CAST(t.created_by AS CHAR) createdBy,CAST(t.current_version_id AS CHAR) currentId,
+        : `SELECT CAST(t.id AS CHAR) id,CAST(t.created_by AS CHAR) createdBy,CAST(t.current_version_id AS CHAR) currentId,NULL statusHukum,NULL currentStatus,
           CAST(COALESCE(t.current_version_id,(SELECT MAX(v.id) FROM template_surat_versi v WHERE v.template_surat_id=t.id)) AS CHAR) versionId,t.nama judul
          FROM template_surat t WHERE t.id=? AND t.deleted_at IS NULL FOR UPDATE`;
     return (await this.repo.rows<ResourcePenghapusan>(db, sql, [id]))[0];

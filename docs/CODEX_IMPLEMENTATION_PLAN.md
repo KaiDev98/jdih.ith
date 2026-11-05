@@ -1,5 +1,15 @@
 # CODEX IMPLEMENTATION PLAN — JDIH ITH V2
 
+Revisi pencabutan 2026-11-06: ganti permintaan dokumen baru WITHDRAW dengan
+REVOKE; Superadmin juga dapat mencabut langsung tanpa pengganti. Pertahankan
+TERBIT/pointer/file/akses, ubah status hukum DICABUT dan simpan riwayat hukum
+dengan sumber NULL, alasan, aktor dan tanggal secara atomik bersama audit.
+Uji pemilik/Admin/Superadmin/CSRF, versi stale, draft/already-revoked, keputusan
+kosong/penolakan, rollback audit, klik/putusan bersamaan, preview/download dan
+pencarian publik/internal, notifikasi tunggal, badge dan UI desktop/mobile.
+Patch-027 harus aman diulang dan tidak mengonversi dokumen/keputusan lama.
+Uji penyelesaian WITHDRAW lama dan Format Persuratan yang tetap memakai penarikan.
+
 Revisi batas dasbor 2026-11-06: maksimal 15 dokumen/versi Terakhir Diperbarui,
 urutan terbaru dari API; verifikasi item baru menggantikan item ke-15 tanpa
 penghapusan data. Uji polling/fokus/workflow, respons terlambat, kegagalan,

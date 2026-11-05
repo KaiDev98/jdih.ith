@@ -96,7 +96,7 @@ const LABEL_HUBUNGAN: Record<Detail['statusPeraturan'][number]['jenis'], string>
 /**
  * Panel "Status Peraturan", seperti JDIH BPK: status dokumen ini, lalu dokumen
  * yang mencabut/mengubahnya dan dokumen yang dicabut/diubah olehnya. Status
- * berubah hanya saat dokumen pengubah/pencabut terbit. API hanya mengirim
+ * berubah saat dokumen pengubah/pencabut terbit atau keputusan pencabutan Superadmin. API hanya mengirim
  * dokumen yang boleh dibaca peminta.
  */
 function PanelStatus({
@@ -182,7 +182,9 @@ function PanelStatus({
           <p className="mt-1">
             {berlaku
               ? 'Belum ada perubahan atau pencabutan atas dokumen ini.'
-              : 'Status ini ditetapkan oleh Bagian Hukum.'}
+              : status === 'DICABUT'
+                ? 'Dokumen ini telah dicabut dan tetap tersedia sebagai dokumentasi.'
+                : 'Status ini ditetapkan oleh Bagian Hukum.'}
           </p>
         )}
         {!berlaku && keterangan?.alasan && (

@@ -18,7 +18,7 @@ import {
 import { ambilApi, ambilApiBerdaftar } from '@/lib/api-client';
 import { useSession } from '@/lib/sesi';
 import { tautanDetailDokumen } from '@/lib/panel';
-import { kodeTahapTampil, LABEL_TAHAP } from '@/lib/label-dokumen';
+import { kodeTahapTampil, LABEL_TAHAP, LABEL_STATUS_HUKUM, WARNA_STATUS_HUKUM } from '@/lib/label-dokumen';
 import { namaSapaan, salamWaktu, tanggalPanjang, waktuRelatif } from '@/lib/waktu';
 import { Badge, Card, DaftarKerangka, Kerangka, kelasTautanUtama } from '@/components/ui';
 
@@ -30,6 +30,7 @@ type Dokumen = {
   nomor: string | null;
   nomorVersi?: number;
   statusWorkflow: string;
+  statusHukum?: string;
   diganti?: boolean | number;
   diperbarui?: string;
 };
@@ -467,7 +468,14 @@ export default function DasborAdmin() {
                             {d.nomorVersi ? ` · Versi ${String(d.nomorVersi)}` : ''}
                           </span>
                         </span>
-                        {tahap && <Badge color={tahap.warna}>{tahap.teks}</Badge>}
+                        <span className="flex shrink-0 flex-col items-end gap-1 sm:flex-row">
+                          {tahap && <Badge color={tahap.warna}>{tahap.teks}</Badge>}
+                          {d.statusHukum && d.statusHukum !== 'BERLAKU' && (
+                            <Badge color={WARNA_STATUS_HUKUM[d.statusHukum] ?? 'slate'}>
+                              {LABEL_STATUS_HUKUM[d.statusHukum] ?? d.statusHukum}
+                            </Badge>
+                          )}
+                        </span>
                         <span className="hidden w-24 shrink-0 text-right text-xs text-slate-500 tabular-nums md:block">
                           {waktuRelatif(d.diperbarui)}
                         </span>

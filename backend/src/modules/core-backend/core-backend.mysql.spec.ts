@@ -311,7 +311,7 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     const { requests } = removalServices();
     const d = await publishedDoc();
     await expect(requests.create({ ...second, peran: ['ADMIN'] }, 'DOCUMENT', d.id, { jenis: 'DELETE', alasan: 'Bukan milik saya' })).rejects.toMatchObject({ status: 404 });
-    const inputs = { jenis: 'WITHDRAW', alasan: 'Perlu koreksi resmi' };
+    const inputs = { jenis: 'REVOKE', alasan: 'Perlu pencabutan resmi' };
     for (const invalid of [{ ...adminOwner(), status: 'NONAKTIF' as const }, { ...adminOwner(), izin: ['documents.read_admin'] as const }, { ...actor, peran: ['DOSEN_STAF'] as const }])
       await expect(requests.create(invalid as PenggunaAktif, 'DOCUMENT', d.id, inputs)).rejects.toBeInstanceOf(ForbiddenException);
     const raced = await Promise.allSettled([requests.create(adminOwner(), 'DOCUMENT', d.id, inputs), requests.create(adminOwner(), 'DOCUMENT', d.id, inputs)]);
@@ -328,8 +328,9 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     ]);
     expect(decisions.map((item) => item.status).sort()).toEqual(['fulfilled', 'rejected']);
     const detail = await service.document(actor, d.id);
-    expect(detail.document.currentPublishedVersionId).toBeNull();
-    expect(detail.document.statusWorkflow).toBe('DITARIK');
+    expect(detail.document.currentPublishedVersionId).toBe(d.versionId);
+    expect(detail.document.statusWorkflow).toBe('TERBIT');
+    expect(detail.document.statusHukum).toBe('DICABUT');
     const saved = (await requests.list(adminOwner(), { sumber: 'DOCUMENT', resourceId: d.id, status: 'ALL' })).data[0]!;
     expect(saved.status).toBe('APPROVED');
     expect(['Tarik untuk koreksi', 'Klik ulang']).toContain(saved.catatan);
@@ -353,32 +354,97 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     expect((await requests.list(adminOwner(), { sumber: 'DOCUMENT', resourceId: d.id, status: 'ALL' })).data[0]).toMatchObject({ status: 'APPROVED', resourceId: d.id });
   });
 
-  it('allows empty decision notes, keeps withdrawn documents/files in owner and Superadmin panels and denies public access', async () => {
+  it('allows empty decision notes and preserves revoked documents/files in panels and public access without a replacement', async () => {
     const { requests } = removalServices();
     const d = await publishedDoc();
-    const request = await requests.create(adminOwner(), 'DOCUMENT', d.id, { jenis: 'WITHDRAW', alasan: 'Alasan Admin tanpa catatan keputusan' });
+    const request = await requests.create(adminOwner(), 'DOCUMENT', d.id, { jenis: 'REVOKE', alasan: 'Alasan Admin tanpa catatan keputusan' });
     await requests.decide(second, request.id, { keputusan: 'APPROVE' });
     const q = await documentSlug(d.id);
     for (const reader of [adminOwner(), second]) {
-      for (const filter of [{}, { statusWorkflow: 'DITARIK' }]) {
+      for (const filter of [{}, { statusWorkflow: 'TERBIT' }]) {
         const list = await service.adminDocuments(reader, { q, ...filter });
         expect(list.meta.totalButir).toBe(1);
-        expect(list.data[0]).toMatchObject({ id: d.id, statusWorkflow: 'DITARIK' });
+        expect(list.data[0]).toMatchObject({ id: d.id, statusWorkflow: 'TERBIT', statusHukum: 'DICABUT' });
       }
       expect((await files.listForVersion(reader, d.versionId)).length).toBe(1);
     }
     expect((await service.adminDocuments({ ...second, peran: ['ADMIN'] }, { q })).data).toHaveLength(0);
-    await expect(service.publicDetail(q)).rejects.toMatchObject({ status: 404 });
-    const [versions] = await pool.query<RowDataPacket[]>('SELECT withdrawal_reason FROM dokumen_versi WHERE id=?', [d.versionId]);
-    expect(versions[0]!.withdrawal_reason).toBe('Alasan Admin tanpa catatan keputusan');
+    const publicDetail = await service.publicDetail(q);
+    expect(publicDetail).toMatchObject({ statusHukum: 'DICABUT', keteranganStatus: { alasan: 'Alasan Admin tanpa catatan keputusan', sumber: null } });
+    expect(publicDetail.keteranganStatus?.tanggal).toBe(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Makassar' }).format(new Date()));
+    expect(publicDetail.berkasUtama.id).toBeTruthy();
+    const opened = await files.openCurrent(q, publicDetail.berkasUtama.id);
+    opened.stream.destroy();
     expect((await requests.list(adminOwner(), { requestId: request.id, status: 'ALL' })).data[0]).toMatchObject({ status: 'APPROVED', catatan: null });
     const refusal = await requests.create(adminOwner(), 'DOCUMENT', d.id, { jenis: 'DELETE', alasan: 'Coba hapus' });
     await requests.decide(second, refusal.id, { keputusan: 'DECLINE', catatan: '   ' });
     expect((await requests.list(adminOwner(), { requestId: refusal.id, status: 'ALL' })).data[0]).toMatchObject({ status: 'DECLINED', catatan: null });
-    expect((await service.document(adminOwner(), d.id)).document.statusWorkflow).toBe('DITARIK');
-    const deletion = await requests.create(adminOwner(), 'DOCUMENT', d.id, { jenis: 'DELETE', alasan: 'Hapus setelah ditarik' });
+    expect((await service.document(adminOwner(), d.id)).document.statusHukum).toBe('DICABUT');
+    const deletion = await requests.create(adminOwner(), 'DOCUMENT', d.id, { jenis: 'DELETE', alasan: 'Hapus setelah dicabut' });
     await requests.decide(second, deletion.id, { keputusan: 'APPROVE', catatan: '' });
     await expect(service.document(adminOwner(), d.id)).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('direct revocation is Superadmin-only, version-bound, non-repeatable and preserves publication/history', async () => {
+    const { requests } = removalServices();
+    const d = await publishedDoc();
+    const input = { versionId: d.versionId, alasan: 'Dicabut tanpa dokumen pengganti' };
+    await expect(service.revoke(adminOwner(), d.id, input)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.revoke({ ...second, status: 'NONAKTIF' }, d.id, input)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.revoke(second, d.id, { ...input, alasan: '' })).rejects.toThrow();
+    await expect(service.revoke(second, d.id, { ...input, versionId: '999999999' })).rejects.toMatchObject({ status: 409 });
+    const draft = await doc();
+    await expect(service.revoke(second, draft.id, { ...input, versionId: draft.versionId })).rejects.toMatchObject({ status: 409 });
+    const request = await requests.create(adminOwner(), 'DOCUMENT', d.id, { jenis: 'REVOKE', alasan: 'Permintaan pemilik' });
+    const raced = await Promise.allSettled([service.revoke(second, d.id, input), service.revoke(second, d.id, input)]);
+    expect(raced.map((r) => r.status).sort()).toEqual(['fulfilled', 'rejected']);
+    const result = await service.publicDetail(await documentSlug(d.id));
+    expect(result).toMatchObject({ statusHukum: 'DICABUT', keteranganStatus: { alasan: input.alasan, sumber: null } });
+    expect((await search.search({ q: result.judul, statusHukum: 'DICABUT' })).data.some((r) => r.id === d.id)).toBe(true);
+    const [history] = await pool.query<RowDataPacket[]>('SELECT status_asal,status_tujuan,source_version_id FROM dokumen_status_hukum_riwayat WHERE dokumen_id=?', [d.id]);
+    expect(history).toHaveLength(1);
+    expect(history[0]).toMatchObject({ status_asal: 'BERLAKU', status_tujuan: 'DICABUT', source_version_id: null });
+    expect((await requests.list(adminOwner(), { requestId: request.id, status: 'ALL' })).data[0]!.status).toBe('OBSOLETE');
+    await expect(requests.create(adminOwner(), 'DOCUMENT', d.id, { jenis: 'REVOKE', alasan: 'Cabut dua kali' })).rejects.toMatchObject({ status: 409 });
+    await expect(requests.create(adminOwner(), 'DOCUMENT', d.id, { jenis: 'WITHDRAW', alasan: 'Klien lama' })).rejects.toMatchObject({ status: 409 });
+  });
+
+  it('rolls back revocation and request decision if audit fails; refusal preserves legal status and internal access stays private', async () => {
+    const { requests } = removalServices();
+    const d = await doc('internal');
+    await addFileMetadata(d.versionId, 'UTAMA'); await approve(d.versionId); await publish(d.versionId);
+    const request = await requests.create(adminOwner(), 'DOCUMENT', d.id, { jenis: 'REVOKE', alasan: 'Pencabutan internal' });
+    const record = audit.recordDomain.bind(audit);
+    const fail = vi.spyOn(audit, 'recordDomain').mockImplementation((event, db) => {
+      if (event.action === 'REMOVAL_APPROVED') throw new Error('revocation audit failure');
+      return record(event, db);
+    });
+    await expect(requests.decide(second, request.id, { keputusan: 'APPROVE' })).rejects.toThrow('revocation audit failure');
+    fail.mockRestore();
+    expect((await service.document(adminOwner(), d.id)).document).toMatchObject({ statusHukum: 'BERLAKU', currentPublishedVersionId: d.versionId });
+    const [history] = await pool.query<RowDataPacket[]>('SELECT id FROM dokumen_status_hukum_riwayat WHERE dokumen_id=?', [d.id]);
+    expect(history).toHaveLength(0);
+    expect((await requests.list(adminOwner(), { requestId: request.id })).data[0]!.status).toBe('PENDING');
+    await requests.decide(second, request.id, { keputusan: 'DECLINE' });
+    expect((await service.document(adminOwner(), d.id)).document.statusHukum).toBe('BERLAKU');
+    const next = await requests.create(adminOwner(), 'DOCUMENT', d.id, { jenis: 'REVOKE', alasan: 'Pencabutan internal kedua' });
+    await requests.decide(second, next.id, { keputusan: 'APPROVE', catatan: 'Alasan keputusan Superadmin' });
+    const slug = await documentSlug(d.id);
+    const staff = await addStaff();
+    expect(await service.publicDetail(slug, staff)).toMatchObject({ statusHukum: 'DICABUT', keteranganStatus: { alasan: 'Alasan keputusan Superadmin' } });
+    await expect(service.publicDetail(slug)).rejects.toThrow();
+    const file = (await files.listForVersion(actor, d.versionId))[0]!;
+    await expect(files.openCurrent(slug, String(file.id))).rejects.toThrow();
+  });
+
+  it('keeps legacy withdrawal decisions separate instead of republishing or reinterpreting their history', async () => {
+    const { requests } = removalServices();
+    const d = await publishedDoc();
+    const [insert] = await pool.execute("INSERT INTO permintaan_penghapusan(sumber,resource_id,version_id,judul,jenis,alasan,requested_by) VALUES('DOCUMENT',?,?,?,'WITHDRAW','Permintaan penarikan lama',?)", [d.id, d.versionId, 'Dokumen lama', actor.id]);
+    const id = String((insert as any).insertId);
+    await requests.decide(second, id, { keputusan: 'APPROVE' });
+    expect((await service.document(adminOwner(), d.id)).document).toMatchObject({ statusWorkflow: 'DITARIK', statusHukum: 'BERLAKU', currentPublishedVersionId: null });
+    await expect(service.publicDetail(await documentSlug(d.id))).rejects.toThrow();
   });
 
   it('hides completed decisions after 24 hours before pagination/count, keeps old pending requests and preserves stored history', async () => {
@@ -410,7 +476,7 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
   it('rejects stale publication requests without withdrawing a newer version, and allows a reasoned refusal', async () => {
     const { requests } = removalServices();
     const d = await publishedDoc();
-    const request = await requests.create(adminOwner(), 'DOCUMENT', d.id, { jenis: 'WITHDRAW', alasan: 'Tarik versi lama' });
+    const request = await requests.create(adminOwner(), 'DOCUMENT', d.id, { jenis: 'REVOKE', alasan: 'Cabut versi lama' });
     const newer = await service.newVersion(actor, d.id, ready('Versi baru setelah permintaan'));
     await addFileMetadata(newer.id, 'UTAMA'); await approve(newer.id); await publish(newer.id);
     await expect(requests.decide(second, request.id, { keputusan: 'APPROVE', catatan: 'Versi berubah' })).rejects.toMatchObject({ status: 409 });

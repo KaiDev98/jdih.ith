@@ -217,6 +217,18 @@ describe('AppModule HTTP security wiring (no database/network provider)', () => 
       expect(templates.remove).toHaveBeenLastCalledWith(actor, '5', undefined);
     }
   });
+  it('legal revocation is default-closed and checks CSRF and Superadmin even with direct Admin permission', async () => {
+    const path = base + '/api/v1/admin/documents/5/revoke';
+    const body = JSON.stringify({ versionId: '50', alasan: 'Pencabutan tanpa pengganti' });
+    const headers = { cookie: 'jdih_session=' + token, origin: 'http://localhost:3000', 'content-type': 'application/json' };
+    auth();
+    expect((await fetch(path, { method: 'POST', body })).status).toBe(403);
+    identity.authenticate.mockResolvedValue({ user: { ...user, peran: ['SUPERADMIN'], izin: ['workflow.withdraw'] } });
+    expect((await fetch(path, { method: 'POST', headers, body })).status).toBe(403);
+    expect((await fetch(path, { method: 'POST', headers: { ...headers, origin: 'https://evil.test', 'x-csrf-token': csrfToken(token, key) }, body })).status).toBe(403);
+    identity.authenticate.mockResolvedValue({ user: { ...user, peran: ['ADMIN'], izin: ['workflow.withdraw'] } });
+    expect((await fetch(path, { method: 'POST', headers: { ...headers, 'x-csrf-token': csrfToken(token, key) }, body })).status).toBe(403);
+  });
   it('draft cancellation and removal requests are default-closed, permission-checked and CSRF-protected', async () => {
     const actor = { ...user, peran: ['ADMIN'], izin: ['documents.read_admin', 'documents.edit'] };
     const headers = { cookie: 'jdih_session=' + token, origin: 'http://localhost:3000', 'content-type': 'application/json' };

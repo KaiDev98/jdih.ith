@@ -1,5 +1,26 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
+Revisi pencabutan TERBARU 2026-11-06: Produk Hukum dan seluruh SOP memakai
+Minta Pencabutan (REVOKE) menggantikan permintaan penarikan baru. Admin pemilik
+meminta; Superadmin aktif berizin workflow.withdraw memutuskan atau memakai
+Cabut Dokumen langsung. Hanya dokumen terbit/current yang belum DICABUT boleh
+dicabut. Persetujuan mengubah dokumen.status_hukum menjadi DICABUT, mempertahankan
+workflow TERBIT, pointer current, berkas dan seluruh akses Publik/Internal/Rahasia.
+Tanpa dokumen pengganti: source_version_id riwayat hukum NULL, alasan/tanggal/aktor
+dan audit wajib. Tanggal keterangan ditampilkan dalam WITA. Catatan keputusan tetap opsional; jika kosong alasan Admin
+menjadi keterangan pencabutan yang tampil sesuai akses detail. Langsung wajib
+versionId saat konfirmasi untuk menolak versi stale. Putusan, riwayat hukum,
+audit dan status atomik; tidak dapat mencabut dua kali atau memulihkan status
+melalui perubahan biasa. Pencabutan manual tidak mengubah status dokumen lain.
+Minta Pencabutan tidak tersedia lagi setelah Dicabut; permintaan Hapus tetap
+tersedia. Dokumen pengubah/pencabut yang diterbitkan tetap memakai alur relasi.
+Antrean/notifikasi mencakup REVOKE tanpa duplikasi pesan; keputusan tampil 24 jam.
+Jalankan patch-027 setelah patch-026 sebelum API terbaru. ENUM ditambah REVOKE;
+tidak mengonversi/menayangkan ulang dokumen atau permintaan WITHDRAW lama.
+Penarikan lama tetap bermakna menghentikan publikasi dan bisa diselesaikan
+sesuai maksud awalnya. Format Persuratan tetap WITHDRAW, tanpa status hukum
+baru; pencabutan hukum ini hanya untuk Produk Hukum/SOP.
+
 Revisi dasbor TERBARU 2026-11-06: Terakhir Diperbarui memuat maksimal 15
 baris dokumen/versi terbaru sesuai akses akun, urutan updated_at DESC/id DESC
 dari API sebelum LIMIT 15. Baris baru menggeser baris terlama keluar dari panel,
