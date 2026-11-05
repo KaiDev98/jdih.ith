@@ -122,13 +122,13 @@ describe('permintaan penarikan dan penghapusan', () => {
       ),
     );
   });
-  it('Superadmin memerlukan catatan sebelum keputusan, lalu menampilkan hasil tindakan', async () => {
+  it('Superadmin dapat menyimpan catatan opsional, lalu menampilkan hasil tindakan', async () => {
     state.role = 'SUPERADMIN';
     render(<AntreanPermintaanPenghapusan />);
     fireEvent.click(await screen.findByRole('button', { name: 'Setujui & hapus' }));
     expect(state.api).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: 'Ya, lanjutkan' })).toBeDisabled();
-    fireEvent.change(screen.getByLabelText('Catatan keputusan'), {
+    expect(screen.getByRole('button', { name: 'Ya, lanjutkan' })).toBeEnabled();
+    fireEvent.change(screen.getByLabelText('Catatan keputusan (opsional)'), {
       target: { value: 'Sesuai alasan pemohon' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
@@ -138,5 +138,23 @@ describe('permintaan penarikan dan penghapusan', () => {
       headers: { 'x-csrf-token': 'csrf' },
       muatan: { keputusan: 'APPROVE', catatan: 'Sesuai alasan pemohon' },
     });
+  });
+  it.each(['Setujui & hapus', 'Tidak setujui'])('memproses %s tanpa catatan, tetap dengan konfirmasi dan CSRF', async (label) => {
+    state.role = 'SUPERADMIN';
+    render(<AntreanPermintaanPenghapusan />);
+    fireEvent.click(await screen.findByRole('button', { name: label }));
+    expect(state.api).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
+    await waitFor(() => expect(state.api).toHaveBeenCalledExactlyOnceWith('/admin/removal-requests/9/decision', {
+      method: 'POST', headers: { 'x-csrf-token': 'csrf' },
+      muatan: { keputusan: label === 'Tidak setujui' ? 'DECLINE' : 'APPROVE', catatan: '' },
+    }));
+  });
+  it('hasil penarikan menyediakan tautan ke dokumen tersimpan dan menjelaskan masa tampil keputusan', async () => {
+    state.list.mockResolvedValue({ data: [{ ...request, jenis: 'WITHDRAW', status: 'APPROVED' }], meta: { totalButir: 1 } });
+    render(<AntreanPermintaanPenghapusan showHistory />);
+    expect(await screen.findByRole('link', { name: 'Lihat dokumen ditarik' })).toHaveAttribute('href', '/admin/dokumen/5?versionId=50');
+    expect(screen.getByText(/Keputusan tampil selama 24 jam/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Setujui & tarik' })).not.toBeInTheDocument();
   });
 });

@@ -293,6 +293,20 @@ describe.skipIf(!process.env.NOTIFICATIONS_MYSQL_ENV)('notifikasi MySQL dengan r
     const [rows] = await db.query<RowDataPacket[]>('SELECT id FROM dokumen WHERE id=?', [d.id]);
     expect(rows).toHaveLength(0);
   });
+  it('notifies pending withdrawal work and a decision without a note without duplicate action messages', async () => {
+    const repo = newRepository();
+    const documents = new DokumenAdminService(repo, audit, { delete: vi.fn() } as never);
+    const requests = new RemovalRequestsService(repo, new RemovalRequestsRepository(repo), audit, documents, service, {} as never);
+    const d = await published(owner);
+    const request = await requests.create(owner, 'DOCUMENT', d.id, { jenis: 'WITHDRAW', alasan: 'Koreksi dari Admin' });
+    expect((await service.notifications(superadmin)).find((r) => r.requestId === request.id)?.action).toBe('REMOVAL_REQUEST');
+    await requests.decide(superadmin, request.id, { keputusan: 'APPROVE' });
+    const result = await service.notifications(owner);
+    expect(result.filter((r) => r.requestId === request.id)).toHaveLength(1);
+    expect(result.find((r) => r.requestId === request.id)).toMatchObject({ action: 'REMOVAL_APPROVE', catatan: null });
+    expect(result.some((r) => r.resourceId === d.id && r.action === 'WITHDRAW')).toBe(false);
+    expect((await service.notifications(superadmin)).some((r) => r.requestId === request.id)).toBe(false);
+  });
   it('direct Superadmin withdrawal, document deletion and draft cancellation notify only the owner', async () => {
     const d = await published(owner);
     const publication = await auditEvent('PUBLISH', d.vid, 'workflow', 'dokumen_versi');

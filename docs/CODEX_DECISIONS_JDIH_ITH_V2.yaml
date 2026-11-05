@@ -460,10 +460,12 @@ removal_requests:
   requesters: "active owner ADMIN; documents.edit or templates.manage"
   resources: [DOCUMENT, TEMPLATE]
   actions: [WITHDRAW, DELETE]
-  decisions: "active SUPERADMIN with action permission; reasoned APPROVE or DECLINE; action and audit atomic"
+  decisions: "active SUPERADMIN with action permission; APPROVE/DECLINE notes optional; action and audit atomic; withdrawal without a note uses Admin request reason; patch-026 before API"
   storage: "patch-024-permintaan-penghapusan; one pending per resource; durable snapshot without resource FK preserves deletion history"
   stale_requests: "current version must match snapshot; otherwise 409 and reasoned refusal/re-request"
-  queue: "Antrean Verifikasi; Superadmin all, Admin own only; pending/history pagination and 30-second polling"
+  queue: "Antrean Verifikasi; Superadmin all, Admin own only; pending never expires; completed rows visible less than 24 hours since decided_at, server UTC filter before count/pagination including requestId; stored history/audit retained"
+  navigation_badge: "sum of legal/SOP submitted/approved, template pending/approved and pending withdrawal/deletion requests; workflow/focus/visibility/navigation/30s refresh; no partial total on error"
+  withdrawn_visibility: "owner/Superadmin panel retains withdrawn documents/files, direct link in approved withdrawal result, list/detail refresh; public access remains closed"
   direct_superadmin_action: "mark matching pending requests OBSOLETE in transaction"
   previously_published_templates: "deletion still requires Superadmin after withdrawal"
 

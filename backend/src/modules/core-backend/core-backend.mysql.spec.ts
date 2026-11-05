@@ -353,6 +353,60 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     expect((await requests.list(adminOwner(), { sumber: 'DOCUMENT', resourceId: d.id, status: 'ALL' })).data[0]).toMatchObject({ status: 'APPROVED', resourceId: d.id });
   });
 
+  it('allows empty decision notes, keeps withdrawn documents/files in owner and Superadmin panels and denies public access', async () => {
+    const { requests } = removalServices();
+    const d = await publishedDoc();
+    const request = await requests.create(adminOwner(), 'DOCUMENT', d.id, { jenis: 'WITHDRAW', alasan: 'Alasan Admin tanpa catatan keputusan' });
+    await requests.decide(second, request.id, { keputusan: 'APPROVE' });
+    const q = await documentSlug(d.id);
+    for (const reader of [adminOwner(), second]) {
+      for (const filter of [{}, { statusWorkflow: 'DITARIK' }]) {
+        const list = await service.adminDocuments(reader, { q, ...filter });
+        expect(list.meta.totalButir).toBe(1);
+        expect(list.data[0]).toMatchObject({ id: d.id, statusWorkflow: 'DITARIK' });
+      }
+      expect((await files.listForVersion(reader, d.versionId)).length).toBe(1);
+    }
+    expect((await service.adminDocuments({ ...second, peran: ['ADMIN'] }, { q })).data).toHaveLength(0);
+    await expect(service.publicDetail(q)).rejects.toMatchObject({ status: 404 });
+    const [versions] = await pool.query<RowDataPacket[]>('SELECT withdrawal_reason FROM dokumen_versi WHERE id=?', [d.versionId]);
+    expect(versions[0]!.withdrawal_reason).toBe('Alasan Admin tanpa catatan keputusan');
+    expect((await requests.list(adminOwner(), { requestId: request.id, status: 'ALL' })).data[0]).toMatchObject({ status: 'APPROVED', catatan: null });
+    const refusal = await requests.create(adminOwner(), 'DOCUMENT', d.id, { jenis: 'DELETE', alasan: 'Coba hapus' });
+    await requests.decide(second, refusal.id, { keputusan: 'DECLINE', catatan: '   ' });
+    expect((await requests.list(adminOwner(), { requestId: refusal.id, status: 'ALL' })).data[0]).toMatchObject({ status: 'DECLINED', catatan: null });
+    expect((await service.document(adminOwner(), d.id)).document.statusWorkflow).toBe('DITARIK');
+    const deletion = await requests.create(adminOwner(), 'DOCUMENT', d.id, { jenis: 'DELETE', alasan: 'Hapus setelah ditarik' });
+    await requests.decide(second, deletion.id, { keputusan: 'APPROVE', catatan: '' });
+    await expect(service.document(adminOwner(), d.id)).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('hides completed decisions after 24 hours before pagination/count, keeps old pending requests and preserves stored history', async () => {
+    const { requests } = removalServices();
+    const d = await publishedDoc();
+    const expired = await requests.create(adminOwner(), 'DOCUMENT', d.id, { jenis: 'DELETE', alasan: 'Keputusan lama' });
+    await requests.decide(second, expired.id, { keputusan: 'DECLINE' });
+    await pool.execute('UPDATE permintaan_penghapusan SET decided_at=UTC_TIMESTAMP(6)-INTERVAL 24 HOUR WHERE id=?', [expired.id]);
+    const recent = await requests.create(adminOwner(), 'DOCUMENT', d.id, { jenis: 'DELETE', alasan: 'Keputusan masih tampil' });
+    await requests.decide(second, recent.id, { keputusan: 'DECLINE' });
+    await pool.execute('UPDATE permintaan_penghapusan SET decided_at=UTC_TIMESTAMP(6)-INTERVAL 23 HOUR-INTERVAL 59 MINUTE WHERE id=?', [recent.id]);
+    const pending = await requests.create(adminOwner(), 'DOCUMENT', d.id, { jenis: 'DELETE', alasan: 'Menunggu tetap terlihat' });
+    await pool.execute('UPDATE permintaan_penghapusan SET created_at=UTC_TIMESTAMP(6)-INTERVAL 7 DAY WHERE id=?', [pending.id]);
+    for (const reader of [adminOwner(), second]) {
+      const page = await requests.list(reader, { sumber: 'DOCUMENT', resourceId: d.id, status: 'ALL', perHalaman: 1 });
+      expect(page.meta).toMatchObject({ totalButir: 2, totalHalaman: 2, adaBerikutnya: true });
+      expect(page.data[0]!.id).toBe(pending.id);
+      expect((await requests.list(reader, { sumber: 'DOCUMENT', resourceId: d.id, status: 'ALL', halaman: 2, perHalaman: 1 })).data[0]!.id).toBe(recent.id);
+      expect((await requests.list(reader, { requestId: expired.id, status: 'ALL' })).meta.totalButir).toBe(0);
+      expect((await requests.list(reader, { requestId: expired.id, status: 'DECLINED' })).data).toHaveLength(0);
+    }
+    expect((await requests.list({ ...second, peran: ['ADMIN'] }, { resourceId: d.id, status: 'ALL' })).data).toHaveLength(0);
+    const [stored] = await pool.query<RowDataPacket[]>('SELECT id FROM permintaan_penghapusan WHERE id=?', [expired.id]);
+    expect(stored).toHaveLength(1);
+    const [events] = await pool.query<RowDataPacket[]>("SELECT id FROM audit_log WHERE entity_type='permintaan_penghapusan' AND entity_id=? AND action='REMOVAL_DECLINED'", [expired.id]);
+    expect(events).toHaveLength(1);
+  });
+
   it('rejects stale publication requests without withdrawing a newer version, and allows a reasoned refusal', async () => {
     const { requests } = removalServices();
     const d = await publishedDoc();

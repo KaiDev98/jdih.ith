@@ -197,6 +197,20 @@ function DetailDokumen({
   const [note, setNote] = useState('');
 
   useEffect(() => {
+    const muat = () => {
+      if (window.document.visibilityState === 'visible') setRefresh((n) => n + 1);
+    };
+    const timer = window.setInterval(muat, 30_000);
+    window.addEventListener('focus', muat);
+    window.addEventListener('jdih:workflow', muat);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', muat);
+      window.removeEventListener('jdih:workflow', muat);
+    };
+  }, []);
+
+  useEffect(() => {
     let aktif = true;
     void ambilApi<Detail>(`/admin/documents/${id}`, { kueri: { versionId: requestedVersionId } })
       .then(async (d) => {
@@ -445,7 +459,7 @@ function DetailDokumen({
               'Dokumen sudah tampil di portal. Untuk mengubah isinya, buat revisi; versi sekarang tetap tampil sampai revisi diterbitkan.'}
             {diganti &&
               'Versi ini sudah digantikan versi terbit yang lebih baru dan tidak lagi tampil di portal. Riwayatnya tetap disimpan.'}
-            {tahap === 'DITARIK' && 'Dokumen sudah tidak tampil di portal.'}
+            {tahap === 'DITARIK' && 'Dokumen ditarik dari portal. Data, berkas, dan riwayatnya tetap tersimpan di panel.'}
           </p>
 
           <div className="alur-aksi mt-3 flex flex-wrap items-start gap-2">

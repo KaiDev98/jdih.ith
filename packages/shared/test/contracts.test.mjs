@@ -8,9 +8,21 @@ test('removal requests cannot set owners or decisions and require bounded reason
   ok(c.skemaPermintaanPenghapusan, { jenis: 'WITHDRAW', alasan: 'Koreksi dokumen' });
   for (const value of [{ jenis: 'DELETE', alasan: ' ' }, { jenis: 'DELETE', alasan: 'a'.repeat(1001) }, { jenis: 'DELETE', alasan: 'Koreksi', requestedBy: '7' }, { jenis: 'DELETE', alasan: 'Koreksi', status: 'APPROVED' }]) bad(c.skemaPermintaanPenghapusan, value);
   ok(c.skemaKeputusanPenghapusan, { keputusan: 'DECLINE', catatan: 'Dokumen tetap diperlukan' });
-  bad(c.skemaKeputusanPenghapusan, { keputusan: 'APPROVE', catatan: '' });
+  ok(c.skemaKeputusanPenghapusan, { keputusan: 'APPROVE', catatan: '' });
   bad(c.skemaKeputusanPenghapusan, { keputusan: 'APPROVE', catatan: 'OK', jenis: 'DELETE' });
   bad(c.skemaDaftarPermintaanPenghapusan, { requestedBy: '1' });
+});
+
+test('removal decisions allow absent notes without weakening bounds or Admin reasons', () => {
+  for (const keputusan of ['APPROVE', 'DECLINE']) {
+    for (const value of [{ keputusan }, { keputusan, catatan: '' }, { keputusan, catatan: ' \n\t ' }])
+      assert.deepEqual(c.skemaKeputusanPenghapusan.parse(value), { keputusan, catatan: '' });
+    assert.equal(c.skemaKeputusanPenghapusan.parse({ keputusan, catatan: '  Sesuai  ' }).catatan, 'Sesuai');
+  }
+  bad(c.skemaKeputusanPenghapusan, { keputusan: 'APPROVE', catatan: 'a'.repeat(1001) });
+  bad(c.skemaKeputusanPenghapusan, { keputusan: 'APPROVE', role: 'SUPERADMIN' });
+  bad(c.skemaKeputusanPenghapusan, { keputusan: 'DELETE' });
+  bad(c.skemaPermintaanPenghapusan, { jenis: 'WITHDRAW', alasan: ' ' });
 });
 test('email registration accepts all providers but cannot assign role or approval', () => {
   const value = { nama: 'Dosen Kampus', email: ' Dosen@Gmail.com ', password: 'PasswordKuat123', konfirmasiPassword: 'PasswordKuat123', unitManual: 'Unit lain' };

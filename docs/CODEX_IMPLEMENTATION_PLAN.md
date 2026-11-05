@@ -1,5 +1,15 @@
 # CODEX IMPLEMENTATION PLAN — JDIH ITH V2
 
+Revisi permintaan 2026-11-06: catatan keputusan opsional di shared/UI/API dan
+CHECK DB (patch-026, aman diulang); penarikan tanpa catatan memakai alasan Admin.
+Uji APPROVE/DECLINE kosong, batas panjang, rollback/CSRF/otorisasi, serta
+penarikan yang mempertahankan dokumen/file di panel dan menutup portal.
+Riwayat keputusan di panel kedaluwarsa setelah 24 jam sejak decided_at melalui
+SQL sebelum pagination/count, bukan penghapusan data. Uji batas UTC, PENDING
+lama, filter/requestId, pemilik, dan audit yang tetap ada. Badge menu menjumlah
+antrean dokumen, format dan permintaan PENDING, dengan pembaruan workflow/fokus/
+polling dan penanganan kegagalan; tidak menghitung keputusan selesai.
+
 Revisi antrean 2026-11-06: DIAJUKAN/DISETUJUI dan PENDING_REVIEW/APPROVED tetap
 di antrean sampai publish; Semua Dokumen hanya versi pernah diterbitkan.
 Uji approval tanpa pindah daftar/pointer, publication memindah, revisi menjaga

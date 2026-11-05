@@ -562,7 +562,7 @@ CREATE TABLE permintaan_penghapusan (
   CONSTRAINT ck_permintaan_reason CHECK (CHAR_LENGTH(TRIM(alasan))>0),
   CONSTRAINT ck_permintaan_decision CHECK (
     (status='PENDING' AND decided_by IS NULL AND decided_at IS NULL AND catatan IS NULL) OR
-    (status<>'PENDING' AND decided_by IS NOT NULL AND decided_at IS NOT NULL AND catatan IS NOT NULL AND CHAR_LENGTH(TRIM(catatan))>0)
+    (status<>'PENDING' AND decided_by IS NOT NULL AND decided_at IS NOT NULL AND (catatan IS NULL OR CHAR_LENGTH(TRIM(catatan))>0))
   )
 ) ENGINE=InnoDB;
 

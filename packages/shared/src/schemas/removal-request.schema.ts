@@ -7,7 +7,7 @@ export const skemaPermintaanPenghapusan = z.strictObject({
 });
 export const skemaKeputusanPenghapusan = z.strictObject({
   keputusan: z.enum(['APPROVE', 'DECLINE']),
-  catatan: teksWajib(1000, 'Catatan keputusan'),
+  catatan: z.string().trim().max(1000).default(''),
 });
 export const skemaDaftarPermintaanPenghapusan = z.strictObject({
   sumber: z.enum(['DOCUMENT', 'TEMPLATE']).optional(),

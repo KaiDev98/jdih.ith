@@ -1,5 +1,21 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
+Revisi permintaan TERBARU 2026-11-06: Catatan keputusan Superadmin opsional
+untuk APPROVE maupun DECLINE; alasan permintaan Admin tetap wajib. Saat
+penarikan tanpa catatan, alasan penarikan memakai alasan Admin, sehingga
+invariant workflow/riwayat tetap valid. Jalankan patch-026 sebelum API terbaru.
+Daftar/count permintaan hanya memuat PENDING dan keputusan dengan decided_at
+kurang dari 24 jam lalu (UTC, server). PENDING tidak kedaluwarsa; riwayat DB
+dan audit tidak dihapus. Batas juga berlaku pada tautan requestId langsung.
+Badge Antrean Verifikasi menjumlahkan dokumen DIAJUKAN/DISETUJUI, format
+PENDING_REVIEW/APPROVED dan permintaan WITHDRAW/DELETE berstatus PENDING,
+mengikuti cakupan akses server. Perbarui setelah workflow, fokus, navigasi,
+tab terlihat dan setiap 30 detik; kegagalan sumber tidak menghasilkan total palsu.
+Dokumen ditarik tetap tampil pada Semua Dokumen dan filter Ditarik milik
+pemilik/Superadmin, detail dan berkas panel tetap tersedia; publik tetap tertutup.
+Hasil WITHDRAW menyediakan tautan ke dokumen di panel. Daftar/detail memperbarui
+status saat fokus, workflow dan polling tanpa memberi hak ubah lintas pemilik.
+
 Revisi antrean TERBARU 2026-11-06: Antrean Verifikasi dokumen berisi DIAJUKAN
 dan DISETUJUI. Persetujuan tetap di antrean; hanya publish yang memindah versi
 ke Semua Dokumen (TERBIT/DITARIK, termasuk riwayat superseded). Versi publik

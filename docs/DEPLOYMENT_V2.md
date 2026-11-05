@@ -8,6 +8,13 @@ credentials.
 
 ## Target architecture
 
+Latest request-decision update (2026-11-06): after patches 021–025, apply
+`database/v2/patch-026-catatan-keputusan-opsional.sql` to existing databases
+before starting this API release. It permits an absent decision note while
+preserving decision identity/timestamp constraints and all stored records.
+Fresh installations use the updated schema. Completed requests leave panel
+lists after 24 hours; pending requests and database/audit history remain.
+
 ```text
 Browser ── HTTPS :443 ── Nginx
                            ├── /          → Next.js :3000 (loopback)
@@ -157,7 +164,7 @@ skips those suites; that alone is not a complete release test. The workflow
 does not deploy or access institutional secrets.
 
 For a new empty database, the current `database/v2/schema.sql` and `seed.sql`
-already incorporate patches 001–020; do not blindly replay patches after that
+already incorporate patches 001–026; do not blindly replay patches after that
 baseline import. For an existing V2 database, inspect its current columns,
 constraints and applied changes, back it up together with its private object
 storage, and apply only missing patches in order through a separate operations

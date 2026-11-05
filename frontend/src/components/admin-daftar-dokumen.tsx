@@ -264,7 +264,6 @@ export function DaftarDokumenAdmin({
   const [meta, setMeta] = useState({ totalHalaman: 0, totalButir: 0 });
 
   useEffect(() => {
-    if (!verificationOnly) return;
     const muat = () => {
       if (document.visibilityState === 'visible') setRefresh((n) => n + 1);
     };
@@ -276,7 +275,7 @@ export function DaftarDokumenAdmin({
       window.removeEventListener('focus', muat);
       window.removeEventListener('jdih:workflow', muat);
     };
-  }, [verificationOnly]);
+  }, []);
 
   // Jeda ketik: pencarian baru dikirim setelah pengguna berhenti mengetik.
   useEffect(() => {

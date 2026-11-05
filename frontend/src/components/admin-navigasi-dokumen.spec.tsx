@@ -32,6 +32,28 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('navigasi detail dan pemisahan daftar dokumen', () => {
+  it('memperbarui Semua Dokumen setelah penarikan dan tetap menampilkan status Ditarik', async () => {
+    state.role = 'ADMIN';
+    state.daftar.mockResolvedValue({ data: [{ ...row, statusWorkflow: 'TERBIT' }], meta: { totalHalaman: 1, totalButir: 1 } });
+    render(<DaftarDokumenAdmin />);
+    await screen.findAllByText('Dokumen antrean');
+    state.daftar.mockResolvedValue({ data: [{ ...row, statusWorkflow: 'DITARIK' }], meta: { totalHalaman: 1, totalButir: 1 } });
+    act(() => window.dispatchEvent(new Event('jdih:workflow')));
+    await screen.findAllByText('Ditarik dari publik');
+    expect(screen.getAllByRole('link', { name: /Dokumen antrean/ })[0]).toHaveAttribute('href', '/admin/dokumen/5?versionId=50');
+    fireEvent.click(screen.getByRole('tab', { name: 'Ditarik' }));
+    await waitFor(() => expect(state.daftar).toHaveBeenLastCalledWith('/admin/documents', expect.objectContaining({ kueri: expect.objectContaining({ statusWorkflow: 'DITARIK', cakupan: 'TERVERIFIKASI' }) })));
+  });
+  it('memperbarui detail saat fokus setelah keputusan Superadmin tanpa menghilangkan data/berkas panel', async () => {
+    state.api.mockImplementation((url: string) => Promise.resolve(url.endsWith('/files') ? [] : { ...detail(), document: { ...detail().document, statusWorkflow: 'TERBIT' } }));
+    render(<AdminDocumentDetail id="5" versionId="50" />);
+    await screen.findByRole('heading', { name: 'Dokumen 5 versi 50' });
+    state.api.mockImplementation((url: string) => Promise.resolve(url.endsWith('/files') ? [] : { ...detail(), document: { ...detail().document, statusWorkflow: 'DITARIK' } }));
+    act(() => window.dispatchEvent(new Event('focus')));
+    await screen.findByText('Dokumen ditarik dari portal. Data, berkas, dan riwayatnya tetap tersimpan di panel.');
+    expect(screen.getByRole('heading', { name: 'Dokumen 5 versi 50' })).toBeInTheDocument();
+    expect(state.api).toHaveBeenCalledWith('/admin/documents/versions/50/files');
+  });
   for (const role of ['ADMIN', 'SUPERADMIN']) {
     it(`klik judul dan baris antrean mempertahankan halaman asal untuk ${role}`, async () => {
       state.role = role;

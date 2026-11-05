@@ -9,12 +9,13 @@ import { alamatPanel } from '@/lib/panel';
 /** Angka penanda per alamat menu, mis. { '/admin/dokumen/verifikasi': 3 }. */
 export type HitunganNav = Readonly<Record<string, number>>;
 
-const JEDA_PEMBARUAN = 60_000;
+const JEDA_PEMBARUAN = 30_000;
 
 /**
  * Jumlah pekerjaan yang menunggu, untuk lencana di menu: dokumen yang
- * diajukan (antrean verifikasi) dan pendaftaran akun Dosen/Staf. Dimuat ulang
- * setiap pindah halaman (mis. setelah menyetujui dokumen) dan tiap menit
+ * diajukan/disetujui, format dan permintaan penarikan/penghapusan,
+ * serta pendaftaran akun Dosen/Staf. Dimuat ulang setelah tindakan, fokus,
+ * setiap pindah halaman dan tiap 30 detik
  * selama tab terlihat. Hanya meminta data yang memang boleh dibaca akun ini;
  * kegagalan cukup membuat lencananya tidak tampil.
  */
@@ -29,15 +30,25 @@ export function useHitunganNav(izin: readonly string[]): HitunganNav {
 
   useEffect(() => {
     let aktif = true;
+    let urutan = 0;
     async function muat() {
+      const permintaan = ++urutan;
       const hasil: Record<string, number> = {};
       await Promise.all([
         bolehAntrean
-          ? ambilApiBerdaftar('/admin/documents/verification-queue', {
-              kueri: { halaman: 1, perHalaman: 1 },
-            })
-              .then((r) => {
-                hasil['/admin/dokumen/verifikasi'] = r.meta.totalButir;
+          ? Promise.all([
+              ambilApiBerdaftar('/admin/documents/verification-queue', {
+                kueri: { halaman: 1, perHalaman: 1 },
+              }),
+              ambilApiBerdaftar('/admin/letter-templates/verification-queue', {
+                kueri: { halaman: 1, perHalaman: 1 },
+              }),
+              ambilApiBerdaftar('/admin/removal-requests', {
+                kueri: { status: 'PENDING', halaman: 1, perHalaman: 1 },
+              }),
+            ])
+              .then((daftar) => {
+                hasil['/admin/dokumen/verifikasi'] = daftar.reduce((jumlah, r) => jumlah + r.meta.totalButir, 0);
               })
               .catch(() => undefined)
           : undefined,
@@ -49,17 +60,24 @@ export function useHitunganNav(izin: readonly string[]): HitunganNav {
               .catch(() => undefined)
           : undefined,
       ]);
-      if (aktif) setHitungan(hasil);
+      if (aktif && permintaan === urutan) setHitungan(hasil);
     }
     void muat();
-    const pewaktu = window.setInterval(() => {
+    const perbarui = () => {
       if (document.visibilityState === 'visible') void muat();
-    }, JEDA_PEMBARUAN);
+    };
+    const pewaktu = window.setInterval(perbarui, JEDA_PEMBARUAN);
+    window.addEventListener('focus', perbarui);
+    window.addEventListener('jdih:workflow', perbarui);
+    document.addEventListener('visibilitychange', perbarui);
     return () => {
       aktif = false;
       window.clearInterval(pewaktu);
+      window.removeEventListener('focus', perbarui);
+      window.removeEventListener('jdih:workflow', perbarui);
+      document.removeEventListener('visibilitychange', perbarui);
     };
-  }, [pathname, bolehAntrean, bolehAkun]);
+  }, [pathname, bolehAntrean, bolehAkun, pengguna?.id]);
 
   return Object.fromEntries(Object.entries(hitungan).map(([href, jumlah]) => [alamatPanel(pengguna?.peran ?? [], href), jumlah]));
 }

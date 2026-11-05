@@ -73,7 +73,7 @@ export class RemovalRequestsRepository {
     return this.repo.write(
       db,
       "UPDATE permintaan_penghapusan SET status=?,catatan=?,decided_by=?,decided_at=UTC_TIMESTAMP(6) WHERE id=? AND status='PENDING'",
-      [status, catatan, actorId, id],
+      [status, catatan || null, actorId, id],
     );
   }
   async list(
@@ -87,7 +87,9 @@ export class RemovalRequestsRepository {
       perHalaman: number;
     },
   ) {
-    const where: string[] = [],
+    // Pending requests never expire; completed decisions leave the panel after 24 hours.
+    // Stored request/audit history remains intact, including after document deletion.
+    const where: string[] = ["(r.status='PENDING' OR r.decided_at>UTC_TIMESTAMP(6)-INTERVAL 24 HOUR)"],
       values: (string | number)[] = [];
     if (ownerId) {
       where.push('r.requested_by=?');

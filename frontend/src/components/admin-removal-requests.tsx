@@ -181,7 +181,7 @@ export function AntreanPermintaanPenghapusan({
     setCatatan({});
     setNotice(
       keputusan === 'DECLINE'
-        ? 'Permintaan tidak disetujui. Catatan telah disimpan untuk Admin.'
+        ? 'Permintaan tidak disetujui. Keputusan telah disimpan untuk Admin.'
         : row.jenis === 'WITHDRAW'
           ? 'Dokumen berhasil ditarik dari portal.'
           : 'Dokumen berhasil dihapus.',
@@ -204,6 +204,9 @@ export function AntreanPermintaanPenghapusan({
             {superadmin
               ? 'Tinjau alasan Admin. Persetujuan langsung menjalankan tindakan yang diminta.'
               : 'Pantau permintaan Anda dan catatan keputusan Superadmin.'}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            Keputusan tampil selama 24 jam setelah diproses. Permintaan yang masih menunggu tetap tersedia.
           </p>
         </div>
         <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
@@ -253,7 +256,7 @@ export function AntreanPermintaanPenghapusan({
         </p>
       ) : !rows.length ? (
         <p className="p-5 text-sm text-slate-500">
-          Belum ada permintaan{semua ? '.' : ' yang menunggu keputusan.'}
+          {semua ? 'Belum ada permintaan menunggu atau keputusan dalam 24 jam terakhir.' : 'Belum ada permintaan yang menunggu keputusan.'}
         </p>
       ) : (
         <ul
@@ -294,7 +297,7 @@ export function AntreanPermintaanPenghapusan({
                   </p>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  {row.status === 'PENDING' && (
+                  {(row.status === 'PENDING' || (row.status === 'APPROVED' && row.jenis === 'WITHDRAW')) && (
                     <Link
                       href={
                         row.sumber === 'TEMPLATE'
@@ -303,7 +306,7 @@ export function AntreanPermintaanPenghapusan({
                       }
                       className="inline-flex min-h-11 items-center text-xs font-semibold text-institusi-700 underline underline-offset-4"
                     >
-                      Tinjau dokumen
+                      {row.status === 'PENDING' ? 'Tinjau dokumen' : 'Lihat dokumen ditarik'}
                     </Link>
                   )}
                   {row.status === 'PENDING' &&
@@ -335,11 +338,10 @@ export function AntreanPermintaanPenghapusan({
                               ? `“${row.judul}” langsung ditarik dari portal. Riwayat tetap tersimpan.`
                               : `“${row.judul}” beserta seluruh versinya dihapus dari aplikasi. Untuk dokumen hukum, berkas dihapus permanen. Tindakan ini tidak dapat dibatalkan.`
                         }
-                        confirmDisabled={!catatan[`${row.id}:${keputusan}`]?.trim()}
                         onConfirm={() => putuskan(row, keputusan)}
                       >
                         <TextAreaField
-                          label="Catatan keputusan"
+                          label="Catatan keputusan (opsional)"
                           maxLength={1000}
                           value={catatan[`${row.id}:${keputusan}`] ?? ''}
                           onChange={(event) =>
