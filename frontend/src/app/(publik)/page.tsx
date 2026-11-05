@@ -51,12 +51,12 @@ export default async function Beranda() {
               </span>{' '}
               <span className="topeng-baris">
                 <span className="isi-baris baris-2 text-institusi-300">
-                  terbuka dan <span className="garis-sorot">tertata.</span>
+                  Terbuka dan <span className="garis-sorot">Tertata.</span>
                 </span>
               </span>
             </h1>
             <p className="masuk tunda-3 mt-4 max-w-xl text-base leading-7 text-gigi-100 sm:text-lg sm:leading-8">
-              Cari peraturan, keputusan, instruksi, surat edaran, dan SOP Institut Teknologi
+              Cari Peraturan, Keputusan, Instruksi, Surat Edaran, dan SOP Institut Teknologi
               Bacharuddin Jusuf Habibie yang telah diterbitkan.
             </p>
             <div className="masuk tunda-4 mt-8">

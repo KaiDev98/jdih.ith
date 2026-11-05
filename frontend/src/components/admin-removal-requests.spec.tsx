@@ -69,11 +69,11 @@ describe('permintaan penarikan dan penghapusan', () => {
         bisaTarik
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Minta penghapusan' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Minta Penghapusan' }));
     expect(screen.getByRole('button', { name: 'Kirim permintaan' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Batal' }));
     expect(state.api).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Minta penghapusan' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Minta Penghapusan' }));
     fireEvent.change(screen.getByLabelText('Alasan permintaan'), {
       target: { value: 'Salah unggah' },
     });
@@ -87,7 +87,7 @@ describe('permintaan penarikan dan penghapusan', () => {
     });
     done();
     await screen.findByText(/Permintaan terkirim/);
-    expect(screen.getByRole('button', { name: 'Minta penghapusan' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Minta Penghapusan' })).toBeDisabled();
   });
   it('mempertahankan alasan bila pengiriman gagal; format belum terbit tanpa permintaan penarikan', async () => {
     state.api.mockRejectedValue(new Error('Masih ada permintaan menunggu'));
@@ -99,8 +99,8 @@ describe('permintaan penarikan dan penghapusan', () => {
         bisaTarik={false}
       />,
     );
-    expect(screen.queryByRole('button', { name: 'Minta penarikan' })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Minta penghapusan' }));
+    expect(screen.queryByRole('button', { name: 'Minta Penarikan' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Minta Penghapusan' }));
     fireEvent.change(screen.getByLabelText('Alasan permintaan'), {
       target: { value: 'Format salah' },
     });

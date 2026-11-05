@@ -125,6 +125,8 @@ describe('DasborAdmin', () => {
     siapkanApi(); render(<DasborAdmin />);
     await screen.findByRole('link', { name: /Akun menunggu\s*2/ });
     expect(screen.queryByRole('link', { name: /Tinjau akun/ })).not.toBeInTheDocument();
+    expect(screen.getByText('Tidak ada dokumen yang perlu direvisi saat ini.')).toBeInTheDocument();
+    expect(screen.queryByText('Tidak ada dokumen atau akun yang menunggu Anda saat ini.')).not.toBeInTheDocument();
   });
 
   for (const peran of ['ADMIN', 'SUPERADMIN']) it(`pintasan SOP khusus Superadmin: ${peran}`, () => {

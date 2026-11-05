@@ -67,7 +67,7 @@ describe('Halaman informasi Admin tetap terbuka dengan kontrol perubahan nonakti
     expect(await screen.findByText('Surat tugas')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Versi baru' })).toBeEnabled();
     expect(screen.queryByRole('button', { name: 'Hapus' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Minta penghapusan' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Minta Penghapusan' })).toBeEnabled();
     fireEvent.change(screen.getByLabelText('Nama'), { target: { value: 'Surat izin' } });
     fireEvent.change(screen.getByLabelText(/^Berkas/), { target: { files: [new File(['%PDF-1.7'], 'format.pdf', { type: 'application/pdf' })] } });
     fireEvent.click(screen.getByRole('button', { name: 'Buat template' }));

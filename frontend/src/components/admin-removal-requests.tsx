@@ -67,9 +67,9 @@ export function FormPermintaanPenghapusan({
             icon={jenis === 'WITHDRAW' ? FileX2 : Trash2}
             ukuran="kecil"
             tone={jenis === 'DELETE' ? 'danger' : 'secondary'}
-            label={jenis === 'WITHDRAW' ? 'Minta penarikan' : 'Minta penghapusan'}
+            label={jenis === 'WITHDRAW' ? 'Minta Penarikan' : 'Minta Penghapusan'}
             title={
-              jenis === 'WITHDRAW' ? 'Minta penarikan dari portal?' : 'Minta penghapusan dokumen?'
+              jenis === 'WITHDRAW' ? 'Minta Penarikan dari Portal?' : 'Minta Penghapusan Dokumen?'
             }
             description={`Permintaan untuk “${judul}” dikirim ke Superadmin. ${jenis === 'WITHDRAW' ? 'Dokumen tetap tersedia sampai penarikan disetujui.' : 'Penghapusan seluruh versi dan berkas baru dilakukan setelah persetujuan Superadmin.'}`}
             disabled={terkirim}

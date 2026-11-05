@@ -83,7 +83,7 @@ export function BilahCari({ tipe, tahun }: { tipe: readonly Jenis[]; tahun: read
           sembunyikanLabel
           ikon={Files}
           opsi={[
-            { value: '', label: 'Semua tipe' },
+            { value: '', label: 'Semua Tipe' },
             ...tipe.map((item) => ({ value: item.kode, label: item.nama })),
           ]}
         />
@@ -95,7 +95,7 @@ export function BilahCari({ tipe, tahun }: { tipe: readonly Jenis[]; tahun: read
           sembunyikanLabel
           ikon={CalendarDays}
           opsi={[
-            { value: '', label: 'Semua tahun' },
+            { value: '', label: 'Semua Tahun' },
             ...tahun.map((nilai) => ({ value: String(nilai), label: String(nilai) })),
           ]}
         />

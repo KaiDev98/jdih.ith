@@ -489,7 +489,9 @@ export default function DasborAdmin() {
                 </div>
               ) : tindakan.length === 0 ? (
                 <PesanDasbor selesai title="Semua beres">
-                  Tidak ada dokumen atau akun yang menunggu Anda saat ini.
+                  {bolehSetujuiAkun
+                    ? 'Tidak ada dokumen atau akun yang menunggu Anda saat ini.'
+                    : 'Tidak ada dokumen yang perlu direvisi saat ini.'}
                 </PesanDasbor>
               ) : (
                 <ul
