@@ -1,8 +1,8 @@
 'use client';
 
 import Link from '@/components/admin/tautan-panel';
-import { useEffect, useState } from 'react';
-import { ArrowLeft, Check, FileText, Globe2, Pencil, UploadCloud, X, FilePen } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, ArrowRight, AlertTriangle, Check, FileText, Globe2, Pencil, Plus, UploadCloud, X, FilePen } from 'lucide-react';
 import { PemilihIsianPanel } from './admin/pemilih-isian-panel';
 import { PemilihKategoriDokumen } from './admin/pemilih-kategori-dokumen';
 import { PemilihTingkatAkses } from './admin/pemilih-tingkat-akses';
@@ -25,10 +25,10 @@ import {
   PageTitle,
   StateMessage,
   TextAreaField,
-  kelasTautanSekunder,
   kelasTautanUtama,
 } from '@/components/ui';
 import { LABEL_JENIS_BERKAS, POLA_BERKAS_DITERIMA, TERIMA_BERKAS } from '@/lib/label-dokumen';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 
 type Master = { id: string; nama: string; kode?: string; aktif?: boolean };
 
@@ -105,6 +105,9 @@ export function AdminDocumentCreate({
   const [aturAlamat, setAturAlamat] = useState(false);
   const [error, setError] = useState('');
   const [hubungan, setHubungan] = useState<Hubungan>();
+  const [hasilTerbuka, setHasilTerbuka] = useState(false);
+  const [formKey, setFormKey] = useState(0);
+  const judulHasil = useRef<HTMLHeadingElement>(null);
   const [created, setCreated] = useState<{
     id: string;
     versionId: string;
@@ -165,6 +168,7 @@ export function AdminDocumentCreate({
   }
 
   async function create() {
+    if (created) throw new Error('Draf ini sudah tersimpan. Buka detailnya atau pilih Unggah Dokumen Lain.');
     let result: { id: string; versionId: string };
     try {
       result = await ambilApi<{ id: string; versionId: string }>('/admin/documents', {
@@ -229,6 +233,33 @@ export function AdminDocumentCreate({
       }
     }
     setCreated({ ...result, unggah, relasi });
+    setHasilTerbuka(true);
+  }
+
+  function unggahLagi() {
+    setHasilTerbuka(false);
+    setCreated(undefined);
+    setTitle(judulAwal);
+    setCode(jadikanSlug(judulAwal).toUpperCase().slice(0, 64));
+    setSlug(jadikanSlug(judulAwal));
+    setSlugManual(false);
+    setKodeManual(false);
+    setType(khusus ? types.find((j) => j.aktif !== false && jenisSop(j))?.id ?? '' : '');
+    setDescription('');
+    setAccess('publik');
+    setNumber('');
+    setYear('');
+    setPic('');
+    setDate('');
+    setCategory('');
+    setFile(undefined);
+    setSeret(false);
+    setAturAlamat(false);
+    setCobaKirim(false);
+    setError('');
+    setHubungan(undefined);
+    setFormKey((value) => value + 1);
+    if (!hasilTerbuka) window.requestAnimationFrame(() => document.getElementById('doc-title')?.focus());
   }
 
   // Kolom wajib yang masih kosong; tombol Buat draf menyebutnya bila ditekan.
@@ -252,78 +283,8 @@ export function AdminDocumentCreate({
       </StateMessage>
     );
 
-  if (created) {
-    const berkasGagal = Boolean(created.unggah && created.unggah !== 'ok');
-    const langkah = [
-      { teks: 'Draf disimpan', selesai: true },
-      {
-        teks: created.unggah === 'ok' ? 'Dokumen utama terunggah' : 'Unggah dokumen utama',
-        selesai: created.unggah === 'ok',
-      },
-      {
-        teks: khusus
-          ? superadminAktif(pengguna) ? 'Setujui draf, lalu terbitkan SOP' : 'Ajukan ke Superadmin untuk verifikasi'
-          : superadminAktif(pengguna)
-            ? 'Setujui draf, lalu terbitkan dari antrean'
-            : 'Ajukan untuk diverifikasi',
-        selesai: false,
-      },
-      { teks: 'Terbitkan ke portal setelah disetujui', selesai: false },
-    ];
-    return (
-      <div className="mx-auto max-w-xl">
-        <Card className="p-6 sm:p-8">
-          <span className="grid size-12 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
-            <Check aria-hidden className="size-6" />
-          </span>
-          <h1 className="mt-5 text-xl font-bold tracking-[-0.015em] text-tinta">
-            {khusus ? 'Draf SOP Permohonan SK Dibuat' : 'Draf Dokumen Dibuat'}
-          </h1>
-          <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
-            {berkasGagal
-              ? `Draf tersimpan, tetapi berkas belum terunggah (${created.unggah ?? ''}). Unggah ulang dari halaman detail.`
-              : 'Lanjutkan dari halaman detail. Dokumen belum tampil di portal sampai diverifikasi dan diterbitkan.'}
-            {hubungan &&
-              (created.relasi === 'ok'
-                ? ` Hubungan "${hubungan.jenis === 'MENCABUT' ? 'mencabut' : 'mengubah'} ${hubungan.target.judul}" tersimpan; statusnya berubah saat dokumen ini terbit.`
-                : ` Hubungan dengan "${hubungan.target.judul}" belum tersimpan (${created.relasi ?? 'galat'}). Tambahkan dari halaman Ubah draf.`)}
-          </p>
-          <ol className="mt-6 grid gap-3 border-t border-sekat pt-6">
-            {langkah.map((l, i) => (
-              <li key={l.teks} className="flex items-center gap-3 text-sm">
-                <span
-                  className={`grid size-6 shrink-0 place-items-center rounded-full text-xs font-bold ${l.selesai ? 'bg-emerald-500 text-white' : 'bg-kanvas text-slate-500 ring-1 ring-sekat'}`}
-                >
-                  {l.selesai ? <Check aria-hidden className="size-3.5" /> : i + 1}
-                </span>
-                <span
-                  className={
-                    l.selesai
-                      ? 'text-slate-500 line-through decoration-slate-300'
-                      : 'font-medium text-tinta'
-                  }
-                >
-                  {l.teks}
-                </span>
-              </li>
-            ))}
-          </ol>
-          <div className="mt-7 flex flex-wrap gap-2">
-            <Link className={kelasTautanUtama} href={`/admin/dokumen/${created.id}`}>
-              Buka detail draf
-            </Link>
-            <Link
-              className={kelasTautanSekunder}
-              href={khusus ? '/admin/sop-permohonan-sk' : '/admin/dokumen/pengajuan'}
-            >
-              {khusus ? 'Kembali ke SOP Permohonan SK' : 'Ke daftar dokumen'}
-            </Link>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
+  const berkasGagal = !!created && created.unggah !== 'ok';
+  const relasiGagal = !!created && !!hubungan && created.relasi !== 'ok';
   const ukuran = (byte: number) =>
     byte >= 1024 * 1024
       ? `${(byte / 1024 / 1024).toFixed(1).replace('.', ',')} MB`
@@ -371,6 +332,78 @@ export function AdminDocumentCreate({
           ) : undefined
         }
       />
+      {created && (
+        <>
+          <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+            <span aria-hidden className={`grid size-9 shrink-0 place-items-center rounded-xl ${berkasGagal || relasiGagal ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>
+              {berkasGagal || relasiGagal ? <AlertTriangle className="size-4" /> : <Check className="size-4" />}
+            </span>
+            <p role="status" className="min-w-0 flex-1 text-sm text-slate-700">
+              Draf tersimpan{berkasGagal || relasiGagal ? '; lengkapi dari halaman detail.' : ' dan berkas berhasil diunggah.'}
+            </p>
+            <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
+              <Link href={`/admin/dokumen/pengajuan/${created.id}?versionId=${created.versionId}`} className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-institusi-700 hover:underline">
+                Buka Detail Draf <ArrowRight aria-hidden className="size-4" />
+              </Link>
+              <Button id="draft-upload-again" tone="secondary" ukuran="kecil" onClick={unggahLagi}>
+                <Plus aria-hidden className="size-4" /> Unggah Dokumen Lain
+              </Button>
+            </div>
+          </div>
+          <Dialog open={hasilTerbuka} onOpenChange={setHasilTerbuka}>
+            <DialogContent className="max-w-lg gap-5 p-5 sm:p-6"
+              onOpenAutoFocus={(event) => { event.preventDefault(); judulHasil.current?.focus(); }}
+              onCloseAutoFocus={(event) => {
+                event.preventDefault();
+                (document.getElementById('draft-upload-again') ?? document.getElementById('doc-title'))?.focus();
+              }}>
+              <DialogHeader>
+                <span aria-hidden className={`mb-1 grid size-11 place-items-center rounded-2xl ${berkasGagal || relasiGagal ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>
+                  {berkasGagal || relasiGagal ? <AlertTriangle className="size-5" /> : <Check className="size-5" strokeWidth={2.5} />}
+                </span>
+                <DialogTitle ref={judulHasil} tabIndex={-1} className="outline-none">Draf Berhasil Disimpan</DialogTitle>
+                <DialogDescription>
+                  {berkasGagal || relasiGagal
+                    ? 'Draf aman tersimpan. Lengkapi bagian yang belum berhasil dari halaman detail.'
+                    : superadminAktif(pengguna)
+                      ? 'Buka detail untuk menyetujui draf, lalu terbitkan melalui Antrean Verifikasi.'
+                      : 'Buka detail draf untuk mengajukan verifikasi kepada Superadmin.'}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200">
+                <div className="bg-slate-50/70 px-4 py-3.5">
+                  <p className="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">{khusus ? 'SOP Permohonan SK' : 'Dokumen Hukum'}</p>
+                  <p className="mt-1 text-sm leading-6 font-semibold text-slate-900 [overflow-wrap:anywhere]">{title}</p>
+                </div>
+                <div className="flex items-center gap-3 border-t border-slate-200 px-4 py-3">
+                  <FileText aria-hidden className="size-5 shrink-0 text-slate-400" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-slate-700" title={file?.name}>{file?.name ?? 'Dokumen utama'}</p>
+                    <p className={`mt-0.5 text-xs ${berkasGagal ? 'text-amber-700' : 'text-emerald-700'}`}>{berkasGagal ? 'Berkas belum terunggah' : 'Berkas berhasil diunggah'}</p>
+                  </div>
+                  {!berkasGagal && <Check aria-hidden className="size-4 shrink-0 text-emerald-600" />}
+                </div>
+              </div>
+              {berkasGagal && <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900 [overflow-wrap:anywhere]">{created.unggah ?? 'Unggah dokumen utama dari halaman detail draf.'}</p>}
+              {hubungan && <p role={relasiGagal ? 'alert' : undefined} className={`text-sm leading-6 [overflow-wrap:anywhere] ${relasiGagal ? 'rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900' : 'text-slate-600'}`}>
+                {relasiGagal
+                  ? `Hubungan dengan “${hubungan.target.judul}” belum tersimpan (${created.relasi ?? 'galat'}). Tambahkan dari halaman Ubah Draf.`
+                  : `Hubungan ${hubungan.jenis === 'MENCABUT' ? 'mencabut' : 'mengubah'} “${hubungan.target.judul}” tersimpan; statusnya berubah saat dokumen ini terbit.`}
+              </p>}
+              <p className="flex items-start gap-2 text-xs leading-5 text-slate-500"><Globe2 aria-hidden className="mt-0.5 size-3.5 shrink-0" />Dokumen belum tampil di portal sampai disetujui dan diterbitkan.</p>
+              <DialogFooter>
+                <Button tone="secondary" onClick={unggahLagi}><Plus aria-hidden className="size-4" /> Unggah Dokumen Lain</Button>
+                <Link className={`${kelasTautanUtama} gap-2 rounded-xl!`} href={`/admin/dokumen/pengajuan/${created.id}?versionId=${created.versionId}`}>
+                  Buka Detail Draf <ArrowRight aria-hidden className="size-4" />
+                </Link>
+              </DialogFooter>
+              <Link className="justify-self-center text-xs font-medium text-slate-500 underline-offset-4 hover:text-institusi-700 hover:underline" href={khusus ? '/admin/sop-permohonan-sk' : '/admin/dokumen/pengajuan'}>
+                {khusus ? 'Kembali ke SOP Permohonan SK' : 'Ke Daftar Draf'}
+              </Link>
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
       {error && (
         <div className="mb-4">
           <StateMessage title="Data form belum tersedia" kind="error">
@@ -379,7 +412,8 @@ export function AdminDocumentCreate({
         </div>
       )}
       <fieldset
-        disabled={!pengguna?.izin.includes('documents.create')}
+        key={formKey}
+        disabled={!!created || !pengguna?.izin.includes('documents.create')}
         className="formulir-panel grid min-w-0 grid-cols-[minmax(0,1fr)] items-start gap-5 [&>*]:min-w-0 lg:grid-cols-[minmax(0,1fr)_20rem]"
       >
         <Card>
@@ -621,7 +655,9 @@ export function AdminDocumentCreate({
                 Lengkapi dulu: {kosong.join(', ')}.
               </p>
             )}
-            {kosong.length > 0 ? (
+            {created ? (
+              <p className="text-sm leading-6 text-slate-500">Draf sudah tersimpan. Buka detailnya untuk melanjutkan.</p>
+            ) : kosong.length > 0 ? (
               <Button
                 type="button"
                 className="w-full"

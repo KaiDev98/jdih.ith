@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdminDocumentCreate } from './admin-documents';
 import { AdminDocumentDetail } from './admin-document-detail';
@@ -52,6 +52,71 @@ afterEach(() => {
 });
 
 describe('pengajuan dokumen pada panel', () => {
+  async function siapkanUnggahan(mode: 'umum' | 'permohonan-sk' = 'umum', berkasGagal = false, drafGagal = false) {
+    state.api.mockImplementation((url: string, options?: { method?: string }) => {
+      if (url.endsWith('/jenis_dokumen')) return Promise.resolve([{ id: '1', kode: 'SOP', nama: 'SOP', aktif: true }]);
+      if (url.endsWith('/kategori')) return Promise.resolve([]);
+      if (options?.method && url === '/admin/documents') return drafGagal ? Promise.reject(new Error('Kode dokumen sudah digunakan')) : Promise.resolve({ id: '1082', versionId: '2082' });
+      if (options?.method && url.endsWith('/files') && berkasGagal) return Promise.reject(new Error('Unggahan berkas terputus. Coba lagi dari detail draf.'));
+      return Promise.resolve({});
+    });
+    render(<AdminDocumentCreate mode={mode} />);
+    await waitFor(() => expect(state.api).toHaveBeenCalledWith('/admin/document-options/jenis_dokumen'));
+    if (mode === 'umum') {
+      fireEvent.keyDown(screen.getByLabelText('Jenis dokumen'), { key: 'ArrowDown' });
+      fireEvent.click(await screen.findByRole('menuitemradio', { name: 'SOP' }));
+    }
+    for (const [id, value] of [['doc-title', 'Draf Pengujian Popup'], ['doc-description', 'Prosedur yang akan diverifikasi'], ['doc-number', '12'], ['doc-year', '2026'], ['doc-pic', 'Unit TIK'], ['doc-date', '2026-11-06']] as const)
+      fireEvent.change(document.getElementById(id)!, { target: { value } });
+    fireEvent.change(document.getElementById('doc-file')!, { target: { files: [new File(['%PDF'], 'dokumen.pdf', { type: 'application/pdf' })] } });
+    fireEvent.click(screen.getByRole('radio', { name: 'Dosen/Staf' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Buat draf' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
+  }
+  it.each([
+    ['ADMIN', 'umum'], ['SUPERADMIN', 'umum'], ['ADMIN', 'permohonan-sk'], ['SUPERADMIN', 'permohonan-sk'],
+  ] as const)('%s mendapat popup hasil pada %s, formulir tetap terlihat, dan dapat unggah dokumen lain tanpa duplikasi', async (role, mode) => {
+    state.role = role;
+    await siapkanUnggahan(mode);
+    const popup = await screen.findByRole('dialog', { name: 'Draf Berhasil Disimpan' });
+    expect(within(popup).getByText('Draf Pengujian Popup')).toBeInTheDocument();
+    expect(within(popup).getByText('Berkas berhasil diunggah')).toBeInTheDocument();
+    expect(within(popup).getByRole('link', { name: 'Buka Detail Draf' })).toHaveAttribute('href', `/${role === 'SUPERADMIN' ? 'superadmin' : 'admin'}/dokumen/pengajuan/1082?versionId=2082`);
+    expect(document.getElementById('doc-title')).toHaveValue('Draf Pengujian Popup');
+    expect(document.getElementById('doc-title')).toBeDisabled();
+    await waitFor(() => expect(within(popup).getByRole('heading')).toHaveFocus());
+    fireEvent.click(within(popup).getByRole('button', { name: 'Tutup' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(screen.getByRole('heading', { name: mode === 'umum' ? 'Upload Dokumen Hukum' : 'Unggah SOP Permohonan SK' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Buat draf' })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Unggah Dokumen Lain' })).toHaveFocus());
+    fireEvent.click(screen.getByRole('button', { name: 'Unggah Dokumen Lain' }));
+    expect(screen.getByLabelText('Judul')).toHaveValue(mode === 'umum' ? '' : 'SOP Permohonan Surat Keputusan');
+    expect(screen.getByLabelText('Judul')).toBeEnabled();
+    expect(screen.getByRole('radio', { name: 'Publik' })).toBeChecked();
+    expect((document.getElementById('doc-file') as HTMLInputElement).files).toHaveLength(0);
+    await waitFor(() => expect(screen.getByLabelText('Judul')).toHaveFocus());
+    expect(state.api.mock.calls.filter(([url, options]) => url === '/admin/documents' && options?.method)).toHaveLength(1);
+  });
+  it('popup menjelaskan unggahan parsial tanpa menyatakan file sudah berhasil atau membuat draf kedua', async () => {
+    await siapkanUnggahan('umum', true);
+    const popup = await screen.findByRole('dialog', { name: 'Draf Berhasil Disimpan' });
+    expect(within(popup).getByRole('alert')).toHaveTextContent('Unggahan berkas terputus');
+    expect(within(popup).getByText('Berkas belum terunggah')).toBeInTheDocument();
+    expect(within(popup).queryByText('Berkas berhasil diunggah')).not.toBeInTheDocument();
+    fireEvent.click(within(popup).getByRole('button', { name: 'Unggah Dokumen Lain' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText('Judul')).toHaveFocus());
+    expect(state.api.mock.calls.filter(([url, options]) => url === '/admin/documents' && options?.method)).toHaveLength(1);
+  });
+  it('gagal membuat draf tetap pada konfirmasi, tanpa popup sukses dan tanpa menghilangkan isian', async () => {
+    await siapkanUnggahan('umum', false, true);
+    expect(await screen.findByText('Kode dokumen sudah digunakan')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Buat draf dokumen?' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Draf Berhasil Disimpan' })).not.toBeInTheDocument();
+    expect(document.getElementById('doc-title')).toHaveValue('Draf Pengujian Popup');
+    expect(state.api.mock.calls.some(([url]) => String(url).endsWith('/files'))).toBe(false);
+  });
   it('antrean berurutan Dokumen, Format Persuratan, lalu Permintaan Pencabutan & Penghapusan', async () => {
     render(<DaftarDokumenAdmin verificationOnly />);
     const legal = await screen.findByRole('heading', { name: /^Dokumen\s+0$/ });

@@ -1,5 +1,12 @@
 # CODEX IMPLEMENTATION PLAN — JDIH ITH V2
 
+Revisi hasil unggah dokumen 2026-11-06: dialog hasil ringkas di atas formulir,
+tanpa halaman sukses pengganti/angka langkah. Uji Admin/Superadmin, Produk Hukum
+dan SOP Permohonan SK, unggah parsial, kegagalan draf, tautan konteks+versi,
+form tetap terlihat, cegah pengiriman ulang dan reset untuk unggahan berikutnya.
+Periksa fokus keyboard, tutup/Escape, layar sempit dan reduced motion. Workflow
+tetap draf -> verifikasi/persetujuan -> penerbitan terpisah. Tanpa migrasi/API baru.
+
 Perbaikan validasi unggah format 2026-11-06: pakai schema shared pada klien,
 samakan maxlength Nama/Slug, tampilkan rincian validasi dan petunjuk backend
 lama yang menolak modeSlug. Kompatibilitas hanya retry satu kali atas 422 dengan

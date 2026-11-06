@@ -1,5 +1,14 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
+Revisi hasil unggah dokumen 2026-11-06: draf selesai memakai dialog Radix ringkas
+di atas formulir yang tetap terlihat, bukan halaman pengganti dengan langkah angka.
+Tampilkan judul/berkas, hasil parsial unggah/relasi, status belum publik, tautan
+detail konteks pengajuan + versionId sesuai peran serta daftar draf. Penutupan
+dialog mempertahankan formulir baca saja dan ringkasan; Unggah Dokumen Lain
+mengosongkan isian/file/relasi dan fokus ke Judul (SOP khusus kembali ke judul/jenis
+baku). Draf yang sudah dibuat tidak dapat dikirim ulang dari formulir yang sama.
+Tidak mengubah endpoint, kelengkapan, CSRF, verifikasi atau penerbitan terpisah.
+
 Perbaikan validasi unggah format 2026-11-06: metadata awal/versi diperiksa klien
 memakai schema shared sebelum upload. Batas Nama 200 dan Slug 191 mengikuti schema.
 Tampilkan rincian validasi API. Kompatibilitas API lama hanya untuk 422 VALIDASI_GAGAL
