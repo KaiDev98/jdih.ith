@@ -1,5 +1,13 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
+Polesan panel TERBARU 2026-11-06: Ubah Dokumen desktop memenuhi sisa viewport;
+Data Dokumen dan sisi Berkas/Hubungan bergulir sendiri, tanpa gulir halaman.
+Hubungan dengan Dokumen Lain selalu terbuka; Selesai, Kembali ke Detail tepat
+di bawahnya mempertahankan versionId. Feedback Simpan data berada di samping
+tombolnya. Mobile tetap memakai gulir normal. Kartu Format Persuratan PDF
+menyediakan Unduh langsung lewat endpoint versi panel terotorisasi, di samping
+Pratinjau; Office mempertahankan unduhan fallback. Tanpa perubahan izin/workflow.
+
 Draf revisi lama yang sudah kosong dapat memakai Gunakan Dokumen Asli melalui
 POST /admin/documents/versions/:id/reuse-main, body kosong strict. Aktif berizin
 documents.upload + documents.revise, pemilik dokumen/versi atau Superadmin, hanya

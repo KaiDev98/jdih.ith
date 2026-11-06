@@ -19,6 +19,15 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
+it('menyimpan dengan konfirmasi dan menempatkan feedback dalam baris tindakan yang sama', async () => {
+  render(<AdminUbahDraf id="5" />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Simpan data' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
+  const feedback = await screen.findByText('Perubahan berhasil disimpan.');
+  expect(feedback.closest('[role="status"]')?.parentElement).toBe(screen.getByRole('button', { name: 'Simpan data' }).parentElement);
+  expect(state.api).toHaveBeenCalledWith('/admin/documents/versions/50', expect.objectContaining({ method: 'PATCH', headers: { 'X-CSRF-Token': 'csrf' } }));
+});
+
 it('draf revisi lama yang kosong dapat memakai dokumen asli dengan konfirmasi dan CSRF tanpa unggah ulang', async () => {
   state.empty = true;
   render(<AdminUbahDraf id="5" />);
@@ -41,7 +50,12 @@ it('Ubah Dokumen menempatkan hubungan setelah berkas dan memakai file sebelumnya
   expect(await screen.findByText('utama-sebelumnya.pdf')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Pratinjau' })).toBeEnabled();
   expect(screen.queryByLabelText('Pilih berkas dokumen utama')).not.toBeInTheDocument();
-  expect(relation.closest('details')).not.toHaveAttribute('open');
+  expect(relation.closest('details')).toBeNull();
+  expect(screen.getByLabelText('Cari dokumen lain berdasarkan judul atau nomor')).toBeVisible();
+  const done = screen.getByRole('link', { name: 'Selesai, Kembali ke Detail' });
+  expect(relation.compareDocumentPosition(done) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(done.closest('aside')).toBe(file.closest('aside'));
+  expect(done).toHaveAttribute('href', '/admin/dokumen/5?versionId=50');
   expect(screen.getByLabelText('Deskripsi Singkat (opsional)')).not.toBeRequired();
   expect(state.api.mock.calls.every(([, options]) => !options?.method)).toBe(true);
 });

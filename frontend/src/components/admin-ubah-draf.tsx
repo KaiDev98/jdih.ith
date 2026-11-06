@@ -3,7 +3,7 @@
 import Link from '@/components/admin/tautan-panel';
 import { useCallback, useEffect, useState } from 'react';
 import type { KemampuanDokumenAdmin, Relasi, PilihanKategoriDokumen } from '@jdih/shared';
-import { ArrowLeft, Check, ChevronDown, Copy, FilePen, FileText, Paperclip, Search, Link2, Save, Trash2, UploadCloud } from 'lucide-react';
+import { ArrowLeft, Check, Copy, FilePen, FileText, Paperclip, Search, Link2, Save, Trash2, UploadCloud } from 'lucide-react';
 import { PemilihKategoriDokumen } from './admin/pemilih-kategori-dokumen';
 import { PemilihTingkatAkses } from './admin/pemilih-tingkat-akses';
 import { ambilApi, ambilApiBerdaftar, GalatApi } from '@/lib/api-client';
@@ -126,7 +126,7 @@ export function AdminUbahDraf({ id }: { id: string }) {
     );
 
   return (
-    <div className="halaman-panel mx-auto w-full max-w-6xl">
+    <div className={`${styles.page} halaman-panel mx-auto w-full max-w-6xl`}>
       <PageTitle
         title="Ubah Dokumen"
         description={`${versi.judul} · versi ${versi.nomorVersi}`}
@@ -139,7 +139,7 @@ export function AdminUbahDraf({ id }: { id: string }) {
       />
       <fieldset disabled={!versi.bolehUbah} className={`${styles.editor} ${izin.includes('documents.edit') ? styles.withData : ''}`}>
           {izin.includes('documents.edit') && (
-            <div className={styles.data}>
+            <div className={styles.data} data-gulir-panel tabIndex={0} role="region" aria-label="Data Dokumen">
             <BagianData key={versi.versionId} versi={versi} onTersimpan={() => setMuatUlang((x) => x + 1)} />
             </div>
           )}
@@ -154,16 +154,16 @@ export function AdminUbahDraf({ id }: { id: string }) {
               internal={versi.tingkatAkses === 'internal'}
             />
           )}
-          </div>
-          </aside>
         <div className={styles.footer}>
           <Link
-            href={`/admin/dokumen/${id}`}
+            href={`/admin/dokumen/${id}?versionId=${versi.versionId}`}
             className="tekan inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-tinta px-5 text-sm font-semibold text-white hover:bg-[#1d3461]"
           >
             <Check aria-hidden className="size-4" /> Selesai, Kembali ke Detail
           </Link>
         </div>
+          </div>
+          </aside>
       </fieldset>
     </div>
   );
@@ -288,7 +288,7 @@ function BagianData({ versi, onTersimpan }: { versi: Versi; onTersimpan: () => v
           onValueChange={(value) => ubah('tingkatAkses', value)}
         /></div>
       </div>
-      <div className="mt-4 flex justify-end [&>div]:w-full sm:[&>div]:w-auto">
+      <div className={styles.save}>
         <ConfirmAction
           label="Simpan data" icon={Save}
           title="Simpan perubahan data dokumen?"
@@ -524,13 +524,11 @@ function BagianHubungan({
 
   return (
     <Card className="p-0! sm:p-0!">
-      <details className="group" open={relasi.length > 0 || undefined}>
-        <summary className="flex min-h-14 cursor-pointer list-none items-center gap-2 px-5 py-4 [&::-webkit-details-marker]:hidden sm:px-6">
+        <div className="flex min-h-14 flex-wrap items-center gap-2 px-5 py-4 sm:px-6">
           <Link2 aria-hidden className="size-4 shrink-0 text-slate-500" />
           <h2 className="text-sm font-semibold">Hubungan dengan Dokumen Lain</h2>
           <span className="text-xs text-slate-400">Opsional</span>
-          <ChevronDown aria-hidden className="ml-auto size-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180 motion-reduce:transition-none" />
-        </summary>
+        </div>
       <div className="border-t border-sekat px-5 pt-4 pb-5 sm:px-6">
       <p className="text-xs leading-5 text-slate-500">
         Tambahkan jika dokumen mengubah, mencabut, atau mengacu pada dokumen lain. Dampaknya dikonfirmasi sebelum terbit.
@@ -681,7 +679,6 @@ function BagianHubungan({
         )}
       </div>
       </div>
-      </details>
     </Card>
   );
 }

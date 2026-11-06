@@ -53,6 +53,13 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('pustaka Format Persuratan', () => {
+  it('menyediakan unduhan PDF langsung di kartu tanpa membuka pratinjau', async () => {
+    state.api.mockResolvedValue([{ ...rows[0], currentVersionId: '19', mimeType: 'application/pdf' }]);
+    render(<AdminTemplates />);
+    await screen.findByText('Surat Tugas');
+    expect(screen.getByRole('button', { name: 'Pratinjau' })).toBeEnabled();
+    expect(screen.getByRole('link', { name: 'Unduh' })).toHaveAttribute('href', '/api/v1/admin/letter-templates/1/versions/19/download');
+  });
   it('memvalidasi metadata dengan kontrak shared sebelum mengunggah dan menyamakan batas isian', async () => {
     render(<AdminTemplates />);
     await screen.findByText('Surat Tugas');

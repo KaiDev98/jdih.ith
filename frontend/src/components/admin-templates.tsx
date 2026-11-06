@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { FileText, FileUp, Plus, UploadCloud, X, Trash2 } from 'lucide-react';
+import { Download, FileText, FileUp, Plus, UploadCloud, X, Trash2 } from 'lucide-react';
 import type { PencabutanTemplate } from '@jdih/shared';
 import { skemaBuatVersiTemplate, skemaUnggahTemplateAwal } from '@jdih/shared';
 import Link from '@/components/admin/tautan-panel';
@@ -363,6 +363,7 @@ export function AdminTemplates() {
                       {row.pendingVersionId && bolehGanti(row) ? 'Unggah perbaikan' : 'Versi baru'}
                     </Button>
                     {(row.pendingVersionId || row.currentVersionId) && (
+                      <>
                       <PratinjauFormat
                         nama={row.nama}
                         canPreview={
@@ -372,6 +373,15 @@ export function AdminTemplates() {
                         previewUrl={`/api/v1/admin/letter-templates/${row.id}/versions/${row.pendingVersionId ?? row.currentVersionId}/preview`}
                         downloadUrl={`/api/v1/admin/letter-templates/${row.id}/versions/${row.pendingVersionId ?? row.currentVersionId}/download`}
                       />
+                      {(row.pendingVersionId ? row.pendingMimeType : row.mimeType) === 'application/pdf' && (
+                        <a
+                          href={`/api/v1/admin/letter-templates/${row.id}/versions/${row.pendingVersionId ?? row.currentVersionId}/download`}
+                          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
+                        >
+                          <Download aria-hidden className="size-3.5" /> Unduh
+                        </a>
+                      )}
+                      </>
                     )}
                     {row.pendingVersionId && row.pendingStatus !== 'APPROVED' && (
                       <Link
