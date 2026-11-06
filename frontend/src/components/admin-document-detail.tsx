@@ -777,7 +777,7 @@ function DetailDokumen({
         </div>
         <div
           aria-label={tampilHapusPermanen ? 'Status hukum dan penghapusan permanen' : 'Status hukum dan permintaan dokumen'}
-          className={cn('grid min-w-0 items-start gap-3.5', (tampilHapusPermanen || (!superadmin && tampilPermintaan)) && 'lg:grid-cols-2')}
+          className={cn('detail-status-actions grid min-w-0 items-stretch gap-3.5', (tampilHapusPermanen || (!superadmin && tampilPermintaan)) && 'lg:grid-cols-2')}
         >
           <KartuStatusHukum
             id={id}
@@ -793,7 +793,7 @@ function DetailDokumen({
           />
           {tampilHapusPermanen && <AdminHapusDokumen id={id} judul={document.judul} />}
           {tampilPermintaan && (
-            <div className={cn('min-w-0', tampilHapusPermanen && 'lg:col-span-2')}>
+            <div className={cn('detail-permintaan min-w-0', tampilHapusPermanen && 'lg:col-span-2')}>
               <AntreanPermintaanPenghapusan
                 sumber="DOCUMENT"
                 resourceId={id}
@@ -841,7 +841,7 @@ function KartuStatusHukum({
     .filter((k) => k.daftar.length > 0);
   const dicabut = statusHukum === 'DICABUT';
   return (
-    <Card>
+    <Card className="detail-status-hukum">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-base font-bold">Status hukum</h2>
         <Badge color={WARNA_STATUS_HUKUM[statusHukum] ?? 'slate'}>
@@ -886,10 +886,10 @@ function KartuStatusHukum({
           {dicabut ? 'Dokumen ini telah dicabut. Berkas dan riwayatnya tetap tersimpan.' : 'Belum ada dokumen yang mengubah atau mencabut dokumen ini.'}
         </p>
       )}
-      <div className="mt-4 border-t border-slate-100 pt-4">
+      <div className="mt-3 border-t border-slate-100 pt-3">
         <p className="text-sm text-slate-600">
-          Status dapat berubah saat dokumen pengubah atau pencabutnya terbit. Superadmin juga dapat
-          mencabut dokumen terbit tanpa dokumen pengganti; dokumennya tetap tersedia dengan status Dicabut.
+          Status berubah saat dokumen pengubah atau pencabut terbit. Superadmin dapat mencabut tanpa
+          pengganti; dokumen tetap tersedia dengan status Dicabut.
         </p>
         {!terbit ? (
           <p className="mt-2 text-xs text-slate-500">

@@ -121,6 +121,16 @@
   gap: 0.875rem;
 }
 
+.panel-admin .detail-permintaan > .panel-card {
+  margin-bottom: 0;
+  height: 100%;
+}
+@media (min-width: 1024px) {
+  .panel-admin .detail-status-actions {
+    margin-top: -4px;
+  }
+}
+
 .panel-admin .pintasan-grid {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
 }
