@@ -1,5 +1,13 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
+Layout detail TERBARU 2026-11-06: dua tumpukan kolom independen menggantikan
+baris Status/Hapus yang menunggu tinggi Riwayat. Kiri: Pratinjau, Berkas, lalu
+Status Hukum tepat setelah Berkas dengan jarak normal. Kanan: Ringkasan, riwayat,
+Hapus Seluruh Dokumen ringkas (sesuai izin), kemudian Permintaan. Desktop
+menyamakan batas bawah kolom lewat panel terakhir, tanpa meregangkan panel
+Hapus atau membuat celah di antara Berkas/Status. Ponsel bertumpuk mengikuti DOM;
+PDF maupun Office memakai susunan yang sama. Hak akses dan tindakan tidak berubah.
+
 Penghapusan versi historis TERBARU 2026-11-06: instruksi user memperbolehkan
 Admin pemilik meminta hapus satu versi lama, dengan persetujuan Superadmin.
 DELETE_VERSION berbeda dari DELETE seluruh induk: wajib versionId eksplisit,

@@ -156,7 +156,7 @@ describe('Admin membaca dokumen tanpa tindakan Superadmin; SOP khusus Superadmin
     expect(pair).toContainElement(screen.getByRole('heading', { name: 'Status hukum' }));
     expect(pair).toContainElement(screen.getByRole('heading', { name: /Permintaan Pencabutan & Penghapusan/ }));
   });
-  it('Superadmin menempatkan Status hukum di samping Hapus permanen, lalu permintaan di bawah keduanya', async () => {
+  it('Status Hukum langsung mengikuti Berkas; Hapus dan Permintaan berada dalam kolom riwayat Superadmin', async () => {
     state.peran = ['SUPERADMIN'];
     state.status = 'TERBIT';
     state.current = '50';
@@ -168,9 +168,15 @@ describe('Admin membaca dokumen tanpa tindakan Superadmin; SOP khusus Superadmin
     const status = screen.getByRole('heading', { name: 'Status hukum' });
     const remove = screen.getByRole('heading', { name: 'Hapus Seluruh Dokumen' });
     const requests = screen.getByRole('heading', { name: /Permintaan Pencabutan & Penghapusan/ });
-    expect(pair.children[0]).toContainElement(status);
-    expect(pair.children[1]).toContainElement(remove);
-    expect(pair.children[2]).toContainElement(requests);
+    const left = screen.getByRole('group', { name: 'Berkas dan Status Hukum' });
+    const right = screen.getByLabelText('Informasi dan riwayat dokumen');
+    expect(pair.children[0]).toBe(left);
+    expect(pair.children[1]).toBe(right);
+    expect(left).toContainElement(status);
+    expect(status.closest('.panel-card')?.previousElementSibling).toBe(screen.getByRole('heading', { name: 'Berkas' }).closest('.detail-berkas'));
+    expect(right).toContainElement(remove);
+    expect(right).toContainElement(requests);
+    expect(remove.closest('.panel-card')?.nextElementSibling).toContainElement(requests);
     expect(screen.getByRole('button', { name: 'Hapus permanen' })).toBeDisabled();
     expect(state.api.mock.calls.every(([, options]) => !options?.method)).toBe(true);
   });

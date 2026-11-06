@@ -31,7 +31,7 @@ export function AdminHapusDokumen({ id, judul, versionId }: { id: string; judul:
       <p className="mt-1 text-sm text-slate-600">
         Menghapus dokumen beserta semua versi dan berkas. Tidak dapat dibatalkan.
       </p>
-      <fieldset disabled={!bolehHapus} className="mt-auto grid min-w-0 gap-3 pt-3">
+      <fieldset disabled={!bolehHapus} className="mt-3 grid min-w-0 gap-3">
         <ConfirmAction
           label="Hapus permanen" icon={Trash2}
           tone="danger"

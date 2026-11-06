@@ -123,11 +123,27 @@
 
 .panel-admin .detail-permintaan > .panel-card {
   margin-bottom: 0;
-  height: 100%;
+}
+.panel-admin .detail-columns > :is(.detail-utama, .detail-samping) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
 }
 @media (min-width: 1024px) {
-  .panel-admin .detail-status-actions {
-    margin-top: -4px;
+  .panel-admin .detail-columns {
+    align-items: stretch;
+  }
+  .panel-admin .detail-utama > .detail-status-hukum,
+  .panel-admin .detail-samping > .detail-permintaan,
+  .panel-admin .detail-samping:not(:has(.detail-permintaan)) > .detail-version-history {
+    flex: 1;
+  }
+  .panel-admin .detail-permintaan {
+    display: flex;
+    flex-direction: column;
+  }
+  .panel-admin .detail-permintaan > .panel-card {
+    flex: 1;
   }
   .panel-admin .detail-status-hukum,
   .panel-admin .detail-hapus-permanen {
@@ -290,15 +306,6 @@
   }
   .panel-admin .detail-grid {
     grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.5fr);
-  }
-  .panel-admin .detail-tanpa-pdf {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .panel-admin .detail-tanpa-pdf .detail-samping {
-    grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.75fr);
-  }
-  .panel-admin .detail-tanpa-pdf .detail-samping:has(.detail-riwayat) .detail-ringkasan {
-    grid-row: span 2;
   }
   .panel-admin .formulir-panel {
     grid-template-columns: minmax(0, 1fr) minmax(16rem, 0.4fr);

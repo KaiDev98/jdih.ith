@@ -352,6 +352,21 @@ function DetailDokumen({
   const versiPublik = [document, ...detail.versions].find(
     (v) => v.versionId === document.currentPublishedVersionId,
   );
+  const kartuStatus = (
+    <KartuStatusHukum id={id} statusHukum={document.statusHukum}
+      terbit={Boolean(document.currentPublishedVersionId)} keterangan={detail.keteranganStatus}
+      hubungan={detail.statusPeraturan}
+      bolehUpload={document.bolehUbah && izin.includes('documents.create') && izin.includes('legal.manage_relations')} />
+  );
+  const kartuPermintaan = tampilPermintaan && (
+    <div className="detail-permintaan min-w-0">
+      <AntreanPermintaanPenghapusan sumber="DOCUMENT" resourceId={id}
+        onProcessed={(row, keputusan) => {
+          if (keputusan === 'APPROVE' && row.jenis === 'DELETE') router.replace('/admin/dokumen');
+          else setRefresh((n) => n + 1);
+        }} />
+    </div>
+  );
   /** Kolom alasan di dalam dialog konfirmasi (kembalikan/tarik). */
   const kolomCatatan = (label: string, idKolom: string) => (
     <TextAreaField
@@ -635,8 +650,9 @@ function DetailDokumen({
           </Card>
         )}
 
-        <div className={cn('detail-grid', superadmin && !berkas.some((file) => file.mimeType === 'application/pdf') && 'detail-tanpa-pdf')}>
-          <div className="detail-utama grid min-w-0 content-start gap-3.5">
+        <div className="detail-grid detail-columns"
+          aria-label={tampilHapusPermanen ? 'Status hukum dan penghapusan permanen' : 'Status hukum dan permintaan dokumen'}>
+          <div className="detail-utama min-w-0" role="group" aria-label="Berkas dan Status Hukum">
             {berkas.length > 0 && (
               <Card className="detail-pratinjau">
                 <h2 className="font-semibold">Tinjau file dokumen</h2>
@@ -689,10 +705,11 @@ function DetailDokumen({
                 </p>
               )}
             </Card>
+            {kartuStatus}
           </div>
           <aside
             aria-label="Informasi dan riwayat dokumen"
-            className="detail-samping grid min-w-0 content-start gap-3.5"
+            className="detail-samping min-w-0"
           >
             <Card className="detail-ringkasan">
               <h2 className="text-base font-bold">Ringkasan</h2>
@@ -762,7 +779,7 @@ function DetailDokumen({
               </Card>
             )}
 
-            <Card>
+            <Card className="detail-version-history">
               <h2 className="text-base font-bold">Riwayat versi</h2>
               <ul
                 aria-label="Riwayat versi dokumen"
@@ -792,37 +809,9 @@ function DetailDokumen({
                   })}
               </ul>
             </Card>
+            {tampilHapusPermanen && <AdminHapusDokumen id={id} judul={document.judul} versionId={document.versionId} />}
+            {kartuPermintaan}
           </aside>
-        </div>
-        <div
-          aria-label={tampilHapusPermanen ? 'Status hukum dan penghapusan permanen' : 'Status hukum dan permintaan dokumen'}
-          className={cn('detail-status-actions grid min-w-0 items-stretch gap-3.5', (tampilHapusPermanen || (!superadmin && tampilPermintaan)) && 'lg:grid-cols-2')}
-        >
-          <KartuStatusHukum
-            id={id}
-            statusHukum={document.statusHukum}
-            terbit={Boolean(document.currentPublishedVersionId)}
-            keterangan={detail.keteranganStatus}
-            hubungan={detail.statusPeraturan}
-            bolehUpload={
-              document.bolehUbah &&
-              izin.includes('documents.create') &&
-              izin.includes('legal.manage_relations')
-            }
-          />
-          {tampilHapusPermanen && <AdminHapusDokumen id={id} judul={document.judul} versionId={document.versionId} />}
-          {tampilPermintaan && (
-            <div className={cn('detail-permintaan min-w-0', tampilHapusPermanen && 'lg:col-span-2')}>
-              <AntreanPermintaanPenghapusan
-                sumber="DOCUMENT"
-                resourceId={id}
-                onProcessed={(row, keputusan) => {
-                  if (keputusan === 'APPROVE' && row.jenis === 'DELETE') router.replace('/admin/dokumen');
-                  else setRefresh((n) => n + 1);
-                }}
-              />
-            </div>
-          )}
         </div>
       </div>
     </div>
