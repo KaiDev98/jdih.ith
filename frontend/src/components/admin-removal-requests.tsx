@@ -60,7 +60,7 @@ export function FormPermintaanPenghapusan({
   return (
     <div className="flex flex-wrap gap-2">
       {(['REVOKE', 'DELETE'] as const)
-        .filter((jenis) => jenis === 'DELETE' || bisaTarik)
+        .filter((jenis) => jenis === 'DELETE' || (sumber === 'DOCUMENT' && bisaTarik))
         .map((jenis) => (
           <ConfirmAction
             key={jenis}
@@ -71,7 +71,7 @@ export function FormPermintaanPenghapusan({
             title={
               jenis === 'REVOKE' ? 'Minta Pencabutan Dokumen?' : 'Minta Penghapusan Dokumen?'
             }
-            description={`Permintaan untuk “${judul}” dikirim ke Superadmin. ${jenis === 'REVOKE' ? 'Setelah disetujui, dokumen tetap tersedia dengan status Dicabut, tanpa dokumen pengganti. Alasan permintaan menjadi keterangan pencabutan jika Superadmin tidak mengisi catatan keputusan.' : 'Penghapusan seluruh versi dan berkas baru dilakukan setelah persetujuan Superadmin.'}`}
+            description={`Permintaan untuk “${judul}” dikirim ke Superadmin. ${jenis === 'REVOKE' ? 'Setelah disetujui, dokumen tetap tersedia dengan status Dicabut, tanpa dokumen pengganti. Alasan permintaan menjadi keterangan pencabutan jika Superadmin tidak mengisi catatan keputusan.' : sumber === 'TEMPLATE' ? 'Setelah disetujui, format dihapus dari panel dan portal; pratinjau dan unduhan seluruh versinya ditutup. Riwayat tetap tersimpan.' : 'Penghapusan seluruh versi dan berkas baru dilakukan setelah persetujuan Superadmin.'}`}
             disabled={terkirim}
             confirmLabel="Kirim permintaan"
             confirmDisabled={!alasan.trim()}
@@ -199,7 +199,7 @@ export function AntreanPermintaanPenghapusan({
         </span>
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold">
-            Permintaan Pencabutan &amp; Penghapusan{' '}
+            {sumber === 'TEMPLATE' ? 'Permintaan Penghapusan' : 'Permintaan Pencabutan & Penghapusan'}{' '}
             <span className="text-slate-500">{loading || error ? '—' : total}</span>
           </h2>
           <p className="mt-1 text-xs leading-5 text-slate-500">
@@ -264,7 +264,7 @@ export function AntreanPermintaanPenghapusan({
         <ul
           className="max-h-[26rem] divide-y divide-sekat overflow-y-auto overscroll-contain"
           data-gulir-panel
-          aria-label="Daftar permintaan pencabutan dan penghapusan"
+          aria-label={sumber === 'TEMPLATE' ? 'Daftar permintaan penghapusan' : 'Daftar permintaan pencabutan dan penghapusan'}
         >
           {rows.map((row) => {
             const bolehPutuskan =

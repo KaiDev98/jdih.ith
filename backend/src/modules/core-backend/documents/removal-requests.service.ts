@@ -54,6 +54,8 @@ export class RemovalRequestsService {
       throw new ForbiddenException('Permintaan ini khusus Admin pemilik.');
     cekIzin(actor, [sumber === 'DOCUMENT' ? 'documents.edit' : 'templates.manage']);
     const data = skemaPermintaanPenghapusan.parse(raw);
+    if (sumber === 'TEMPLATE' && data.jenis !== 'DELETE')
+      throw new ConflictException('Format Persuratan hanya dapat dimintakan penghapusan. Muat ulang halaman.');
     if (data.jenis === 'WITHDRAW')
       throw new ConflictException('Gunakan Minta Pencabutan. Muat ulang halaman.');
     return this.repo.transaction(async (db) => {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { FileText, FileUp, Plus, UploadCloud, X, Trash2, FileX2 } from 'lucide-react';
+import { FileText, FileUp, Plus, UploadCloud, X, Trash2 } from 'lucide-react';
 import type { PencabutanTemplate } from '@jdih/shared';
 import Link from '@/components/admin/tautan-panel';
 import { ambilApi, GalatApi } from '@/lib/api-client';
@@ -78,7 +78,6 @@ export function AdminTemplates() {
   const [access, setAccess] = useState<'PUBLIK' | 'INTERNAL'>('PUBLIK');
   const [file, setFile] = useState<File>();
   const [fileKey, setFileKey] = useState(0);
-  const [alasanPencabutan, setAlasanPencabutan] = useState<Record<string, string>>({});
   const editor = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -175,18 +174,6 @@ export function AdminTemplates() {
     setRows((data) => data.filter((item) => item.id !== row.id));
     if (selected?.id === row.id) reset();
     setRefresh((x) => x + 1);
-    window.dispatchEvent(new Event('jdih:workflow'));
-  }
-  async function revoke(row: Template) {
-    if (!bolehVerifikasi || !row.aktif || !row.currentVersionId || row.dicabut)
-      throw new Error('Hanya Superadmin dapat mencabut format terbit yang belum dicabut.');
-    await ambilApi(`/admin/letter-templates/${row.id}/revoke`, {
-      method: 'POST', headers: csrfHeaders(csrfToken),
-      muatan: { versionId: row.currentVersionId, alasan: alasanPencabutan[row.id] ?? '' },
-    });
-    setAlasanPencabutan((notes) => ({ ...notes, [row.id]: '' }));
-    setNotice(`${row.nama} dicabut. Berkas tetap tersedia dengan keterangan Dicabut.`);
-    setRefresh((value) => value + 1);
     window.dispatchEvent(new Event('jdih:workflow'));
   }
   const aktif = rows.filter((row) => row.aktif && !row.dicabut).length;
@@ -384,15 +371,6 @@ export function AdminTemplates() {
                           onConfirm={() => publish(row)}
                         />
                       )}
-                    {bolehVerifikasi && !!row.aktif && row.currentVersionId && !row.dicabut && (
-                      <ConfirmAction key={row.currentVersionId} label="Cabut Format" icon={FileX2} tone="danger" ukuran="kecil"
-                        title="Cabut format persuratan?"
-                        description={`${row.nama} versi ${row.nomorVersi} tetap tersedia sebagai dokumentasi dengan label Dicabut. Alasan pencabutan tampil sesuai hak akses format.`}
-                        confirmLabel="Ya, cabut" confirmDisabled={!alasanPencabutan[row.id]?.trim()} onConfirm={() => revoke(row)}>
-                        <TextAreaField label="Alasan pencabutan" rows={3} maxLength={1000} value={alasanPencabutan[row.id] ?? ''}
-                          onChange={(event) => setAlasanPencabutan((notes) => ({ ...notes, [row.id]: event.target.value }))} />
-                      </ConfirmAction>
-                    )}
                     {bolehHapus(row) || !bolehUbah(row) ? <ConfirmAction
                       label="Hapus" icon={Trash2}
                       tone="danger"
@@ -402,7 +380,7 @@ export function AdminTemplates() {
                       description={`${row.nama} akan dihapus dari daftar pengelola dan portal. Seluruh versi berkasnya tidak lagi dapat diunduh.`}
                       disabled={!bolehHapus(row)}
                       onConfirm={() => remove(row)}
-                    /> : <FormPermintaanPenghapusan key={row.currentVersionId} sumber="TEMPLATE" resourceId={row.id} judul={row.nama} bisaTarik={!!row.aktif && !!row.currentVersionId && !row.dicabut} />}
+                    /> : <FormPermintaanPenghapusan key={row.currentVersionId} sumber="TEMPLATE" resourceId={row.id} judul={row.nama} bisaTarik={false} />}
                   </div>
                 </li>
               ))}

@@ -275,6 +275,12 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
   }
   const adminOwner = () => ({ ...actor, peran: ['ADMIN'] } as PenggunaAktif);
 
+  // Seed only historical requests: the current API accepts DELETE for templates.
+  async function legacyTemplateRevocation(t: { id: string; versionId: string }, alasan: string) {
+    const [result] = await pool.execute("INSERT INTO permintaan_penghapusan(sumber,resource_id,version_id,judul,jenis,alasan,requested_by) VALUES('TEMPLATE',?,?,?,'REVOKE',?,?)", [t.id, t.versionId, 'Format lama', alasan, actor.id]);
+    return { id: String((result as any).insertId) };
+  }
+
   it('deletes only an owned draft revision, preserving the published file, pointer and access', async () => {
     const { documents } = removalServices();
     const d = await publishedDoc();
@@ -506,14 +512,19 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     expect((await requests.list(adminOwner(), { sumber: 'TEMPLATE', resourceId: template.id, status: 'ALL' })).data).toHaveLength(2);
   });
 
-  it('revokes published templates through Superadmin approval while keeping public preview/download and preserves revoked history when replacing', async () => {
+  it('only accepts deletion requests for templates, preserving legacy revocation decisions and files', async () => {
     const { requests } = removalServices();
     const suffix = uid();
     const pdf = Buffer.from('%PDF-1.7\nmetadata-only test\n%%EOF\n');
     const t = await templates.create(actor, await incomingFile('request.pdf', pdf), { nama: `Format ${suffix}`, slug: `revoke-${suffix}`, tingkatAkses: 'PUBLIK' });
     await templates.verify(second, t.id, t.versionId, {}); await templates.publish(second, t.id, t.versionId, {});
-    await expect(requests.create({ ...second, peran: ['ADMIN'] }, 'TEMPLATE', t.id, { jenis: 'REVOKE', alasan: 'Bukan pemilik' })).rejects.toMatchObject({ status: 404 });
-    const request = await requests.create(adminOwner(), 'TEMPLATE', t.id, { jenis: 'REVOKE', alasan: 'Format tidak digunakan lagi' });
+    await expect(requests.create({ ...second, peran: ['ADMIN'] }, 'TEMPLATE', t.id, { jenis: 'DELETE', alasan: 'Bukan pemilik' })).rejects.toMatchObject({ status: 404 });
+    for (const jenis of ['REVOKE', 'WITHDRAW']) {
+      await expect(requests.create(adminOwner(), 'TEMPLATE', t.id, { jenis, alasan: 'Aksi yang tidak tersedia' })).rejects.toMatchObject({ status: 409, message: 'Format Persuratan hanya dapat dimintakan penghapusan. Muat ulang halaman.' });
+    }
+    expect((await requests.list(adminOwner(), { sumber: 'TEMPLATE', resourceId: t.id })).data).toHaveLength(0);
+    expect((await templates.adminList(adminOwner())).find((r) => r.id === t.id)).toMatchObject({ aktif: 1, dicabut: 0, currentVersionId: t.versionId });
+    const request = await legacyTemplateRevocation(t, 'Format tidak digunakan lagi');
     await expect(requests.decide(adminOwner(), request.id, { keputusan: 'APPROVE' })).rejects.toBeInstanceOf(ForbiddenException);
     await requests.decide(second, request.id, { keputusan: 'APPROVE' });
     const publicList = await templates.list({ q: suffix });
@@ -551,7 +562,7 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     await expect(templates.revoke({ ...second, status: 'NONAKTIF' }, t.id, input)).rejects.toBeInstanceOf(ForbiddenException);
     await expect(templates.revoke(second, t.id, { ...input, alasan: '' })).rejects.toThrow();
     await expect(templates.revoke(second, t.id, { ...input, versionId: '999999999' })).rejects.toMatchObject({ status: 409 });
-    const request = await requests.create(adminOwner(), 'TEMPLATE', t.id, { jenis: 'REVOKE', alasan: input.alasan });
+    const request = await legacyTemplateRevocation(t, input.alasan);
     const record = audit.recordDomain.bind(audit);
     const fail = vi.spyOn(audit, 'recordDomain').mockImplementation((event, db) => {
       if (event.action === 'REMOVAL_APPROVED') throw new Error('template revocation audit failure');
@@ -578,7 +589,7 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     const { requests } = removalServices(); const suffix = uid();
     const t = await templates.create(actor, await incomingFile('request.docx', minimalDocx()), { nama: `Format ${suffix}`, slug: `stale-revoke-${suffix}`, tingkatAkses: 'PUBLIK' });
     await templates.verify(second, t.id, t.versionId, {}); await templates.publish(second, t.id, t.versionId, {});
-    const request = await requests.create(adminOwner(), 'TEMPLATE', t.id, { jenis: 'REVOKE', alasan: 'Versi lama' });
+    const request = await legacyTemplateRevocation(t, 'Versi lama');
     const v2 = await templates.newVersion(adminOwner(), t.id, await incomingFile('request.docx', minimalDocx()), { tingkatAkses: 'PUBLIK' });
     await templates.verify(second, t.id, v2.id, {}); await templates.publish(second, t.id, v2.id, {});
     await expect(requests.decide(second, request.id, { keputusan: 'APPROVE' })).rejects.toMatchObject({ status: 409 });

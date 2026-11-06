@@ -177,16 +177,6 @@ export class AdminLetterTemplatesController {
     file.stream.pipe(res);
   }
 
-  @Post(':templateId/revoke')
-  @Izin('templates.manage')
-  revoke(
-    @Param('templateId') id: string,
-    @Req() req: PermintaanBerpengguna,
-    @Aktor() actor: PenggunaAktif,
-  ) {
-    return this.templates.revoke(actor, skemaId.parse(id), req.body);
-  }
-
   @Delete(':templateId')
   @Izin('templates.manage')
   remove(

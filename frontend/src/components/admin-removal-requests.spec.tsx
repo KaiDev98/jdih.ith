@@ -89,25 +89,34 @@ describe('permintaan penarikan dan penghapusan', () => {
     await screen.findByText(/Permintaan terkirim/);
     expect(screen.getByRole('button', { name: 'Minta Penghapusan' })).toBeDisabled();
   });
-  it('mempertahankan alasan bila pengiriman gagal; format belum terbit tanpa permintaan pencabutan', async () => {
+  it('format hanya meminta penghapusan walaupun bisaTarik=true; mempertahankan alasan jika gagal', async () => {
     state.api.mockRejectedValue(new Error('Masih ada permintaan menunggu'));
     render(
       <FormPermintaanPenghapusan
         sumber="TEMPLATE"
         resourceId="7"
         judul="Format tugas"
-        bisaTarik={false}
+        bisaTarik
       />,
     );
     expect(screen.queryByRole('button', { name: 'Minta Pencabutan' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Minta Penarikan' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Minta Penghapusan' }));
     fireEvent.change(screen.getByLabelText('Alasan permintaan'), {
       target: { value: 'Format salah' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Kirim permintaan' }));
     await screen.findByText('Masih ada permintaan menunggu');
+    expect(state.api).toHaveBeenCalledExactlyOnceWith('/admin/letter-templates/7/removal-requests', {
+      method: 'POST', headers: { 'x-csrf-token': 'csrf' }, muatan: { jenis: 'DELETE', alasan: 'Format salah' },
+    });
     expect(screen.getByLabelText('Alasan permintaan')).toHaveValue('Format salah');
     expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+  it('panel khusus format berjudul Permintaan Penghapusan', async () => {
+    render(<AntreanPermintaanPenghapusan sumber="TEMPLATE" />);
+    expect(await screen.findByRole('heading', { name: /^Permintaan Penghapusan/ })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /Pencabutan/ })).not.toBeInTheDocument();
   });
   it('Admin hanya memantau, walaupun mempunyai izin keputusan langsung', async () => {
     render(<AntreanPermintaanPenghapusan />);

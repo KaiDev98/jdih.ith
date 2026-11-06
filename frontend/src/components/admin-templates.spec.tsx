@@ -53,33 +53,37 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('pustaka Format Persuratan', () => {
-  it('Superadmin mencabut versi terbit dengan alasan, konfirmasi dan CSRF; label Dicabut tetap dapat ditinjau', async () => {
+  it('Superadmin hanya mendapat Hapus; keterangan pencabutan lama tetap dapat ditinjau', async () => {
     state.role = 'SUPERADMIN';
-    const format = { ...rows[0], currentVersionId: '20', dicabut: 0 };
+    const format = { ...rows[0], currentVersionId: '20', dicabut: 1, pencabutan: { tanggal: '2026-11-06', alasan: 'Pencabutan lama' } };
     state.api.mockResolvedValue([format]);
     render(<AdminTemplates />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Cabut Format' }));
-    expect(screen.getByRole('button', { name: 'Ya, cabut' })).toBeDisabled();
-    fireEvent.change(screen.getByLabelText('Alasan pencabutan'), { target: { value: 'Format lama dicabut' } });
-    state.api.mockImplementation((_url, options) => Promise.resolve(options?.method ? {} : [{ ...format, dicabut: 1, pencabutan: { tanggal: '2026-11-06', alasan: 'Format lama dicabut' } }]));
-    fireEvent.click(screen.getByRole('button', { name: 'Ya, cabut' }));
-    await screen.findByText(/Surat Tugas dicabut/);
-    expect(state.api).toHaveBeenCalledWith('/admin/letter-templates/1/revoke', { method: 'POST', headers: { 'X-CSRF-Token': 'csrf' }, muatan: { versionId: '20', alasan: 'Format lama dicabut' } });
+    expect(await screen.findByRole('button', { name: 'Hapus' })).toBeEnabled();
     expect(screen.queryByRole('button', { name: 'Cabut Format' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Dicabut 1' }));
     expect(screen.getByRole('button', { name: 'Keterangan pencabutan Surat Tugas' })).toBeEnabled();
   });
-  it('Admin pemilik dapat meminta pencabutan format, namun tidak mendapat tindakan langsung', async () => {
+  it('Admin pemilik hanya meminta penghapusan format terbit, tanpa pencabutan atau penarikan', async () => {
     state.api.mockResolvedValue([{ ...rows[0], currentVersionId: '20', pernahTerbit: 1 }]);
     render(<AdminTemplates />);
-    expect(await screen.findByRole('button', { name: 'Minta Pencabutan' })).toBeEnabled();
+    expect(await screen.findByRole('button', { name: 'Minta Penghapusan' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: 'Minta Pencabutan' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Minta Penarikan' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Cabut Format' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Minta Penghapusan' }));
+    expect(screen.getByRole('button', { name: 'Kirim permintaan' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Alasan permintaan'), { target: { value: 'Format tidak digunakan lagi' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Kirim permintaan' }));
+    await screen.findByText(/Permintaan terkirim/);
+    expect(state.api).toHaveBeenCalledWith('/admin/letter-templates/1/removal-requests', {
+      method: 'POST', headers: { 'X-CSRF-Token': 'csrf' }, muatan: { jenis: 'DELETE', alasan: 'Format tidak digunakan lagi' },
+    });
+    expect(state.api.mock.calls.filter(([, options]) => options?.method)).toHaveLength(1);
   });
-  it('menutup konfirmasi pencabutan bila versi terbit berubah ketika dialog terbuka', async () => {
-    state.role = 'SUPERADMIN';
+  it('menutup permintaan penghapusan bila versi terbit berubah ketika dialog terbuka', async () => {
     state.api.mockResolvedValue([{ ...rows[0], currentVersionId: '20' }]);
     render(<AdminTemplates />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Cabut Format' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Minta Penghapusan' }));
     state.api.mockResolvedValue([{ ...rows[0], currentVersionId: '21', nomorVersi: 3 }]);
     fireEvent.focus(window);
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());

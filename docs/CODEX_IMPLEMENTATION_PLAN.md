@@ -1,6 +1,13 @@
 # CODEX IMPLEMENTATION PLAN — JDIH ITH V2
 
-Perluasan Format Persuratan 2026-11-06: REVOKE melalui permintaan pemilik dan
+Revisi Format Persuratan PALING TERBARU 2026-11-06: hanya DELETE untuk permintaan
+baru. Hapus tombol Minta Pencabutan/Penarikan dan Cabut Format, tolak REVOKE/WITHDRAW
+baru di API serta hapus route pencabutan langsung. Pertahankan permintaan/keputusan
+lama dan keterangan historis tanpa konversi data. Uji permintaan hapus dengan alasan,
+konfirmasi/CSRF, pembatasan pemilik, keputusan Superadmin, preview/unduhan tertutup
+setelah penghapusan, serta Produk Hukum/SOP masih dapat dicabut. Tanpa migrasi baru.
+
+Perluasan Format Persuratan sebelumnya 2026-11-06: REVOKE melalui permintaan pemilik dan
 Cabut Format langsung khusus Superadmin. Metadata revoked_at/reason/by terpisah
 dari workflow versi; ACTIVE/pointer/akses/file dipertahankan. Uji publik/Internal,
 pratinjau/unduh, alasan/tanggal WITA, badge/filter, catatan keputusan opsional,
