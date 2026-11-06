@@ -129,6 +129,11 @@
   .panel-admin .detail-status-actions {
     margin-top: -4px;
   }
+  .panel-admin .detail-status-hukum,
+  .panel-admin .detail-hapus-permanen {
+    padding: 1rem;
+    align-self: stretch;
+  }
 }
 
 .panel-admin .pintasan-grid {

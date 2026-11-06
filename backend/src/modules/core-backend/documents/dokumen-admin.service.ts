@@ -155,6 +155,45 @@ export class DokumenAdminService {
       });
   }
 
+  /** Called with the parent locked; only a superseded version with a published replacement qualifies. */
+  async versiLama(db: PoolConnection, id: string, versionId: string) {
+    const [version] = await this.repo.rows<RowDataPacket & { id: string; judul: string; nomor_versi: number; created_by: string }>(db,
+      `SELECT CAST(v.id AS CHAR) id,v.judul,v.nomor_versi,CAST(v.created_by AS CHAR) created_by
+       FROM dokumen_versi v JOIN dokumen d ON d.id=v.dokumen_id AND d.deleted_at IS NULL
+       JOIN dokumen_versi active_version ON active_version.id=d.current_published_version_id AND active_version.dokumen_id=d.id
+       WHERE d.id=? AND v.id=? AND v.status_workflow IN ('TERBIT','DITARIK')
+       AND active_version.status_workflow='TERBIT' AND active_version.nomor_versi>v.nomor_versi FOR UPDATE`, [id, versionId]);
+    if (!version) throw new ConflictException('Versi ini tidak dapat dihapus. Revisi pengganti harus sudah terbit; versi aktif dan draf tetap dilindungi.');
+    return version;
+  }
+
+  /** Explicit approved version deletion; never deletes the parent, current pointer, grants or newer versions. */
+  async hapusVersiLamaDalamTransaksi(db: PoolConnection, actor: PenggunaAktif, id: string, versionId: string, requestId: string) {
+    cekSuperadmin(actor);
+    cekIzin(actor, ['documents.delete']);
+    const parent = await this.kunci(db, id);
+    const version = await this.versiLama(db, id, versionId);
+    const files = await this.repo.rows<RowDataPacket & { storage_key: string }>(db,
+      'SELECT storage_key FROM dokumen_berkas WHERE dokumen_versi_id=?', [versionId]);
+    // Keep legal effects but detach their historical source link, just as permanent deletion does.
+    await this.repo.write(db, 'UPDATE dokumen_status_hukum_riwayat SET source_version_id=NULL WHERE source_version_id=?', [versionId]);
+    for (const target of [
+      'dokumen_relasi WHERE source_version_id', 'dokumen_versi_kategori WHERE dokumen_versi_id',
+      'dokumen_versi_tag WHERE dokumen_versi_id', 'dokumen_berkas WHERE dokumen_versi_id', 'dokumen_workflow WHERE dokumen_versi_id',
+    ]) await this.repo.write(db, `DELETE FROM ${target}=?`, [versionId]);
+    await this.repo.write(db, 'DELETE FROM dokumen_versi WHERE id=? AND dokumen_id=?', [versionId, id]);
+    await this.audit.recordDomain({ module: 'documents', action: 'DELETE_VERSION', entityType: 'dokumen_versi', entityId: versionId,
+      actorId: actor.id, before: { ownerId: String(parent.created_by), judul: version.judul, nomorVersi: version.nomor_versi },
+      after: { requestId, targetId: id } }, db);
+    // Physical cleanup is allowed only after the object has no remaining metadata reference.
+    const unused: string[] = [];
+    for (const file of files) {
+      const remaining = await this.repo.rows(db, 'SELECT id FROM dokumen_berkas WHERE storage_key=? LIMIT 1', [file.storage_key]);
+      if (!remaining.length) unused.push(file.storage_key);
+    }
+    return unused;
+  }
+
   /** Hanya draf/revisi yang dibatalkan, tanpa menyentuh versi terbit/historis. */
   async hapusDraf(actor: PenggunaAktif, id: string, versionId: string) {
     cekBacaPanel(actor, 'documents.read_admin');

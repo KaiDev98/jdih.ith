@@ -24,15 +24,14 @@ export function AdminHapusDokumen({ id, judul, versionId }: { id: string; judul:
   }
 
   return (
-    <Card className="border-rose-200 bg-rose-50/30">
+    <Card className="detail-hapus-permanen flex flex-col border-rose-200 bg-rose-50/30">
       <h2 className="flex items-center gap-2 text-sm font-bold text-rose-900">
         <Trash2 aria-hidden className="size-4" /> Hapus Seluruh Dokumen
       </h2>
       <p className="mt-1 text-sm text-slate-600">
-        Dokumen, seluruh versi, dan berkasnya dihapus dan tidak lagi tampil di web. Tindakan ini
-        tidak dapat dibatalkan.
+        Menghapus dokumen beserta semua versi dan berkas. Tidak dapat dibatalkan.
       </p>
-      <fieldset disabled={!bolehHapus} className="mt-4 grid min-w-0 gap-3">
+      <fieldset disabled={!bolehHapus} className="mt-auto grid min-w-0 gap-3 pt-3">
         <ConfirmAction
           label="Hapus permanen" icon={Trash2}
           tone="danger"

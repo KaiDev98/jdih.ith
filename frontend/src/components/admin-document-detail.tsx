@@ -340,7 +340,11 @@ function DetailDokumen({
   const versiTerbaru = [document, ...detail.versions].reduce((latest, version) =>
     version.nomorVersi > latest.nomorVersi ? version : latest, document);
   const versiLama = versiTerbaru.versionId !== document.versionId || diganti;
-  const tampilPermintaan = !bisaDiubah && !versiLama && (superadmin || document.bolehRevisi);
+  const penggantiTerbit = [document, ...detail.versions].find((version) => version.versionId === document.currentPublishedVersionId);
+  const bisaMintaHapusVersi = !superadmin && document.bolehRevisi && izin.includes('documents.edit') &&
+    ['TERBIT', 'DITARIK'].includes(tahap) && penggantiTerbit?.statusWorkflow === 'TERBIT' &&
+    penggantiTerbit.nomorVersi > document.nomorVersi;
+  const tampilPermintaan = !bisaDiubah && ((!versiLama && (superadmin || document.bolehRevisi)) || bisaMintaHapusVersi);
   const tampilHapusPermanen = superadmin && konteks !== 'pengajuan' &&
     !versiLama && !['DRAF', 'REVISI', 'DIAJUKAN'].includes(tahap);
   const jalurLangsung = superadmin && document.bolehSetujuiLangsung === true;
@@ -572,6 +576,12 @@ function DetailDokumen({
               Anda sedang membuka versi lama. Penghapusan seluruh dokumen tidak tersedia dari riwayat ini agar revisi tetap aman.{' '}
               <Link href={tautanDetailDokumen(id, versiTerbaru.versionId, konteks)} className="font-semibold text-institusi-700 underline underline-offset-4">Buka Versi Terbaru</Link>
             </p>
+          )}
+          {bisaMintaHapusVersi && (
+            <div className="mt-3">
+              <FormPermintaanPenghapusan key={document.versionId} sumber="DOCUMENT" resourceId={id} judul={document.judul}
+                bisaTarik={false} versionId={document.versionId} nomorVersi={document.nomorVersi} />
+            </div>
           )}
           {bisaDiubah && kekurangan.length > 0 && (
             <div role="status" className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">

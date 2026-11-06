@@ -1,5 +1,14 @@
 # CODEX IMPLEMENTATION PLAN — JDIH ITH V2
 
+2026-11-06: DELETE_VERSION via permintaan Admin pemilik dan keputusan Superadmin.
+Terapkan patch-029 setelah patch-028, build/restart API. Uji versi aktif/tanpa
+pengganti terbit/asing/pemilik lain, otorisasi keputusan, audit rollback, berkas
+serta pointer revisi tetap tersedia; versi lama hilang pada Admin/Superadmin dan
+daftar Semua Dokumen. Verifikasi notifikasi masuk/keputusan serta satu pending
+per induk. DELETE induk tetap terikat versi terbaru; tidak mengonversi permintaan
+lama. Detail desktop mempertahankan tinggi panel Status/Hapus sejajar; panel
+Hapus dipadatkan, ponsel tetap bertumpuk dan konfirmasi tindakan tidak berubah.
+
 Draf revisi lama: Gunakan Dokumen Asli memanggil reuse-main, tanpa unggahan manual.
 Uji konfirmasi/CSRF/izin, lintas pemilik, versi terbit, file sudah ada dan sumber
 yang hanya boleh ditentukan server. Salinan tetap terpisah dari versi lama.

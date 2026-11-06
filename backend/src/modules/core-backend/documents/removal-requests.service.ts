@@ -63,6 +63,12 @@ export class RemovalRequestsService {
       if (!target) throw new NotFoundException();
       cekPemilikAtauSuperadmin(actor, target.createdBy);
       if (!target.versionId) throw new ConflictException('Dokumen belum mempunyai versi.');
+      if (data.jenis === 'DELETE_VERSION') {
+        const version = await this.documents.versiLama(db, resourceId, data.versionId!);
+        cekPemilikAtauSuperadmin(actor, version.created_by);
+        target.versionId = String(version.id);
+        target.judul = `${version.judul} · Versi ${String(version.nomor_versi)}`;
+      }
       if (data.jenis === 'REVOKE' && (!target.currentId || target.currentStatus !== (sumber === 'TEMPLATE' ? 'ACTIVE' : 'TERBIT') || target.statusHukum === 'DICABUT'))
         throw new ConflictException('Hanya dokumen atau format terbit yang belum dicabut dapat dimintakan pencabutan.');
       if (data.jenis === 'WITHDRAW' && !target.currentId)
@@ -89,11 +95,13 @@ export class RemovalRequestsService {
     const data = skemaKeputusanPenghapusan.parse(raw);
     const initial = await this.requests.get(id);
     if (!initial) throw new NotFoundException();
+    if (initial.sumber === 'TEMPLATE' && initial.jenis === 'DELETE_VERSION')
+      throw new ConflictException('Penghapusan versi lama hanya tersedia untuk dokumen hukum dan SOP.');
     // Izin keputusan diperiksa kembali di server sesuai tindakan dan koleksinya.
     cekIzin(actor, [
       initial.sumber === 'TEMPLATE'
         ? 'templates.manage'
-        : initial.jenis !== 'DELETE'
+        : !['DELETE', 'DELETE_VERSION'].includes(initial.jenis)
           ? 'workflow.withdraw'
           : 'documents.delete',
     ]);
@@ -105,6 +113,7 @@ export class RemovalRequestsService {
       if (request.status !== 'PENDING') throw new ConflictException('Permintaan sudah diproses.');
       if (
         data.keputusan === 'APPROVE' &&
+        request.jenis !== 'DELETE_VERSION' &&
         (target?.versionId !== request.versionId ||
           (request.jenis !== 'DELETE' && !target.currentId))
       )
@@ -120,6 +129,8 @@ export class RemovalRequestsService {
             await this.core.revokeInTransaction(db, actor, request.resourceId, request.versionId!, data.catatan || request.alasan, id);
           else if (request.jenis === 'WITHDRAW')
             await this.core.withdrawInTransaction(db, actor, request.resourceId, data.catatan || request.alasan, id);
+          else if (request.jenis === 'DELETE_VERSION')
+            files = await this.documents.hapusVersiLamaDalamTransaksi(db, actor, request.resourceId, request.versionId!, id);
           else files = await this.documents.hapusDalamTransaksi(db, actor, request.resourceId, request.versionId!, id);
         } else if (request.jenis === 'REVOKE')
           await this.templates.revokeInTransaction(db, actor, request.resourceId, request.versionId!, data.catatan || request.alasan, id);

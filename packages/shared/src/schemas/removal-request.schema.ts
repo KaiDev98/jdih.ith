@@ -2,8 +2,14 @@ import { z } from 'zod';
 import { skemaId, teksWajib } from './common.schema.js';
 
 export const skemaPermintaanPenghapusan = z.strictObject({
-  jenis: z.enum(['WITHDRAW', 'DELETE', 'REVOKE']),
+  jenis: z.enum(['WITHDRAW', 'DELETE', 'REVOKE', 'DELETE_VERSION']),
   alasan: teksWajib(1000, 'Alasan permintaan'),
+  versionId: skemaId.optional(),
+}).superRefine((data, context) => {
+  if (data.jenis === 'DELETE_VERSION' && !data.versionId)
+    context.addIssue({ code: 'custom', path: ['versionId'], message: 'Pilih versi lama yang akan dihapus.' });
+  if (data.jenis !== 'DELETE_VERSION' && data.versionId)
+    context.addIssue({ code: 'custom', path: ['versionId'], message: 'Sasaran versi hanya untuk penghapusan versi lama.' });
 });
 export const skemaKeputusanPenghapusan = z.strictObject({
   keputusan: z.enum(['APPROVE', 'DECLINE']),
@@ -24,7 +30,7 @@ export interface PermintaanPenghapusan {
   resourceId: string;
   versionId: string | null;
   judul: string;
-  jenis: 'WITHDRAW' | 'DELETE' | 'REVOKE';
+  jenis: 'WITHDRAW' | 'DELETE' | 'REVOKE' | 'DELETE_VERSION';
   alasan: string;
   status: 'PENDING' | 'APPROVED' | 'DECLINED' | 'OBSOLETE';
   pemohon: string;

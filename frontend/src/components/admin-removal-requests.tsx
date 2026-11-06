@@ -14,11 +14,15 @@ export function FormPermintaanPenghapusan({
   resourceId,
   judul,
   bisaTarik,
+  versionId,
+  nomorVersi,
 }: {
   sumber: SumberPermintaanPenghapusan;
   resourceId: string;
   judul: string;
   bisaTarik: boolean;
+  versionId?: string;
+  nomorVersi?: number;
 }) {
   const { csrfToken } = useSession();
   const [alasan, setAlasan] = useState('');
@@ -50,7 +54,7 @@ export function FormPermintaanPenghapusan({
       {
         method: 'POST',
         headers: csrfHeaders(csrfToken),
-        muatan: { jenis, alasan },
+        muatan: { jenis, alasan, ...(versionId ? { versionId } : {}) },
       },
     );
     setAlasan('');
@@ -59,19 +63,19 @@ export function FormPermintaanPenghapusan({
   }
   return (
     <div className="flex flex-wrap gap-2">
-      {(['REVOKE', 'DELETE'] as const)
-        .filter((jenis) => jenis === 'DELETE' || (sumber === 'DOCUMENT' && bisaTarik))
+      {(versionId ? ['DELETE_VERSION' as const] : ['REVOKE' as const, 'DELETE' as const])
+        .filter((jenis) => jenis !== 'REVOKE' || (sumber === 'DOCUMENT' && bisaTarik))
         .map((jenis) => (
           <ConfirmAction
             key={jenis}
-            icon={jenis !== 'DELETE' ? FileX2 : Trash2}
+            icon={jenis === 'REVOKE' ? FileX2 : Trash2}
             ukuran="kecil"
-            tone={jenis === 'DELETE' ? 'danger' : 'secondary'}
-            label={jenis === 'REVOKE' ? 'Minta Pencabutan' : 'Minta Penghapusan'}
+            tone={jenis === 'REVOKE' ? 'secondary' : 'danger'}
+            label={jenis === 'DELETE_VERSION' ? `Minta Hapus Versi ${String(nomorVersi)}` : jenis === 'REVOKE' ? 'Minta Pencabutan' : 'Minta Penghapusan'}
             title={
-              jenis === 'REVOKE' ? 'Minta Pencabutan Dokumen?' : 'Minta Penghapusan Dokumen?'
+              jenis === 'DELETE_VERSION' ? `Minta Penghapusan Versi ${String(nomorVersi)}?` : jenis === 'REVOKE' ? 'Minta Pencabutan Dokumen?' : 'Minta Penghapusan Dokumen?'
             }
-            description={`Permintaan untuk “${judul}” dikirim ke Superadmin. ${jenis === 'REVOKE' ? 'Setelah disetujui, dokumen tetap tersedia dengan status Dicabut, tanpa dokumen pengganti. Alasan permintaan menjadi keterangan pencabutan jika Superadmin tidak mengisi catatan keputusan.' : sumber === 'TEMPLATE' ? 'Setelah disetujui, format dihapus dari panel dan portal; pratinjau dan unduhan seluruh versinya ditutup. Riwayat tetap tersimpan.' : 'Penghapusan seluruh versi dan berkas baru dilakukan setelah persetujuan Superadmin.'}`}
+            description={`Permintaan untuk “${judul}” dikirim ke Superadmin. ${jenis === 'DELETE_VERSION' ? `Hanya versi ${String(nomorVersi)} dan berkas miliknya yang dihapus setelah disetujui. Revisi terbaru, dokumen di portal dan versi lain tetap tersedia.` : jenis === 'REVOKE' ? 'Setelah disetujui, dokumen tetap tersedia dengan status Dicabut, tanpa dokumen pengganti. Alasan permintaan menjadi keterangan pencabutan jika Superadmin tidak mengisi catatan keputusan.' : sumber === 'TEMPLATE' ? 'Setelah disetujui, format dihapus dari panel dan portal; pratinjau dan unduhan seluruh versinya ditutup. Riwayat tetap tersimpan.' : 'Penghapusan seluruh versi dan berkas baru dilakukan setelah persetujuan Superadmin.'}`}
             disabled={terkirim}
             confirmLabel="Kirim permintaan"
             confirmDisabled={!alasan.trim()}
@@ -186,7 +190,7 @@ export function AntreanPermintaanPenghapusan({
           ? 'Dokumen berhasil dicabut. Dokumen tetap tersedia dengan status Dicabut.'
         : row.jenis === 'WITHDRAW'
           ? 'Dokumen berhasil ditarik dari portal.'
-          : 'Dokumen berhasil dihapus.',
+          : row.jenis === 'DELETE_VERSION' ? 'Versi lama berhasil dihapus. Revisi terbaru tetap tersedia.' : 'Dokumen berhasil dihapus.',
     );
     window.dispatchEvent(new Event('jdih:workflow'));
     onProcessed?.(row, keputusan);
@@ -272,7 +276,7 @@ export function AntreanPermintaanPenghapusan({
               pengguna?.izin.includes(
                 row.sumber === 'TEMPLATE'
                   ? 'templates.manage'
-                  : row.jenis !== 'DELETE'
+                  : !['DELETE', 'DELETE_VERSION'].includes(row.jenis)
                     ? 'workflow.withdraw'
                     : 'documents.delete',
               );
@@ -283,7 +287,7 @@ export function AntreanPermintaanPenghapusan({
                     <h3 className="text-sm font-semibold [overflow-wrap:anywhere]">{row.judul}</h3>
                     <p className="mt-1 text-xs text-slate-500">
                       {row.pemohon} · {row.sumber === 'TEMPLATE' ? 'Format Persuratan' : 'Dokumen'}{' '}
-                      · {row.jenis === 'REVOKE' ? 'Cabut Dokumen' : row.jenis === 'WITHDRAW' ? 'Tarik dari portal (penarikan)' : 'Hapus dokumen'}
+                      · {row.jenis === 'DELETE_VERSION' ? 'Hapus Versi Lama Saja' : row.jenis === 'REVOKE' ? 'Cabut Dokumen' : row.jenis === 'WITHDRAW' ? 'Tarik dari portal (penarikan)' : 'Hapus Seluruh Dokumen'}
                     </p>
                   </div>
                   <Badge color={row.status === 'PENDING' ? 'amber' : 'slate'}>
@@ -299,7 +303,7 @@ export function AntreanPermintaanPenghapusan({
                   </p>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  {(row.status === 'PENDING' || (row.status === 'APPROVED' && row.jenis !== 'DELETE')) && (
+                  {(row.status === 'PENDING' || (row.status === 'APPROVED' && !['DELETE', 'DELETE_VERSION'].includes(row.jenis))) && (
                     <Link
                       href={
                         row.sumber === 'TEMPLATE'
@@ -316,12 +320,13 @@ export function AntreanPermintaanPenghapusan({
                     (['APPROVE', 'DECLINE'] as const).map((keputusan) => (
                       <ConfirmAction
                         key={keputusan}
-                        icon={keputusan === 'DECLINE' ? XCircle : row.jenis !== 'DELETE' ? FileX2 : Trash2}
+                        icon={keputusan === 'DECLINE' ? XCircle : ['DELETE', 'DELETE_VERSION'].includes(row.jenis) ? Trash2 : FileX2}
                         ukuran="kecil"
                         tone={keputusan === 'APPROVE' ? 'danger' : 'secondary'}
                         label={
                           keputusan === 'DECLINE'
                             ? 'Tidak setujui'
+                            : row.jenis === 'DELETE_VERSION' ? 'Setujui & Hapus Versi'
                             : row.jenis === 'REVOKE'
                               ? 'Setujui & Cabut'
                             : row.jenis === 'WITHDRAW'
@@ -331,6 +336,7 @@ export function AntreanPermintaanPenghapusan({
                         title={
                           keputusan === 'DECLINE'
                             ? 'Tidak menyetujui permintaan?'
+                            : row.jenis === 'DELETE_VERSION' ? 'Setujui penghapusan versi lama saja?'
                             : row.jenis === 'REVOKE'
                               ? 'Setujui pencabutan dokumen?'
                             : row.jenis === 'WITHDRAW'
@@ -340,6 +346,8 @@ export function AntreanPermintaanPenghapusan({
                         description={
                           keputusan === 'DECLINE'
                             ? 'Dokumen tetap seperti semula. Catatan akan tampil untuk Admin pemohon.'
+                            : row.jenis === 'DELETE_VERSION'
+                              ? `Hanya “${row.judul}” dan berkas versinya yang dihapus. Induk dokumen, revisi terbaru dan publikasi tetap tersedia. Tindakan ini tidak dapat dibatalkan.`
                             : row.jenis === 'REVOKE'
                               ? `“${row.judul}” tetap tersedia dengan status Dicabut. Berkas dan riwayat tetap tersimpan. Catatan keputusan menjadi keterangan pencabutan; bila kosong, alasan Admin digunakan.`
                             : row.jenis === 'WITHDRAW'

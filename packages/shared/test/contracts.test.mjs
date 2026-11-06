@@ -13,6 +13,17 @@ test('removal requests cannot set owners or decisions and require bounded reason
   bad(c.skemaDaftarPermintaanPenghapusan, { requestedBy: '1' });
 });
 
+test('historical version deletion requires exactly one explicit version and cannot alter ownership or decisions', () => {
+  ok(c.skemaPermintaanPenghapusan, { jenis: 'DELETE_VERSION', versionId: '7', alasan: 'Revisi sudah terbit' });
+  for (const value of [
+    { jenis: 'DELETE_VERSION', alasan: 'Tanpa sasaran' },
+    { jenis: 'DELETE_VERSION', versionId: '0', alasan: 'Tidak sah' },
+    { jenis: 'DELETE_VERSION', versionId: '7', alasan: ' ' },
+    { jenis: 'DELETE_VERSION', versionId: '7', alasan: 'Sah', status: 'APPROVED' },
+    { jenis: 'DELETE', versionId: '7', alasan: 'Jangan mengubah arti hapus seluruh dokumen' },
+  ]) bad(c.skemaPermintaanPenghapusan, value);
+});
+
 test('removal decisions allow absent notes without weakening bounds or Admin reasons', () => {
   ok(c.skemaPermintaanPenghapusan, { jenis: 'REVOKE', alasan: 'Dicabut tanpa pengganti' });
   ok(c.skemaCabutDokumen, { versionId: '7', alasan: 'Dicabut tanpa pengganti' });

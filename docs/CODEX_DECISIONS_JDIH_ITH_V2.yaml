@@ -1,3 +1,12 @@
+historical_version_deletion_latest_2026_11_06:
+  request_kind: "DELETE_VERSION; explicit versionId; DOCUMENT only"
+  requester: "Active Admin owning both parent and historical version"
+  approver: "Active Superadmin with documents.delete; confirmation, CSRF and audit"
+  eligible: "TERBIT/DITARIK with a higher-numbered current TERBIT replacement in the same parent"
+  effects: "Delete only target version/children/files after approval; preserve parent, current pointer, all other versions and legal history effects"
+  migration: "patch-029 after patch-028; append ENUM only; no conversion of legacy requests"
+  precedence: "Overrides the older blanket prohibition on separate historical version deletion"
+
 project:
   name: "JDIH ITH Parepare"
   institution: "Institut Teknologi Bacharuddin Jusuf Habibie"

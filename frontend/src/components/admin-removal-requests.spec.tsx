@@ -37,6 +37,26 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 describe('permintaan penarikan dan penghapusan', () => {
+  it('permintaan versi lama mengikat versionId dan tidak menawarkan penghapusan seluruh dokumen', async () => {
+    render(<FormPermintaanPenghapusan sumber="DOCUMENT" resourceId="5" judul="SK Lama" bisaTarik={false} versionId="50" nomorVersi={1} />);
+    expect(screen.queryByRole('button', { name: 'Minta Penghapusan' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Minta Hapus Versi 1' }));
+    expect(screen.getByRole('dialog')).toHaveTextContent('Revisi terbaru, dokumen di portal dan versi lain tetap tersedia.');
+    fireEvent.change(screen.getByLabelText('Alasan permintaan'), { target: { value: 'Versi pengganti sudah terbit' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Kirim permintaan' }));
+    await screen.findByText(/Permintaan terkirim/);
+    expect(state.api).toHaveBeenCalledWith('/admin/documents/5/removal-requests', { method: 'POST', headers: { 'x-csrf-token': 'csrf' }, muatan: { jenis: 'DELETE_VERSION', alasan: 'Versi pengganti sudah terbit', versionId: '50' } });
+  });
+  it('Superadmin melihat konfirmasi hapus satu versi dengan revisi tetap tersedia', async () => {
+    state.role = 'SUPERADMIN';
+    state.list.mockResolvedValue({ data: [{ ...request, jenis: 'DELETE_VERSION', judul: 'SK Lama · Versi 1' }], meta: { totalButir: 1 } });
+    render(<AntreanPermintaanPenghapusan />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Setujui & Hapus Versi' }));
+    expect(screen.getByRole('dialog')).toHaveTextContent('Induk dokumen, revisi terbaru dan publikasi tetap tersedia.');
+    fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
+    await screen.findByText('Versi lama berhasil dihapus. Revisi terbaru tetap tersedia.');
+    expect(state.api).toHaveBeenCalledWith('/admin/removal-requests/9/decision', { method: 'POST', headers: { 'x-csrf-token': 'csrf' }, muatan: { keputusan: 'APPROVE', catatan: '' } });
+  });
   it('menampilkan kegagalan dengan hitungan tidak tersedia dan dapat dimuat ulang', async () => {
     state.list.mockRejectedValueOnce(new Error('Temporary failure')).mockResolvedValue({ data: [request], meta: { totalButir: 1 } });
     render(<AntreanPermintaanPenghapusan />);

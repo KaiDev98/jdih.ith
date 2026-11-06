@@ -105,6 +105,9 @@ describe('Admin membaca dokumen tanpa tindakan Superadmin; SOP khusus Superadmin
     expect(screen.queryByRole('button', { name: 'Hapus permanen' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Hapus Seluruh Dokumen' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Minta Penghapusan|Minta Pencabutan dan Penghapusan/ })).not.toBeInTheDocument();
+    if (role === 'ADMIN' && stage === 'TERBIT')
+      expect(screen.getByRole('button', { name: 'Minta Hapus Versi 1' })).toBeEnabled();
+    else expect(screen.queryByRole('button', { name: 'Minta Hapus Versi 1' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Buka Versi Terbaru' })).toHaveAttribute('href', `/${role === 'SUPERADMIN' ? 'superadmin' : 'admin'}/dokumen/5?versionId=51`);
   });
   it.each([['ADMIN', 'DRAF'], ['ADMIN', 'REVISI'], ['SUPERADMIN', 'DRAF'], ['SUPERADMIN', 'REVISI']])('%s %s tidak menampilkan atau memuat permintaan pencabutan/penghapusan', async (role, status) => {

@@ -108,7 +108,7 @@ export function notificationEventScope(actor: PenggunaAktif) {
       'r.alasan',
       'JOIN permintaan_penghapusan r ON r.id=a.entity_id',
       `a.module='documents' AND a.entity_type='permintaan_penghapusan' AND a.action='REQUEST_REMOVAL' AND r.status='PENDING'
-       AND ((r.sumber='TEMPLATE' AND ${template}=1) OR (r.sumber='DOCUMENT' AND ((r.jenis IN ('WITHDRAW','REVOKE') AND ${withdraw}=1) OR (r.jenis='DELETE' AND ${remove}=1))))`,
+       AND ((r.sumber='TEMPLATE' AND ${template}=1) OR (r.sumber='DOCUMENT' AND ((r.jenis IN ('WITHDRAW','REVOKE') AND ${withdraw}=1) OR (r.jenis IN ('DELETE','DELETE_VERSION') AND ${remove}=1))))`,
     );
     if (actor.izin.includes('users.read')) {
       select(

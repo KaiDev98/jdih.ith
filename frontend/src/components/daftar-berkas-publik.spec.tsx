@@ -26,7 +26,7 @@ describe('koleksi berkas publik yang panjang', () => {
     ], meta: { totalButir: 2, totalHalaman: 1 } });
     render(await FormatPersuratan({ searchParams: Promise.resolve({}) }));
     expect(screen.getAllByRole('button', { name: 'Pratinjau' })).toHaveLength(1);
-    expect(screen.getAllByRole('button', { name: 'Download' })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: 'Download' })).toHaveLength(2);
   });
   it('format menampilkan 12 item di area gulir dan menyediakan pemuatan lanjutan', async () => {
     api.list.mockResolvedValue({

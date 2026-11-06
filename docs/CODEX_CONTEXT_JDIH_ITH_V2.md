@@ -1,5 +1,24 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
+Penghapusan versi historis TERBARU 2026-11-06: instruksi user memperbolehkan
+Admin pemilik meminta hapus satu versi lama, dengan persetujuan Superadmin.
+DELETE_VERSION berbeda dari DELETE seluruh induk: wajib versionId eksplisit,
+hanya Produk Hukum/SOP, bukan Format Persuratan. Target TERBIT/DITARIK harus
+bernomor lebih rendah daripada current TERBIT penggantinya pada induk yang sama.
+Admin harus pemilik induk dan versi. Versi aktif, draf, versi asing dan versi
+tanpa pengganti terbit ditolak. UI Minta Hapus Versi N muncul pada riwayat lama;
+antrean menjelaskan hanya versi itu yang dihapus. Sesudah persetujuan, hapus
+baris versi dan anaknya, lepas source_version_id riwayat hukum (makna/status
+tetap), simpan audit DELETE_VERSION dan keputusan. Induk/current/grant/statistik
+dan semua revisi lain tidak diubah. File fisik target dibersihkan sesudah commit,
+tidak menyentuh key versi lain. Gagal audit/keputusan rollback seluruhnya.
+Notifikasi/badge keputusan memakai antrean yang sama, tanpa duplikasi aksi.
+Permintaan lama DELETE/WITHDRAW/REVOKE tidak dikonversi. Satu PENDING per induk
+tetap berlaku. Patch-029 setelah patch-028 menambah ENUM saja, aman diulang;
+tidak menghapus unggahan atau mengubah keputusan lama. Restart backend wajib.
+Ini menggantikan larangan menghapus riwayat secara terpisah di bawah, khusus
+alur DELETE_VERSION yang disetujui, bukan memberi Admin hak hapus langsung.
+
 Perbaikan penghapusan TERBARU 2026-11-06: detail versi lama tidak menyediakan
 Hapus Seluruh Dokumen maupun pengajuan permintaan hapus; tautan menuju versi
 terbaru tersedia. Riwayat terbit dipertahankan, bukan dihapus terpisah.
