@@ -32,6 +32,11 @@ afterEach(() => {
 });
 
 describe('pratinjau Format Persuratan', () => {
+  it('tidak menggandakan unduhan fallback bila kartu sudah menyediakan Download', () => {
+    render(<PratinjauFormat {...props} canPreview={false} hideFallback />);
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(fetchFile).not.toHaveBeenCalled();
+  });
   it('PDF dimuat saat diminta melalui API bersesi, tanpa ajakan unduh untuk ditinjau', async () => {
     render(<PratinjauFormat {...props} />);
     expect(screen.queryByText('Unduh untuk ditinjau')).not.toBeInTheDocument();

@@ -182,6 +182,13 @@
   gap: 8px;
 }
 .actions > * { min-width: 0; }
+.actions > .previewActions {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+.previewActions > * { flex: 1; min-width: 0; }
 .actions > :last-child { grid-column: 1 / -1; border-top: 1px solid #edf0ed; padding-top: 10px; margin-top: 2px; }
 .actions > a { text-align: center; justify-content: center; }
 .actions > .queueLink { grid-column: 1 / -1; }

@@ -40,7 +40,7 @@ export default async function FormatPersuratan({
       <HeroHalaman
         label="Unduhan"
         judul="Format Persuratan"
-        deskripsi="Format surat resmi ITH yang dapat diunduh dan digunakan."
+        deskripsi="Format Surat Resmi ITH yang Dapat Diunduh dan Digunakan."
       />
       <div className={styles.pageWidth}>
         <KoleksiBerkas

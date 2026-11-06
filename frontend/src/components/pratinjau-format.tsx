@@ -23,12 +23,14 @@ export function PratinjauFormat({
   downloadUrl,
   canPreview,
   fallbackLabel = 'Unduh untuk ditinjau',
+  hideFallback = false,
 }: {
   nama: string;
   previewUrl: string;
   downloadUrl: string;
   canPreview: boolean;
   fallbackLabel?: string;
+  hideFallback?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -70,7 +72,7 @@ export function PratinjauFormat({
     };
   }, [open, canPreview, previewUrl, attempt, pdfDidukung]);
   if (!canPreview || !pdfDidukung)
-    return (
+    return hideFallback ? null : (
       <a href={downloadUrl} className={kelasUnduh}>
         <Download aria-hidden className="size-3.5" />
         {fallbackLabel}

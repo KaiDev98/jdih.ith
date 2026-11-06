@@ -36,6 +36,13 @@ afterEach(() => {
 });
 
 describe('koleksi berkas bergulir', () => {
+  it('menyediakan Download langsung di samping Pratinjau untuk PDF', () => {
+    render(<KoleksiBerkas jenis="format" initial={{ data: [{ ...format(1), kemampuan: { download: true, preview: true } }], meta: meta(1, 1) }} />);
+    const preview = screen.getByRole('button', { name: 'Pratinjau' });
+    const download = screen.getByRole('button', { name: 'Download' });
+    expect(preview.parentElement).toContainElement(download);
+    expect(download).toBeEnabled();
+  });
   it('format Dicabut tetap memiliki pratinjau dan keterangan yang dapat dibaca di dialog', async () => {
     const alasan = 'Alasan pencabutan yang perlu dibaca. '.repeat(20);
     render(<KoleksiBerkas jenis="format" initial={{ data: [{ id: '91', slug: 'format-dicabut', nama: 'Format Dicabut Uji', pencabutan: { tanggal: '2026-11-06', alasan }, kemampuan: { download: true, preview: true } }], meta: meta(1, 1) }} />);

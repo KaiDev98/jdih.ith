@@ -40,17 +40,19 @@ function KartuBerkas({ item }: { item: Berkas }) {
               ? 'Khusus Dosen/Staf aktif'
               : item.pencabutan ? 'Dokumentasi' : 'Siap digunakan'}
           </span>
-          {item.kemampuan?.preview ? (
+          <div className={styles.formatActions}>
+          {item.kemampuan?.preview && (
             <PratinjauFormat
               nama={item.nama}
               canPreview
               previewUrl={`/api/v1/letter-templates/${encodeURIComponent(item.slug)}/preview`}
               downloadUrl={`/api/v1/letter-templates/${encodeURIComponent(item.slug)}/download`}
               fallbackLabel="Unduh berkas"
+              hideFallback
             />
-          ) : (
-            <UnduhTemplate slug={item.slug} nama={item.nama} />
           )}
+            <UnduhTemplate slug={item.slug} nama={item.nama} />
+          </div>
         </div>
       </li>
     );

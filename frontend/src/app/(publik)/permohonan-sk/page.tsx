@@ -49,7 +49,7 @@ export default async function PermohonanSk({
       <HeroHalaman
         label="Standar Operasional Prosedur"
         judul="SOP Permohonan SK"
-        deskripsi="Prosedur resmi pengajuan Surat Keputusan (SK) di lingkungan Institut Teknologi Bacharuddin Jusuf Habibie."
+        deskripsi="Prosedur Resmi Pengajuan Surat Keputusan (SK) di Lingkungan Institut Teknologi Bacharuddin Jusuf Habibie."
       />
       <div className={styles.pageWidth}>
         <KoleksiBerkas

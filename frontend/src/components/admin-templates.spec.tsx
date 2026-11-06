@@ -58,7 +58,7 @@ describe('pustaka Format Persuratan', () => {
     render(<AdminTemplates />);
     await screen.findByText('Surat Tugas');
     expect(screen.getByRole('button', { name: 'Pratinjau' })).toBeEnabled();
-    expect(screen.getByRole('link', { name: 'Unduh' })).toHaveAttribute('href', '/api/v1/admin/letter-templates/1/versions/19/download');
+    expect(screen.getByRole('link', { name: 'Download' })).toHaveAttribute('href', '/api/v1/admin/letter-templates/1/versions/19/download');
   });
   it('memvalidasi metadata dengan kontrak shared sebelum mengunggah dan menyamakan batas isian', async () => {
     render(<AdminTemplates />);
