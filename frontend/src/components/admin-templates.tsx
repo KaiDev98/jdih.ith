@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { FileText, FileUp, Plus, UploadCloud, X, Trash2 } from 'lucide-react';
 import type { PencabutanTemplate } from '@jdih/shared';
+import { skemaBuatVersiTemplate, skemaUnggahTemplateAwal } from '@jdih/shared';
 import Link from '@/components/admin/tautan-panel';
 import { ambilApi, GalatApi } from '@/lib/api-client';
 import { useSession, csrfHeaders } from '@/lib/sesi';
@@ -124,23 +125,43 @@ export function AdminTemplates() {
     if (!bolehKelola) throw new Error('Anda tidak memiliki izin mengelola format persuratan.');
     if (selected && !bolehGanti(selected)) throw new Error('Format ini tidak dapat Anda ubah.');
     if (!file) throw new Error('Pilih berkas format surat.');
+    const metadata = selected
+      ? { tingkatAkses: access }
+      : { nama: name.trim(), slug: slug.replace(/-+$/, ''), modeSlug: slugManual ? 'manual' : 'otomatis', deskripsi: description, tingkatAkses: access };
+    const validasi = (selected ? skemaBuatVersiTemplate : skemaUnggahTemplateAwal).safeParse(metadata);
+    if (!validasi.success) {
+      const labels: Record<string, string> = { nama: 'Nama', slug: 'Slug', deskripsi: 'Deskripsi' };
+      throw new Error(validasi.error.issues.map((issue) => issue.code === 'too_big'
+        ? `${labels[String(issue.path[0])] ?? 'Isian'} maksimal ${issue.maximum} karakter.`
+        : issue.message).join(' '));
+    }
     const data = new FormData();
     data.set('file', file);
-    data.set('tingkatAkses', access);
-    if (!selected) {
-      data.set('nama', name.trim());
-      data.set('slug', slug.replace(/-+$/, ''));
-      data.set('modeSlug', slugManual ? 'manual' : 'otomatis');
-      data.set('deskripsi', description);
-    }
-    await ambilApi(
+    for (const [key, value] of Object.entries(validasi.data)) data.set(key, value);
+    const kirim = (muatan: FormData) => ambilApi(
       selected ? `/admin/letter-templates/${selected.id}/versions` : '/admin/letter-templates',
-      {
-        method: 'POST',
-        headers: csrfHeaders(csrfToken),
-        muatan: data,
-      },
+      { method: 'POST', headers: csrfHeaders(csrfToken), muatan },
     );
+    try {
+      await kirim(data).catch((error: unknown) => {
+        // A strict legacy API rejects this optional field before processing the upload.
+        // Retry once only for that exact rejection; never retry other validation/write errors.
+        if (selected || !(error instanceof GalatApi) || error.status !== 422 ||
+          error.kode !== 'VALIDASI_GAGAL' || error.butir?.length !== 1 ||
+          error.butir[0]?.ruas !== '(akar)' || error.butir[0]?.pesan !== 'Unrecognized key: "modeSlug"') throw error;
+        const kompatibel = new FormData();
+        for (const [key, value] of data.entries()) if (key !== 'modeSlug') kompatibel.append(key, value);
+        return kirim(kompatibel);
+      });
+    } catch (error) {
+      if (error instanceof GalatApi && error.kode === 'VALIDASI_GAGAL') {
+        if (error.butir?.some((item) => item.ruas === '(akar)' && /unrecognized/i.test(item.pesan) && /modeSlug/.test(item.pesan)))
+          throw new Error('Layanan unggah masih memakai versi lama. Minta pengelola memulai ulang backend dengan kode terbaru, lalu coba lagi. Isian dan berkas Anda tetap tersimpan.');
+        const detail = error.butir?.map((item) => item.pesan).filter(Boolean).join(' ');
+        if (detail) throw new Error(detail);
+      }
+      throw error;
+    }
     setNotice(
       selected
         ? `Versi baru ${selected.nama} diunggah dan menunggu persetujuan Superadmin.`
@@ -413,7 +434,7 @@ export function AdminTemplates() {
                     id="template-name"
                     placeholder="Contoh: Surat Tugas"
                     value={name}
-                    maxLength={255}
+                    maxLength={skemaUnggahTemplateAwal.shape.nama.maxLength ?? undefined}
                     onChange={(e) => {
                       setName(e.target.value);
                       if (!slugManual) setSlug(jadikanSlug(e.target.value));
@@ -426,6 +447,7 @@ export function AdminTemplates() {
                         label="Slug"
                         id="template-slug"
                         value={slug}
+                        maxLength={skemaUnggahTemplateAwal.shape.slug.maxLength ?? undefined}
                         onChange={(e) => {
                           setSlugManual(true);
                           setSlug(rapikanSlugKetik(e.target.value));

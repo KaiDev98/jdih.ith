@@ -1,5 +1,16 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
+Perbaikan validasi unggah format 2026-11-06: metadata awal/versi diperiksa klien
+memakai schema shared sebelum upload. Batas Nama 200 dan Slug 191 mengikuti schema.
+Tampilkan rincian validasi API. Kompatibilitas API lama hanya untuk 422 VALIDASI_GAGAL
+dengan tepat satu butir (akar) berpesan Unrecognized key: "modeSlug": unggah awal
+dicoba sekali tanpa kolom opsional itu, metadata/file/CSRF identik. Tidak mencoba
+ulang kegagalan lain atau versi baru. API lama memperlakukan slug yang dikirim
+sebagai manual; bentrok tetap 409 untuk diperbaiki Admin, bukan menimpa format.
+API baru tetap memakai modeSlug dan pengaturan slug unik otomatis yang berlaku.
+Isian/file tetap tersedia ketika gagal. Proses API yang masih hidup tidak memuat
+ulang build baru secara otomatis; localhost perlu restart proses pemilik port 3001.
+
 Revisi Format Persuratan PALING TERBARU 2026-11-06: permintaan baru hanya DELETE.
 Admin pemilik format yang pernah terbit/APPROVED memakai Minta Penghapusan;
 Superadmin memutuskan melalui Antrean Verifikasi atau memakai Hapus langsung.

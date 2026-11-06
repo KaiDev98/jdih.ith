@@ -336,6 +336,8 @@ versioning:
   draft_revision_replaces_public_immediately: false
 
 letter_templates:
+  upload_validation: "shared initial/version schema on client before multipart upload; name max 200 and slug max 191 derived from schema; display API validation details and preserve fields/file"
+  legacy_upload_compatibility: 'initial upload retries exactly once without optional modeSlug only on 422 VALIDASI_GAGAL with exactly one (akar) issue: Unrecognized key: "modeSlug"; identical metadata/file/CSRF; no retry for other failures/new versions; old API keeps submitted slug manual and conflicts remain 409; current API retains automatic collision handling; restart/update old process for all latest rules'
   revocation: "removed for new actions by latest user revision 2026-11-06; TEMPLATE accepts DELETE requests only; direct revoke API/UI removed; historical revocation metadata/requests/decisions preserved without conversion"
   revoked_publication: "historically revoked formats remain visible/countable/previewable/downloadable under unchanged access policy; Dicabut badge and full reason dialog/date WITA; private actor metadata not sent publicly"
   revoked_replacement: "new upload/approval keeps revoked current; separate publish switches to new version; archived previous version retains revocation metadata"

@@ -53,6 +53,72 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('pustaka Format Persuratan', () => {
+  it('memvalidasi metadata dengan kontrak shared sebelum mengunggah dan menyamakan batas isian', async () => {
+    render(<AdminTemplates />);
+    await screen.findByText('Surat Tugas');
+    expect(screen.getByLabelText('Nama')).toHaveAttribute('maxlength', '200');
+    fireEvent.change(screen.getByLabelText('Nama'), { target: { value: 'a'.repeat(201) } });
+    fireEvent.click(screen.getByText('Alamat dan deskripsi'));
+    expect(screen.getByLabelText('Slug')).toHaveAttribute('maxlength', '191');
+    fireEvent.change(screen.getByLabelText(/^Berkas/), { target: { files: [new File(['data'], 'baru.pdf')] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Buat template' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
+    await screen.findByText('Nama maksimal 200 karakter.');
+    expect(state.api.mock.calls.every(([, options]) => !options?.method)).toBe(true);
+    expect(screen.getByLabelText('Nama')).toHaveValue('a'.repeat(201));
+  });
+  it.each([
+    [{ ruas: 'nama', pesan: 'Nama format tidak sah.' }, 'Nama format tidak sah.'],
+  ])('menjelaskan kegagalan validasi API tanpa mengulang unggahan atau menghilangkan berkas: %j', async (butir, pesan) => {
+    state.api.mockImplementation((_url: string, options?: { method?: string }) => options?.method
+      ? Promise.reject(new GalatApi('VALIDASI_GAGAL', 'Data yang dikirim tidak lolos pemeriksaan.', 422, [butir])) : Promise.resolve(rows));
+    render(<AdminTemplates />);
+    await screen.findByText('Surat Tugas');
+    fireEvent.change(screen.getByLabelText('Nama'), { target: { value: 'Format Surat Tugas' } });
+    fireEvent.change(screen.getByLabelText(/^Berkas/), { target: { files: [new File(['data'], 'tugas.pdf')] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Buat template' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
+    await screen.findByText((text) => text.startsWith(pesan));
+    expect(screen.getByLabelText('Nama')).toHaveValue('Format Surat Tugas');
+    expect((screen.getByLabelText(/^Berkas/) as HTMLInputElement).files?.[0]?.name).toBe('tugas.pdf');
+    expect(state.api.mock.calls.filter(([, options]) => options?.method)).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Ya, lanjutkan' })).toBeEnabled();
+  });
+  it('API lama yang hanya menolak modeSlug dicoba sekali dengan metadata lama, CSRF dan berkas yang sama', async () => {
+    let writes = 0;
+    state.api.mockImplementation((_url: string, options?: { method?: string }) => {
+      if (!options?.method) return Promise.resolve(rows);
+      if (++writes === 1) return Promise.reject(new GalatApi('VALIDASI_GAGAL', 'Data yang dikirim tidak lolos pemeriksaan.', 422, [{ ruas: '(akar)', pesan: 'Unrecognized key: "modeSlug"' }]));
+      return Promise.resolve({});
+    });
+    render(<AdminTemplates />);
+    await screen.findByText('Surat Tugas');
+    fireEvent.change(screen.getByLabelText('Nama'), { target: { value: 'Format Surat Tugas' } });
+    fireEvent.change(screen.getByLabelText(/^Berkas/), { target: { files: [new File(['data'], 'tugas.pdf')] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Buat template' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
+    await screen.findByText('Format diunggah dan menunggu persetujuan Superadmin.');
+    const calls = state.api.mock.calls.filter(([, options]) => options?.method);
+    expect(calls).toHaveLength(2);
+    const initial = calls[0]?.[1]?.muatan as FormData;
+    const legacy = calls[1]?.[1]?.muatan as FormData;
+    expect(initial.get('modeSlug')).toBe('otomatis');
+    expect(legacy.get('modeSlug')).toBeNull();
+    for (const key of ['nama', 'slug', 'tingkatAkses', 'deskripsi', 'file']) expect(legacy.get(key)).toEqual(initial.get(key));
+    expect(calls[1]?.[1]?.headers).toEqual({ 'X-CSRF-Token': 'csrf' });
+  });
+  it('tidak mencoba ulang jika modeSlug ditolak bersama kesalahan isian lain', async () => {
+    state.api.mockImplementation((_url: string, options?: { method?: string }) => options?.method
+      ? Promise.reject(new GalatApi('VALIDASI_GAGAL', 'Validasi gagal', 422, [{ ruas: '(akar)', pesan: 'Unrecognized key: "modeSlug"' }, { ruas: 'nama', pesan: 'Nama tidak sah' }])) : Promise.resolve(rows));
+    render(<AdminTemplates />);
+    await screen.findByText('Surat Tugas');
+    fireEvent.change(screen.getByLabelText('Nama'), { target: { value: 'Format Surat Tugas' } });
+    fireEvent.change(screen.getByLabelText(/^Berkas/), { target: { files: [new File(['data'], 'tugas.pdf')] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Buat template' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
+    await screen.findByText(/Layanan unggah masih memakai versi lama/);
+    expect(state.api.mock.calls.filter(([, options]) => options?.method)).toHaveLength(1);
+  });
   it('Superadmin hanya mendapat Hapus; keterangan pencabutan lama tetap dapat ditinjau', async () => {
     state.role = 'SUPERADMIN';
     const format = { ...rows[0], currentVersionId: '20', dicabut: 1, pencabutan: { tanggal: '2026-11-06', alasan: 'Pencabutan lama' } };

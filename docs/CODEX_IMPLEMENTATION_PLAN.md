@@ -1,5 +1,15 @@
 # CODEX IMPLEMENTATION PLAN — JDIH ITH V2
 
+Perbaikan validasi unggah format 2026-11-06: pakai schema shared pada klien,
+samakan maxlength Nama/Slug, tampilkan rincian validasi dan petunjuk backend
+lama yang menolak modeSlug. Kompatibilitas hanya retry satu kali atas 422 dengan
+tepat satu butir (akar) Unrecognized key: "modeSlug", tanpa kolom opsional itu.
+Uji metadata/file/CSRF tetap sama, tidak mencoba ulang error lain/versi baru,
+tidak ada request saat metadata gagal, isian/file tetap tersedia dan alur
+unggah/versi tetap berlaku. Slug pada API lama tetap manual, bentrok tidak ditimpa.
+Verifikasi runtime setelah restart proses API; build baru saja tidak mengganti
+modul yang sudah dimuat proses lama. Tanpa migrasi database.
+
 Revisi Format Persuratan PALING TERBARU 2026-11-06: hanya DELETE untuk permintaan
 baru. Hapus tombol Minta Pencabutan/Penarikan dan Cabut Format, tolak REVOKE/WITHDRAW
 baru di API serta hapus route pencabutan langsung. Pertahankan permintaan/keputusan
