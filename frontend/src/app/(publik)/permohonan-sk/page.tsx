@@ -27,6 +27,10 @@ export default async function PermohonanSk({
   const kontak = await ambilPublik<KontakKantor>('/public/contact', { cache: 'no-store' }).catch(
     () => null,
   );
+  const kontakUtama = (['TELEPON', 'SUREL'] as const).flatMap((jenis) => {
+    const butir = kontak?.butir.find((item) => item.jenis === jenis);
+    return butir ? [butir] : [];
+  });
   let result;
   let gagal = false;
   try {
@@ -58,33 +62,31 @@ export default async function PermohonanSk({
         <aside aria-labelledby="judul-bantuan" className={styles.helpPanel}>
           <div className={styles.helpLead}>
             <span className={styles.helpSymbol} aria-hidden>
-              <MessageSquareText size={20} strokeWidth={1.5} />
+              <MessageSquareText size={18} strokeWidth={1.7} />
             </span>
             <div>
               <h2 id="judul-bantuan">Bantuan Pengajuan SK</h2>
-              <p>Tanyakan prosedur atau kelengkapan berkas.</p>
             </div>
           </div>
-          {!!kontak?.butir.length && (
+          {!!kontakUtama.length && (
             <div className={styles.helpContacts}>
               <ul aria-label="Kontak bantuan pengajuan SK" className={styles.helpContactList}>
-                {kontak.butir.map((b) => (
+                {kontakUtama.map((b) => (
                   <li key={b.id}>
                     <a
                       href={b.jenis === 'TELEPON' ? tautanTelepon(b.nilai) : `mailto:${b.nilai}`}
                       className={styles.helpContact}
+                      aria-label={`${b.label || (b.jenis === 'TELEPON' ? 'Telepon' : 'Email')}: ${b.nilai}`}
+                      title={b.nilai}
                     >
                       <span className={styles.helpContactIcon} aria-hidden>
                         {b.jenis === 'TELEPON' ? (
-                          <Phone size={18} strokeWidth={1.7} />
+                          <Phone size={15} strokeWidth={1.7} />
                         ) : (
-                          <Mail size={18} strokeWidth={1.7} />
+                          <Mail size={15} strokeWidth={1.7} />
                         )}
                       </span>
-                      <span className={styles.helpContactText}>
-                        <span>{b.label || (b.jenis === 'TELEPON' ? 'Telepon' : 'Email')}</span>
-                        <span>{b.nilai}</span>
-                      </span>
+                      <span className={styles.helpContactText}>{b.nilai}</span>
                     </a>
                   </li>
                 ))}
@@ -92,7 +94,7 @@ export default async function PermohonanSk({
             </div>
           )}
           <Link href="/kontak" className={styles.helpMore}>
-            Kontak pengelola <ArrowRight size={16} aria-hidden />
+            Kontak Pengelola <ArrowRight size={14} aria-hidden />
           </Link>
         </aside>
       </div>

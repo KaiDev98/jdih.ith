@@ -40,7 +40,7 @@ export class CoreBackendRepository {
   async eventNotificationList(actor: PenggunaAktif) {
     const scope = notificationEventScope(actor);
     const rows = await this.rows(this.pool,
-      `SELECT e.* FROM (${scope.sql}) e WHERE NOT EXISTS (SELECT 1 FROM notifikasi_event_dihapus n WHERE n.pengguna_id=? AND n.audit_id=e.id)
+      `SELECT e.* FROM (${scope.sql}) e WHERE NOT EXISTS (SELECT 1 FROM notifikasi_event_dihapus n WHERE n.pengguna_id=? AND n.audit_id=CAST(e.id AS DECIMAL(20,0)))
        ORDER BY e.createdAt DESC,CAST(e.id AS UNSIGNED) DESC LIMIT 30`, [...scope.values, actor.id]);
     return rows.map((row) => ({ ...row, id: `e-${String(row.id)}` }));
   }
@@ -52,18 +52,18 @@ export class CoreBackendRepository {
         (SELECT CAST(MAX(w.id) AS CHAR) FROM dokumen_workflow w JOIN dokumen_versi v ON v.id=w.dokumen_versi_id JOIN dokumen d ON d.id=v.dokumen_id
           WHERE ${workflow.where} AND NOT EXISTS (SELECT 1 FROM notifikasi_dihapus n WHERE n.pengguna_id=? AND n.workflow_id=w.id)) sampaiId,
         (SELECT CAST(MAX(CAST(e.id AS UNSIGNED)) AS CHAR) FROM (${events.sql}) e
-          WHERE NOT EXISTS (SELECT 1 FROM notifikasi_event_dihapus n WHERE n.pengguna_id=? AND n.audit_id=e.id)) sampaiEventId`,
+          WHERE NOT EXISTS (SELECT 1 FROM notifikasi_event_dihapus n WHERE n.pengguna_id=? AND n.audit_id=CAST(e.id AS DECIMAL(20,0)))) sampaiEventId`,
       [...workflow.values, actor.id, ...events.values, actor.id]);
     return { ...(row?.sampaiId ? { sampaiId: row.sampaiId } : {}), ...(row?.sampaiEventId ? { sampaiEventId: row.sampaiEventId } : {}) };
   }
   async eventNotificationExists(db: PoolConnection, actor: PenggunaAktif, id: string) {
     const scope = notificationEventScope(actor);
-    return (await this.rows(db, `SELECT e.id FROM (${scope.sql}) e WHERE e.id=?`, [...scope.values, id])).length > 0;
+    return (await this.rows(db, `SELECT e.id FROM (${scope.sql}) e WHERE CAST(e.id AS DECIMAL(20,0))=CAST(? AS DECIMAL(20,0))`, [...scope.values, id])).length > 0;
   }
   async insertEventNotificationDismissals(db: PoolConnection, actor: PenggunaAktif, id: string, all: boolean) {
     const scope = notificationEventScope(actor);
     return this.write(db,
-      `INSERT IGNORE INTO notifikasi_event_dihapus(pengguna_id,audit_id) SELECT ?,e.id FROM (${scope.sql}) e WHERE CAST(e.id AS UNSIGNED)${all ? '<=' : '='}CAST(? AS UNSIGNED)`,
+      `INSERT IGNORE INTO notifikasi_event_dihapus(pengguna_id,audit_id) SELECT ?,CAST(e.id AS DECIMAL(20,0)) FROM (${scope.sql}) e WHERE CAST(e.id AS DECIMAL(20,0))${all ? '<=' : '='}CAST(? AS DECIMAL(20,0))`,
       [actor.id, ...scope.values, id]);
   }
   private notificationSelection(actorId: string, superadmin: boolean, id: string, all: boolean) {

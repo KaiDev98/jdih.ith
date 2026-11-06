@@ -308,7 +308,7 @@ describe.skipIf(!process.env.NOTIFICATIONS_MYSQL_ENV)('notifikasi MySQL dengan r
     expect(result.some((r) => r.resourceId === d.id && r.action === 'REVOKE')).toBe(false);
     expect((await service.notifications(superadmin)).some((r) => r.requestId === request.id)).toBe(false);
   });
-  it('template revocation notifies the owner, pending decisions notify Superadmin and approval is not duplicated', async () => {
+  it('historical template revocation decisions retain owner notifications without duplicate messages', async () => {
     const repo = newRepository();
     const templates = new LetterTemplatesService(repo, {} as never, audit, {} as never);
     const documents = new DokumenAdminService(repo, audit, {} as never);
@@ -316,7 +316,11 @@ describe.skipIf(!process.env.NOTIFICATIONS_MYSQL_ENV)('notifikasi MySQL dengan r
     const t = await template(owner);
     await db.execute("UPDATE template_surat_versi SET status='ACTIVE',activated_at=UTC_TIMESTAMP(6) WHERE id=?", [t.vid]);
     await db.execute('UPDATE template_surat SET current_version_id=?,aktif=1 WHERE id=?', [t.vid, t.id]);
-    const request = await requests.create(owner, 'TEMPLATE', t.id, { jenis: 'REVOKE', alasan: 'Format lama' });
+    await expect(requests.create(owner, 'TEMPLATE', t.id, { jenis: 'REVOKE', alasan: 'Format lama' })).rejects.toMatchObject({ status: 409 });
+    const [legacy] = await db.execute<ResultSetHeader>("INSERT INTO permintaan_penghapusan(sumber,resource_id,version_id,judul,jenis,alasan,requested_by) VALUES('TEMPLATE',?,?,?,'REVOKE','Format lama',?)", [t.id, t.vid, 'Format lama', owner.id]);
+    const request = { id: String(legacy.insertId) };
+    await audit.recordDomain({ module: 'documents', action: 'REQUEST_REMOVAL', entityType: 'permintaan_penghapusan', entityId: request.id,
+      actorId: owner.id, after: { targetId: t.id, jalur: 'TEMPLATE', status: 'REVOKE', reason: 'Format lama' } }, db);
     expect((await service.notifications(superadmin)).some((r) => r.requestId === request.id && r.action === 'REMOVAL_REQUEST')).toBe(true);
     await requests.decide(superadmin, request.id, { keputusan: 'APPROVE' });
     const notifications = await service.notifications(owner);
@@ -366,12 +370,20 @@ describe.skipIf(!process.env.NOTIFICATIONS_MYSQL_ENV)('notifikasi MySQL dengan r
     expect(rows).toHaveLength(2);
   });
   it('dismissal compares numeric event IDs correctly across a decimal digit boundary', async () => {
-    const [maxRows] = await db.query<RowDataPacket[]>('SELECT CAST(COALESCE(MAX(id),0) AS CHAR) id FROM audit_log');
-    const boundary = 10n ** BigInt((BigInt(String(maxRows[0]!.id)) + 1000n).toString().length);
+    // Reuse a vacant lower boundary: rolled-back AUTO_INCREMENT allocations are not restored.
+    // Growing above MAX on every run eventually exhausts BIGINT UNSIGNED.
+    let boundary = 0n;
+    for (let digits = 5; digits <= 18; digits++) {
+      const candidate = 10n ** BigInt(digits);
+      const [occupied] = await db.query<RowDataPacket[]>('SELECT id FROM audit_log WHERE id IN (?,?)', [(candidate - 1n).toString(), candidate.toString()]);
+      if (!occupied.length) { boundary = candidate; break; }
+    }
+    expect(boundary).toBeGreaterThan(0n);
     const cutoff = (boundary - 1n).toString();
     // Explicit fixture ID creates a digit boundary without inserting thousands of rows.
     await db.execute("INSERT INTO audit_log(id,actor_id,module,action,entity_type,entity_id,before_json,request_id) VALUES(?,?,'documents','DELETE_PERMANENT','dokumen','900003',JSON_OBJECT('ownerId',?,'judul','Sebelum batas'),?)", [cutoff, superadmin.id, owner.id, randomUUID()]);
-    const next = await auditEvent('DELETE_PERMANENT', '900004', 'documents', 'dokumen', { before: { ownerId: owner.id, judul: 'Setelah batas' } });
+    const next = boundary.toString();
+    await db.execute("INSERT INTO audit_log(id,actor_id,module,action,entity_type,entity_id,before_json,request_id) VALUES(?,?,'documents','DELETE_PERMANENT','dokumen','900004',JSON_OBJECT('ownerId',?,'judul','Setelah batas'),?)", [next, superadmin.id, owner.id, randomUUID()]);
     expect(BigInt(next)).toBeGreaterThan(BigInt(cutoff));
     await service.clearNotifications(owner, { sampaiEventId: cutoff });
     const rows = await service.notifications(owner);

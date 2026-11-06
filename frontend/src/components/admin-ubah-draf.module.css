@@ -1,0 +1,40 @@
+.editor {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+}
+.data,
+.side {
+  min-width: 0;
+}
+.sideContent {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+}
+.footer {
+  display: flex;
+  justify-content: flex-end;
+}
+@media (min-width: 1024px) {
+  .withData {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    align-items: start;
+  }
+  .withData .side {
+    position: relative;
+    min-height: 0;
+    align-self: stretch;
+  }
+  .withData .sideContent {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    padding: 1px 4px 4px 1px;
+  }
+  .footer {
+    grid-column: 1 / -1;
+  }
+}

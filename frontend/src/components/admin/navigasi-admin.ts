@@ -169,7 +169,7 @@ const LABEL_SEGMEN: Record<string, string> = {
   baru: 'Upload Dokumen',
   verifikasi: 'Antrean Verifikasi',
   pengajuan: 'Draf Dan Pengajuan',
-  ubah: 'Ubah Draf',
+  ubah: 'Ubah Dokumen',
   pengguna: 'Pengguna',
   'jenis-dokumen': 'Jenis Dokumen',
   kategori: 'Kategori SOP',

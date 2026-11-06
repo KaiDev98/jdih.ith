@@ -248,19 +248,24 @@ for (const schema of [c.skemaAjukanDokumen, c.skemaSetujuiDokumen])
       bad(schema, { verifiedBy: '1' });
     },
   );
-test('pengajuan memerlukan metadata wajib; kategori boleh dikosongkan', () => {
+test('pengajuan memerlukan metadata wajib; kategori dan deskripsi boleh dikosongkan', () => {
   const complete = { judul: 'SOP', deskripsi: 'Prosedur', nomor: '1', tahun: 2026, pic: 'Hukum', tanggalPenetapan: '2026-10-23', tingkatAkses: 'publik', kategoriId: ['1'] };
   ok(c.skemaKesiapanPengajuan, complete);
   for (const field of Object.keys(complete)) {
     const partial = { ...complete };
     delete partial[field];
-    if (field === 'kategoriId') ok(c.skemaKesiapanPengajuan, partial);
+    if (field === 'kategoriId' || field === 'deskripsi') ok(c.skemaKesiapanPengajuan, partial);
     else bad(c.skemaKesiapanPengajuan, partial);
   }
   ok(c.skemaKesiapanPengajuan, { ...complete, kategoriId: [] });
+  for (const deskripsi of [undefined, null, '', '   ']) ok(c.skemaKesiapanPengajuan, { ...complete, deskripsi });
+  bad(c.skemaKesiapanPengajuan, { ...complete, deskripsi: 'x'.repeat(1001) });
   bad(c.skemaKesiapanPengajuan, { ...complete, kategoriId: ['bukan-id'] });
   ok(c.skemaSetujuiDokumen, { catatan: '  ' });
   ok(c.skemaSetujuiDokumen, {});
+  ok(c.skemaGunakanBerkasSebelumnya, {});
+  bad(c.skemaGunakanBerkasSebelumnya, { sourceVersionId: '99' });
+  bad(c.skemaGunakanBerkasSebelumnya, { storageKey: 'objects/private' });
 });
 const impact = {
   targetDocumentId: '2',

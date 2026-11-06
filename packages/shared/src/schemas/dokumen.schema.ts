@@ -49,6 +49,8 @@ const metadataVersi = {
 };
 /** Creation/status/actor/pointer/version numbering are assigned by the backend. */
 export const skemaBuatVersiDokumen = z.strictObject(metadataVersi);
+/** Reuse the server-selected previous publication; clients cannot supply a storage/source ID. */
+export const skemaGunakanBerkasSebelumnya = z.strictObject({});
 /**
  * Peruntukan khusus sebuah dokumen di portal, di luar daftar produk hukum
  * biasa. PERMOHONAN_SK: SOP yang tampil di halaman "SOP Permohonan SK" dan
@@ -80,9 +82,8 @@ export const skemaKesiapanPublikasi = skemaBuatVersiDokumen.extend({
   pic: teksWajib(255, 'PIC'),
   tanggalPenetapan: skemaTanggal,
 });
-/** Kategori opsional; metadata wajib dan satu berkas utama tetap diperiksa. */
+/** Kategori/deskripsi opsional; metadata wajib dan satu berkas utama tetap diperiksa. */
 export const skemaKesiapanPengajuan = skemaKesiapanPublikasi.extend({
-  deskripsi: teksWajib(1000, 'Deskripsi'),
   tahun: skemaTahun,
   kategoriId: z.array(skemaId).default([]),
 });
@@ -92,7 +93,9 @@ export function pesanKekuranganPengajuan(issues: readonly { path: readonly Prope
     judul: 'Judul', deskripsi: 'Deskripsi', nomor: 'Nomor', tahun: 'Tahun', pic: 'PIC',
     tanggalPenetapan: 'Tanggal penetapan', tingkatAkses: 'Tingkat akses', kategoriId: 'Kategori',
   };
-  return [...new Set(issues.map((i) => `${label[String(i.path[0])] ?? 'Data pengajuan'} wajib diisi dengan benar`))];
+  return [...new Set(issues.map((i) => String(i.path[0]) === 'deskripsi'
+    ? 'Deskripsi opsional harus berupa teks maksimal 1000 karakter'
+    : `${label[String(i.path[0])] ?? 'Data pengajuan'} wajib diisi dengan benar`))];
 }
 export const skemaDokumenAdmin = z.strictObject({
   id: skemaId,

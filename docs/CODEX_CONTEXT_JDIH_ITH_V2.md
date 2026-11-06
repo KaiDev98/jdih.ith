@@ -1,5 +1,50 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
+Draf revisi lama yang sudah kosong dapat memakai Gunakan Dokumen Asli melalui
+POST /admin/documents/versions/:id/reuse-main, body kosong strict. Aktif berizin
+documents.upload + documents.revise, pemilik dokumen/versi atau Superadmin, hanya
+DRAF/REVISI nomor >1 tanpa file apa pun. Sumber dipilih server, bukan ID/key klien;
+copy/audit/storage dalam transaksi dan cleanup yang sama. File yang sudah ada
+tidak ditimpa. Endpoint tetap CSRF; tombol konfirmasi/loading/feedback wajib.
+
+Klarifikasi layout/publikasi TERBARU 2026-11-06: desktop Ubah Dokumen menempatkan
+Data Dokumen di kiri, Berkas dan Hubungan tepat bertumpuk di kanan. Tinggi area kanan
+dibatasi tinggi Data Dokumen; hanya isi kanan bergulir jika panjang. Ponsel memakai
+urutan Data -> Berkas -> Hubungan. Dokumen utama menjelaskan bahwa berkas asli
+otomatis terisi pada revisi baru; unggah hanya diperlukan bila ingin menggantinya.
+Portal mempertahankan versi lama saat DRAF/DIAJUKAN/DISETUJUI. Publish mengganti
+current pointer secara atomik; hasil revisi menggantikan dokumen lama pada portal.
+Pengujian notifikasi juga mencakup ID unsigned 20 digit: parameter perbandingan
+memakai DECIMAL(20,0) agar prepared statement tidak memotong ID besar. Fixture batas
+digit memakai pasangan ID kosong, tidak terus menaikkan AUTO_INCREMENT saat rollback.
+
+Revisi pengelolaan/revisi berkas TERBARU 2026-11-06: panel permintaan pada detail
+tidak tampil atau dimuat saat DRAF/REVISI. Status hukum tidak menyisakan kolom kosong.
+Ubah Dokumen memakai urutan Data Dokumen -> Berkas -> Hubungan dengan Dokumen Lain;
+hubungan opsional dapat dilipat, berkas PDF mendukung pratinjau dan galat daftar
+berkas tidak diperlakukan sebagai daftar kosong. Tampilan tetap owner-scoped.
+New version menyalin file UTAMA current published; jika current kosong, pakai
+versi TERBIT/DITARIK terbaru. Tanpa sumber/file, draf tetap perlu unggah manual.
+Source parent dikunci; versi/dokumen source harus cocok dan file sumber utuh.
+StorageService.open/stage memeriksa byte/checksum, lalu metadata/file baru memakai
+ID/storage_key terpisah dan uploaded_by pembuat revisi. Audit COPY_MAIN_FILE,
+CREATE_VERSION dan finalisasi berada dalam transaksi; gagal audit/storage/commit
+membersihkan salinan. Menghapus/mengganti file revisi tidak menyentuh file lama.
+Versi/pointer publik lama tetap tersedia sampai revisi disetujui lalu diterbitkan;
+tidak menyalin relasi hukum, memulihkan penarikan, menghapus riwayat atau menerbitkan
+otomatis. Tanpa migrasi/API baru; restart backend agar perilaku salinan aktif.
+
+Revisi deskripsi dan bantuan SK TERBARU 2026-11-06: Deskripsi Singkat opsional
+pada unggah, ubah draf, pengajuan, persetujuan dan penerbitan Produk Hukum/SOP.
+Schema shared menerima undefined/NULL/kosong (dinormalisasi NULL), tetap maksimal
+1000 karakter. Nomor, tahun, PIC, tanggal, judul, akses dan file utama tetap wajib
+sesuai alur; tidak memberi placeholder palsu untuk melewati backend lama.
+Tanpa migrasi; restart API setelah shared/backend terbaru dibangun.
+Bantuan Pengajuan SK memakai baris ringkas maksimal 1040px, tinggi sekitar 62px
+desktop dan dua baris di ponsel; tanpa paragraf tambahan atau label kontak bertumpuk.
+Satu telepon dan satu surel pertama dari data pengelola, sisanya di Kontak Pengelola.
+Target sentuh 44px, title/aria lengkap, responsif dan fokus keyboard tetap tersedia.
+
 Revisi hasil unggah dokumen 2026-11-06: draf selesai memakai dialog Radix ringkas
 di atas formulir yang tetap terlihat, bukan halaman pengganti dengan langkah angka.
 Tampilkan judul/berkas, hasil parsial unggah/relasi, status belum publik, tautan

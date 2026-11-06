@@ -337,6 +337,7 @@ function DetailDokumen({
   const superadmin = pengguna?.peran.includes('SUPERADMIN') ?? false;
   const label = tahapDari(diganti ? 'DIGANTI' : tahap);
   const bisaDiubah = TAHAP_BISA_DIUBAH.includes(tahap);
+  const tampilPermintaan = !bisaDiubah && (superadmin || document.bolehRevisi);
   const tampilHapusPermanen = superadmin && konteks !== 'pengajuan' &&
     !['DRAF', 'REVISI', 'DIAJUKAN'].includes(tahap);
   const jalurLangsung = superadmin && document.bolehSetujuiLangsung === true;
@@ -533,7 +534,7 @@ function DetailDokumen({
                 label="Buat revisi" icon={FilePen}
                 disabled={!document.bolehRevisi}
                 title="Buat revisi dokumen ini?"
-                description="Revisi baru dibuat sebagai draf dengan data yang sama. Dokumen utama perlu diunggah ulang. Versi yang tampil sekarang tetap tampil sampai revisi diterbitkan."
+                description="Data dan berkas utama sebelumnya disalin ke draf revisi. Ganti berkas hanya jika isinya berubah. Versi terbit tetap tersedia sampai revisi disetujui dan diterbitkan."
                 onConfirm={buatRevisi}
               />
             )}
@@ -776,7 +777,7 @@ function DetailDokumen({
         </div>
         <div
           aria-label={tampilHapusPermanen ? 'Status hukum dan penghapusan permanen' : 'Status hukum dan permintaan dokumen'}
-          className={cn('grid min-w-0 items-start gap-3.5', (tampilHapusPermanen || (!superadmin && document.bolehRevisi)) && 'lg:grid-cols-2')}
+          className={cn('grid min-w-0 items-start gap-3.5', (tampilHapusPermanen || (!superadmin && tampilPermintaan)) && 'lg:grid-cols-2')}
         >
           <KartuStatusHukum
             id={id}
@@ -791,7 +792,7 @@ function DetailDokumen({
             }
           />
           {tampilHapusPermanen && <AdminHapusDokumen id={id} judul={document.judul} />}
-          {(superadmin || document.bolehRevisi) && (
+          {tampilPermintaan && (
             <div className={cn('min-w-0', tampilHapusPermanen && 'lg:col-span-2')}>
               <AntreanPermintaanPenghapusan
                 sumber="DOCUMENT"

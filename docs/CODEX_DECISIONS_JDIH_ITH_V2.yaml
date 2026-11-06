@@ -44,7 +44,7 @@ document_collections_ui:
   mobile_collection_scroll: "bounded inner scrolling on Produk Hukum, Format Persuratan and SOP Permohonan SK"
   scroll_to_top: "mobile/tablet below 1024px only, public portal and authenticated panels; page and active list/panel; smooth with reduced-motion support; hidden on desktop"
   sop_request_detail_url: "/produk-hukum/[slug]?asal=permohonan-sk; canonical URL excludes query; return link follows collection"
-  sop_request_help: "compact pale-blue contact bar titled Bantuan Pengajuan SK; real managed contact data"
+  sop_request_help: "slim pale-blue bar <=1040px; ~62px desktop, two rows mobile; one primary phone/email from managed data plus full contact link; no extra paragraph/stacked labels; 44px touch targets"
   collection_page_search_bar: false
   collection_admin_search_bar: false
   all_documents_desktop: "fixed viewport; inner list scrolling; persistent filters and pagination"
@@ -139,6 +139,7 @@ panel_routes:
   notification_document_navigation: "full-page link; SUBMIT/APPROVE -> verification, RETURN -> submissions, PUBLISH -> all documents"
 
 panel_layout:
+  draft_edit_workspace: "Ubah Dokumen desktop: Data left, Berkas then collapsible Hubungan right; right area never exceeds Data height, inner scroll for overflow; mobile Data -> Berkas -> Hubungan; authorized preview/download, file-list failures remain errors; no removal request panel/fetch for DRAF/REVISI"
   document_upload_result: "compact Radix dialog over retained read-only upload form; accurate draft/file/relation results; role-scoped submission detail with versionId; close retains receipt, upload another resets fields/file/relation and focuses title; never resubmit a saved draft"
   dashboard_recent_limit: "latest 15 accessible document/version rows; server sorted before LIMIT, client cap; new row displaces oldest from view only; workflow/focus/visibility/30s refresh; preserve existing data on refresh failure"
   mobile_bottom_spacing: "32px plus safe-area inset; Admin/Superadmin use a compact 44px circular scroll-to-top button 8px above the bottom, desktop spacing unchanged"
@@ -206,7 +207,8 @@ document_workflow:
   own_superadmin_draft_flow: "DRAF/REVISI -> DISETUJUI, without SUBMIT/verification queue; full readiness and audit required"
   return_revision_requires_note: true
   approval_requires_note: false
-  submission_required_metadata: [judul, deskripsi, nomor, tahun, pic, tanggal_penetapan, tingkat_akses]
+  submission_required_metadata: [judul, nomor, tahun, pic, tanggal_penetapan, tingkat_akses]
+  submission_optional_description: "undefined/null/empty allowed through submission, approval and publication; normalize blank to NULL; maximum 1000 characters"
   optional_submission_category: "empty allowed including SOP Permohonan SK; selected categories must match Admin unit; version unit still assigned from account"
   submission_requires_valid_main_file: true
   admin_all_documents_states: [TERBIT, DITARIK]
@@ -335,6 +337,8 @@ versioning:
   keep_old_versions: true
   supersede_old_version: true
   draft_revision_replaces_public_immediately: false
+  revision_main_file: "copy current published UTAMA, or latest TERBIT/DITARIK if no current pointer, under document lock; no source/file means manual upload; distinct ID/storage key and revision creator uploaded_by; verify source size/checksum; COPY_MAIN_FILE audit + transaction with cleanup on failure; old bytes/pointer unchanged until publication"
+  reuse_main_file: "explicit confirmed POST versions/:id/reuse-main for legacy empty draft revisions; strict empty body; active upload+revise permission; parent/version owner or Superadmin; DRAF/REVISI version>1 and no files; source chosen server-side; atomic copy/audit, no overwrite"
 
 letter_templates:
   upload_validation: "shared initial/version schema on client before multipart upload; name max 200 and slug max 191 derived from schema; display API validation details and preserve fields/file"

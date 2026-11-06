@@ -45,6 +45,7 @@ import { CoreBackendRepository } from './core-backend.repository.js';
 import type { KonfigurasiApp } from '../../config/configuration.js';
 import { DocumentFilesService } from './files/document-files.service.js';
 import { bisaDipratinjau } from './storage/file-validation.js';
+import type { BerkasDisimpanSementara } from './storage/storage.service.js';
 import { z } from 'zod';
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 
@@ -879,6 +880,7 @@ export class CoreBackendService {
   async newVersion(actor: Actor, id: string, raw: unknown) {
     this.allow(actor, 'documents.revise');
     const b = skemaBuatVersiDokumen.parse(raw);
+    let copiedFile: BerkasDisimpanSementara | undefined;
     return this.repo
       .transaction(async (db) => {
         const d = (
@@ -901,6 +903,7 @@ export class CoreBackendService {
         )[0] as any;
         const vid = await this.insertVersion(db, id, Number(r.n), b, actor);
         await this.bindTerms(db, vid, b.kategoriId ?? [], b.tagId ?? [], actor);
+        copiedFile = await this.files.copyPublishedMainForRevision(db, actor, id, vid);
         await this.repo.write(
           db,
           "INSERT INTO dokumen_workflow(dokumen_versi_id,status_asal,status_tujuan,action,actor_id) VALUES(?,NULL,'DRAF','CREATE',?)",
@@ -919,7 +922,10 @@ export class CoreBackendService {
         );
         return { id: vid, dokumenId: id, nomorVersi: Number(r.n), statusWorkflow: 'DRAF' };
       })
-      .catch(tr);
+      .catch(async (error: unknown) => {
+        if (copiedFile) await this.files.discardRevisionCopy(copiedFile);
+        return tr(error);
+      });
   }
   async updateVersion(actor: Actor, id: string, raw: unknown) {
     this.allow(actor, 'documents.edit');

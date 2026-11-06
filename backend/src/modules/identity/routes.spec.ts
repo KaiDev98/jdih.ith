@@ -13,6 +13,7 @@ import { RemovalRequestsService } from '../core-backend/documents/removal-reques
 import { DokumenAdminService } from '../core-backend/documents/dokumen-admin.service.js';
 import { RemovalRequestsRepository } from '../core-backend/documents/removal-requests.repository.js';
 import { Readable } from 'node:stream';
+import { DocumentFilesService } from '../core-backend/files/document-files.service.js';
 
 @Controller('contract-probe')
 class DefaultClosedProbe {
@@ -53,6 +54,7 @@ describe('AppModule HTTP security wiring (no database/network provider)', () => 
   const listService = new RemovalRequestsService({} as never, listRepository, {} as never, {} as never, {} as never, {} as never);
   const removals = { create: vi.fn().mockResolvedValue({ id: '8', status: 'PENDING' }), list: listService.list.bind(listService) };
   const drafts = { hapusDraf: vi.fn().mockResolvedValue({ id: '5', versionId: '50', dihapus: true }) };
+  const documentFiles = { reusePreviousMain: vi.fn().mockResolvedValue({ versionId: '50', disalin: true }) };
   beforeAll(async () => {
     Object.assign(process.env, {
       NODE_ENV: 'test',
@@ -93,6 +95,8 @@ describe('AppModule HTTP security wiring (no database/network provider)', () => 
       .useValue(removals)
       .overrideProvider(DokumenAdminService)
       .useValue(drafts)
+      .overrideProvider(DocumentFilesService)
+      .useValue(documentFiles)
       .compile();
     app = module.createNestApplication({ logger: false });
     app.use(cookieParser());
@@ -229,16 +233,31 @@ describe('AppModule HTTP security wiring (no database/network provider)', () => 
     identity.authenticate.mockResolvedValue({ user: { ...user, peran: ['ADMIN'], izin: ['workflow.withdraw'] } });
     expect((await fetch(path, { method: 'POST', headers: { ...headers, 'x-csrf-token': csrfToken(token, key) }, body })).status).toBe(403);
   });
-  it('template revocation endpoint checks authentication, permission, origin and CSRF', async () => {
+  it('removed template revocation route stays unavailable for anonymous users and Superadmin', async () => {
     const path = base + '/api/v1/admin/letter-templates/5/revoke';
     const body = JSON.stringify({ versionId: '50', alasan: 'Pencabutan format' });
     const headers = { cookie: 'jdih_session=' + token, origin: 'http://localhost:3000', 'content-type': 'application/json' };
-    auth(); expect((await fetch(path, { method: 'POST', body })).status).toBe(403);
+    auth(); expect((await fetch(path, { method: 'POST', body })).status).toBe(404);
     identity.authenticate.mockResolvedValue({ user: { ...user, peran: ['SUPERADMIN'], izin: ['templates.manage'] } });
+    expect((await fetch(path, { method: 'POST', headers, body })).status).toBe(404);
+    expect((await fetch(path, { method: 'POST', headers: { ...headers, origin: 'https://evil.test', 'x-csrf-token': csrfToken(token, key) }, body })).status).toBe(404);
+    expect((await fetch(path, { method: 'POST', headers: { ...headers, 'x-csrf-token': csrfToken(token, key) }, body })).status).toBe(404);
+    expect(templates.revoke).not.toHaveBeenCalled();
+  });
+  it('reuse of previous revision bytes is default-closed, permission checked and CSRF protected', async () => {
+    const path = base + '/api/v1/admin/documents/versions/50/reuse-main';
+    const body = JSON.stringify({});
+    const headers = { cookie: 'jdih_session=' + token, origin: 'http://localhost:3000', 'content-type': 'application/json', 'x-csrf-token': csrfToken(token, key) };
+    auth();
+    expect((await fetch(path, { method: 'POST', body })).status).toBe(403);
     expect((await fetch(path, { method: 'POST', headers, body })).status).toBe(403);
-    expect((await fetch(path, { method: 'POST', headers: { ...headers, origin: 'https://evil.test', 'x-csrf-token': csrfToken(token, key) }, body })).status).toBe(403);
-    expect((await fetch(path, { method: 'POST', headers: { ...headers, 'x-csrf-token': csrfToken(token, key) }, body })).status).toBe(201);
-    expect(templates.revoke).toHaveBeenCalledWith(expect.objectContaining({ peran: ['SUPERADMIN'] }), '5', { versionId: '50', alasan: 'Pencabutan format' });
+    const actor = { ...user, peran: ['ADMIN'], izin: ['documents.upload', 'documents.revise'] };
+    identity.authenticate.mockResolvedValue({ user: actor });
+    expect((await fetch(path, { method: 'POST', headers: { ...headers, 'x-csrf-token': 'invalid' }, body })).status).toBe(403);
+    expect((await fetch(path, { method: 'POST', headers: { ...headers, origin: 'https://evil.test' }, body })).status).toBe(403);
+    expect(documentFiles.reusePreviousMain).not.toHaveBeenCalled();
+    expect((await fetch(path, { method: 'POST', headers, body })).status).toBe(201);
+    expect(documentFiles.reusePreviousMain).toHaveBeenCalledWith(actor, '50', {});
   });
   it('draft cancellation and removal requests are default-closed, permission-checked and CSRF-protected', async () => {
     const actor = { ...user, peran: ['ADMIN'], izin: ['documents.read_admin', 'documents.edit'] };

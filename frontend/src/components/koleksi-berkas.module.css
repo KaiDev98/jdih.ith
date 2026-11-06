@@ -278,54 +278,52 @@
   height: 1px;
 }
 .helpPanel {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: 'lead contacts more';
   align-items: center;
-  gap: 16px 24px;
-  margin-top: 24px;
-  padding: 20px;
+  gap: 0 20px;
+  width: fit-content;
+  max-width: min(100%, 1040px);
+  margin: 20px auto 0;
+  padding: 8px 16px;
   border: 1px solid #dce6ef;
   border-radius: 12px;
   background: #edf3f8;
 }
 .helpLead {
+  grid-area: lead;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   min-width: 0;
-  flex: 1 1 270px;
 }
 .helpSymbol {
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  width: 38px;
-  height: 38px;
+  width: 30px;
+  height: 30px;
   border: 1px solid #d2dfe9;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #fff;
   color: #3d6589;
 }
 .helpLead h2 {
   color: #203e5b;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.5;
   letter-spacing: -0.015em;
 }
-.helpLead p {
-  margin-top: 2px;
-  color: #6a7e92;
-  font-size: 12px;
-  line-height: 1.7;
-}
 .helpContacts {
+  grid-area: contacts;
   min-width: 0;
 }
 .helpContactList {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 20px;
+  gap: 0 16px;
 }
 .helpContactList li {
   min-width: 0;
@@ -333,7 +331,7 @@
 .helpContact {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 6px;
   min-width: 0;
   min-height: 44px;
   color: #365c80;
@@ -343,30 +341,25 @@
   flex-shrink: 0;
 }
 .helpContactText {
-  display: grid;
   min-width: 0;
-  gap: 1px;
-  overflow-wrap: anywhere;
-}
-.helpContactText > span:first-child {
-  color: #6a7e92;
-  font-size: 10px;
-  line-height: 1.5;
-}
-.helpContactText > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 12px;
   font-weight: 600;
   line-height: 1.7;
 }
 .helpMore {
+  grid-area: more;
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 6px;
   min-height: 44px;
   color: #244e73;
   font-size: 12px;
   font-weight: 600;
+  white-space: nowrap;
 }
 .helpContact:hover,
 .helpMore:hover {
@@ -382,20 +375,26 @@
   .collectionScroll {
     max-height: min(620px, 70svh);
   }
+}
+@media (max-width: 1023px) {
   .helpPanel {
-    gap: 10px;
-    padding: 16px;
+    width: 100%;
+    max-width: 620px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'lead more' 'contacts contacts';
+    gap: 0 12px;
+    padding: 6px 12px;
   }
-  .helpLead {
-    flex-basis: 100%;
-  }
-  .helpContacts {
-    flex: 1;
-  }
-  .helpContactList {
-    display: grid;
-    gap: 4px;
-  }
+  .helpLead h2 { font-size: 13px; }
+  .helpSymbol { width: 28px; height: 28px; }
+  .helpContacts { border-top: 1px solid #dce6ef; }
+  .helpContactList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 8px; }
+  .helpContactText, .helpMore { font-size: 11px; }
+}
+@media (max-width: 359px) {
+  .helpSymbol { display: none; }
+  .helpLead h2 { font-size: 12px; }
+  .helpPanel { column-gap: 8px; }
 }
 @media (min-width: 640px) {
   .formats,

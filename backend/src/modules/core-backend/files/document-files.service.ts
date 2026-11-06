@@ -9,7 +9,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import type { PenggunaAktif } from '@jdih/shared';
-import { skemaMetaBerkas, skemaHasilUnggahBerkas } from '@jdih/shared';
+import { skemaMetaBerkas, skemaHasilUnggahBerkas, skemaGunakanBerkasSebelumnya } from '@jdih/shared';
 import { cekBacaPanel, cekIzin, cekPemilikAtauSuperadmin, cekPeruntukanPanel } from '../../identity/security.js';
 import { AuditService } from '../../identity/audit.service.js';
 import { DocumentPolicyService } from '../../identity/document-policy.service.js';
@@ -52,6 +52,68 @@ export class DocumentFilesService {
     private readonly policy: DocumentPolicyService,
     private readonly config: ConfigService<KonfigurasiApp, true>,
   ) {}
+
+  /** Called under the document lock by revision creation; never share a storage key across versions. */
+  async copyPublishedMainForRevision(db: PoolConnection, actor: PenggunaAktif, documentId: string, versionId: string) {
+    cekIzin(actor, ['documents.revise']);
+    const source = (await this.repo.rows<FileRow & { document_created_by: string; source_version_id: string }>(db,
+      "SELECT f.*,d.created_by document_created_by,CAST(v.id AS CHAR) source_version_id FROM dokumen d JOIN dokumen_versi v ON v.dokumen_id=d.id AND v.id=COALESCE(d.current_published_version_id,(SELECT previous.id FROM dokumen_versi previous WHERE previous.dokumen_id=d.id AND previous.status_workflow IN ('TERBIT','DITARIK') ORDER BY previous.nomor_versi DESC LIMIT 1)) JOIN dokumen_berkas f ON f.dokumen_versi_id=v.id AND f.jenis_berkas='UTAMA' WHERE d.id=? AND d.deleted_at IS NULL AND v.status_workflow IN ('TERBIT','DITARIK') LIMIT 1 FOR UPDATE",
+      [documentId]))[0];
+    if (!source) return undefined;
+    cekPemilikAtauSuperadmin(actor, source.document_created_by);
+    let copied: BerkasDisimpanSementara | undefined;
+    try {
+      const original = await this.storage.open(source.storage_key);
+      if (original.size !== Number(source.size_bytes)) {
+        original.stream.destroy();
+        throw new UnprocessableEntityException('Berkas versi sebelumnya tidak tersedia secara utuh.');
+      }
+      copied = await this.storage.stage(original.stream);
+      if (copied.byte !== Number(source.size_bytes) || !copied.checksum.equals(source.checksum))
+        throw new UnprocessableEntityException('Checksum berkas versi sebelumnya tidak sesuai.');
+      await this.repo.write(db,
+        "INSERT INTO dokumen_berkas(dokumen_versi_id,uploaded_by,jenis_berkas,judul,storage_key,nama_asli,mime_type,size_bytes,checksum,urutan) VALUES(?,?,'UTAMA',?,?,?,?,?,?,0)",
+        [versionId, actor.id, source.judul, copied.storageKey, source.nama_asli, source.mime_type, copied.byte, copied.checksum]);
+      const fileId = await this.repo.id(db);
+      await this.audit.recordDomain({ module: 'documents', action: 'COPY_MAIN_FILE', entityType: 'dokumen_berkas', entityId: fileId,
+        actorId: actor.id, after: { status: 'UTAMA', sourceVersionId: source.source_version_id, targetVersionId: versionId } }, db);
+      await this.storage.finalize(copied);
+      return copied;
+    } catch (error) {
+      if (copied) await this.storage.discard(copied);
+      throw error;
+    }
+  }
+
+  discardRevisionCopy(file: BerkasDisimpanSementara) {
+    return this.storage.discard(file);
+  }
+
+  async reusePreviousMain(actor: PenggunaAktif, versionId: string, raw: unknown) {
+    cekIzin(actor, ['documents.upload', 'documents.revise']);
+    skemaGunakanBerkasSebelumnya.parse(raw ?? {});
+    let copied: BerkasDisimpanSementara | undefined;
+    try {
+      return await this.repo.transaction(async (db) => {
+        const version = (await this.repo.rows<RowDataPacket & { document_id: string; document_created_by: string; version_created_by: string; status_workflow: string; nomor_versi: number; peruntukan: string | null }>(db,
+          'SELECT CAST(d.id AS CHAR) document_id,d.created_by document_created_by,v.created_by version_created_by,v.status_workflow,v.nomor_versi,d.peruntukan FROM dokumen_versi v JOIN dokumen d ON d.id=v.dokumen_id WHERE v.id=? AND d.deleted_at IS NULL FOR UPDATE', [versionId]))[0];
+        if (!version) throw new NotFoundException();
+        cekPeruntukanPanel(actor, version.peruntukan);
+        cekPemilikAtauSuperadmin(actor, version.document_created_by);
+        cekPemilikAtauSuperadmin(actor, version.version_created_by);
+        if (!['DRAF', 'REVISI'].includes(version.status_workflow) || Number(version.nomor_versi) < 2)
+          throw new ConflictException('Dokumen asli hanya dapat dipakai pada draf revisi.');
+        if ((await this.repo.rows(db, 'SELECT id FROM dokumen_berkas WHERE dokumen_versi_id=? LIMIT 1', [versionId])).length)
+          throw new ConflictException('Draf ini sudah memiliki berkas.');
+        copied = await this.copyPublishedMainForRevision(db, actor, version.document_id, versionId);
+        if (!copied) throw new ConflictException('Berkas versi sebelumnya tidak tersedia.');
+        return { versionId, disalin: true };
+      });
+    } catch (error) {
+      if (copied) await this.storage.discard(copied);
+      throw error;
+    }
+  }
 
   async upload(actor: PenggunaAktif, versionId: string, incoming: IncomingFile, rawMetadata: unknown) {
     cekIzin(actor, ['documents.upload']);

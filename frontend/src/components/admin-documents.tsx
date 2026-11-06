@@ -268,7 +268,6 @@ export function AdminDocumentCreate({
     !type && 'Jenis dokumen',
     !code.trim() && 'Kode dokumen',
     !slug.replace(/-+$/, '').trim() && 'Slug URL',
-    !description.trim() && 'Deskripsi singkat',
     !number.trim() && 'Nomor',
     !year.trim() && 'Tahun',
     !pic.trim() && 'PIC',
@@ -294,8 +293,8 @@ export function AdminDocumentCreate({
     { teks: 'Jenis dokumen', ok: Boolean(type) },
     { teks: 'Kode & alamat halaman', ok: Boolean(code.trim() && slug.replace(/-+$/, '')) },
     {
-      teks: 'Deskripsi, nomor, tahun, PIC dan tanggal',
-      ok: Boolean(description.trim() && number.trim() && year.trim() && pic.trim() && date),
+      teks: 'Nomor, tahun, PIC dan tanggal',
+      ok: Boolean(number.trim() && year.trim() && pic.trim() && date),
     },
     { teks: 'Satu file dokumen utama (wajib)', ok: Boolean(file) },
     ...(hubungan
@@ -429,8 +428,7 @@ export function AdminDocumentCreate({
               maxLength={500}
             />
             <TextAreaField
-              label="Deskripsi singkat"
-              required
+              label="Deskripsi Singkat (opsional)"
               id="doc-description"
               rows={2}
               maxLength={1000}

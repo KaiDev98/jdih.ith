@@ -48,7 +48,7 @@ afterEach(() => {
   state.daftar.mockClear();
 });
 
-function setupDetail() {
+function setupDetail(deskripsi: string | null = 'Deskripsi lengkap') {
   state.daftar.mockResolvedValue({ data: [], meta: { totalButir: 0, totalHalaman: 0 } });
   state.api.mockImplementation((url: string) =>
     Promise.resolve(
@@ -75,7 +75,7 @@ function setupDetail() {
               nomorVersi: 1,
               currentPublishedVersionId: state.current,
               tanggalPenetapan: '2026-10-01',
-              deskripsi: 'Deskripsi lengkap',
+              deskripsi,
               nomor: '1',
               tahun: 2026,
               pic: 'Hukum',
@@ -94,6 +94,24 @@ function setupDetail() {
 }
 
 describe('Admin membaca dokumen tanpa tindakan Superadmin; SOP khusus Superadmin', () => {
+  it.each([['ADMIN', 'DRAF'], ['ADMIN', 'REVISI'], ['SUPERADMIN', 'DRAF'], ['SUPERADMIN', 'REVISI']])('%s %s tidak menampilkan atau memuat permintaan pencabutan/penghapusan', async (role, status) => {
+    state.peran = [role!]; state.status = status!; state.own = true;
+    setupDetail();
+    render(<AdminDocumentDetail id="5" />);
+    await screen.findByRole('heading', { name: 'Dokumen tinjauan' });
+    expect(screen.queryByRole('heading', { name: /Permintaan Pencabutan/ })).not.toBeInTheDocument();
+    expect(state.daftar.mock.calls.some(([url]) => String(url).includes('removal-requests'))).toBe(false);
+  });
+  it.each(['ADMIN', 'SUPERADMIN'])('%s dapat melanjutkan verifikasi dengan deskripsi kosong', async (role) => {
+    state.peran = [role];
+    state.status = role === 'ADMIN' ? 'DRAF' : 'DIAJUKAN';
+    state.own = true;
+    setupDetail(null);
+    render(<AdminDocumentDetail id="5" />);
+    await screen.findByRole('heading', { name: 'Dokumen tinjauan' });
+    expect(screen.getByRole('button', { name: role === 'ADMIN' ? 'Ajukan untuk diverifikasi' : 'Setujui' })).toBeEnabled();
+    expect(screen.queryByText(/Deskripsi wajib/)).not.toBeInTheDocument();
+  });
   it('pencabutan langsung memakai versi terbit, alasan wajib dan konfirmasi; status Dicabut tetap menyimpan berkas', async () => {
     state.peran = ['SUPERADMIN']; state.status = 'TERBIT'; state.own = true; state.current = '50';
     setupDetail(); render(<AdminDocumentDetail id="5" />);

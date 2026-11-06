@@ -105,7 +105,6 @@ describe('pengajuan dan hasil verifikasi dokumen', () => {
   });
   for (const field of [
     'judul',
-    'deskripsi',
     'nomor',
     'tahun',
     'pic',
@@ -128,6 +127,15 @@ describe('pengajuan dan hasil verifikasi dokumen', () => {
     await expect(core.transition(admin, '50', 'SUBMIT')).rejects.toThrow('File tidak tersedia');
     expect(repo.write).not.toHaveBeenCalled();
   });
+  for (const action of ['SUBMIT', 'APPROVE'] as const) {
+    it.each([undefined, null, '', '   '])(`${action} menerima deskripsi opsional %j dan tetap memeriksa file utama`, async (deskripsi) => {
+      const { core, files } = setup({ deskripsi, status_workflow: action === 'SUBMIT' ? 'DRAF' : 'DIAJUKAN' });
+      await expect(core.transition(action === 'SUBMIT' ? admin : verifier, '50', action)).resolves.toMatchObject({
+        statusWorkflow: action === 'SUBMIT' ? 'DIAJUKAN' : 'DISETUJUI',
+      });
+      expect(files.assertSubmissionReady).toHaveBeenCalledWith(expect.anything(), '50');
+    });
+  }
   it('memeriksa ulang unit dan kategori saat mengajukan', async () => {
     const wrongUnit = setup({ unit_kerja_id: '9' });
     await expect(wrongUnit.core.transition(admin, '50', 'SUBMIT')).rejects.toBeInstanceOf(

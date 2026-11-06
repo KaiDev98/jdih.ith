@@ -3,7 +3,7 @@
 import Link from '@/components/admin/tautan-panel';
 import { useCallback, useEffect, useState } from 'react';
 import type { KemampuanDokumenAdmin, Relasi, PilihanKategoriDokumen } from '@jdih/shared';
-import { ArrowLeft, FileText, Paperclip, Search, Link2, Save, Trash2, UploadCloud } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, Copy, FilePen, FileText, Paperclip, Search, Link2, Save, Trash2, UploadCloud } from 'lucide-react';
 import { PemilihKategoriDokumen } from './admin/pemilih-kategori-dokumen';
 import { PemilihTingkatAkses } from './admin/pemilih-tingkat-akses';
 import { ambilApi, ambilApiBerdaftar, GalatApi } from '@/lib/api-client';
@@ -26,6 +26,8 @@ import {
   StateMessage,
   TextAreaField,
 } from '@/components/ui';
+import { PratinjauFormat } from './pratinjau-format';
+import styles from './admin-ubah-draf.module.css';
 
 type Versi = Pick<KemampuanDokumenAdmin, 'bolehUbah'> & {
   id: string;
@@ -47,6 +49,7 @@ type Berkas = {
   judul: string | null;
   namaAsli: string;
   sizeBytes: string;
+  mimeType: string;
   bolehHapus: boolean | number;
 };
 type HasilCari = { id: string; judul: string; nomor: string | null; tipe: string };
@@ -107,14 +110,14 @@ export function AdminUbahDraf({ id }: { id: string }) {
       href={`/admin/dokumen/${id}?versionId=${versi.versionId}`}
     >
       <ArrowLeft aria-hidden className="size-4" />
-      Detail dokumen
+      Detail Dokumen
     </Link>
   );
 
   if (!TAHAP_BISA_DIUBAH.includes(versi.statusWorkflow))
     return (
       <div className="mx-auto max-w-3xl">
-        <PageTitle title="Ubah Draf" meta={kembali} />
+        <PageTitle title="Ubah Dokumen" meta={kembali} />
         <StateMessage title={`Dokumen ini sedang berstatus "${tahap.teks}"`}>
           Hanya draf yang bisa diubah. Untuk mengubah dokumen yang sudah terbit, pakai tombol{' '}
           <strong>Buat revisi</strong> di halaman detail.
@@ -123,9 +126,9 @@ export function AdminUbahDraf({ id }: { id: string }) {
     );
 
   return (
-    <div className="halaman-panel mx-auto w-full">
+    <div className="halaman-panel mx-auto w-full max-w-6xl">
       <PageTitle
-        title="Ubah Draf"
+        title="Ubah Dokumen"
         description={`${versi.judul} · versi ${versi.nomorVersi}`}
         meta={
           <>
@@ -134,30 +137,31 @@ export function AdminUbahDraf({ id }: { id: string }) {
           </>
         }
       />
-      {/* Data dan hubungan di kolom lebar; berkas dan tombol selesai di kolom samping. */}
-      <fieldset disabled={!versi.bolehUbah} className="formulir-panel grid min-w-0 grid-cols-[minmax(0,1fr)] items-start gap-5 [&>*]:min-w-0 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="grid content-start gap-5">
+      <fieldset disabled={!versi.bolehUbah} className={`${styles.editor} ${izin.includes('documents.edit') ? styles.withData : ''}`}>
           {izin.includes('documents.edit') && (
-            <BagianData versi={versi} onTersimpan={() => setMuatUlang((x) => x + 1)} />
+            <div className={styles.data}>
+            <BagianData key={versi.versionId} versi={versi} onTersimpan={() => setMuatUlang((x) => x + 1)} />
+            </div>
           )}
+          <aside className={styles.side} aria-label="Berkas dan Hubungan Dokumen">
+          <div className={styles.sideContent} data-gulir-panel tabIndex={0} role="region" aria-label="Daftar Berkas dan Hubungan Dokumen">
+          <BagianBerkas key={versi.versionId} versionId={versi.versionId} nomorVersi={versi.nomorVersi} bolehUnggah={izin.includes('documents.upload')} bolehPakaiAsli={izin.includes('documents.revise')} />
           {izin.includes('legal.manage_relations') && (
             <BagianHubungan
+              key={versi.versionId}
               dokumenId={id}
               versionId={versi.versionId}
               internal={versi.tingkatAkses === 'internal'}
             />
           )}
-        </div>
-        <div className="grid content-start gap-4">
-          <BagianBerkas
-            versionId={versi.versionId}
-            bolehUnggah={izin.includes('documents.upload')}
-          />
+          </div>
+          </aside>
+        <div className={styles.footer}>
           <Link
             href={`/admin/dokumen/${id}`}
-            className="tekan inline-flex min-h-10 items-center justify-center rounded-lg bg-tinta px-5 text-sm font-semibold text-white hover:bg-[#1d3461]"
+            className="tekan inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-tinta px-5 text-sm font-semibold text-white hover:bg-[#1d3461]"
           >
-            Selesai, kembali ke detail
+            <Check aria-hidden className="size-4" /> Selesai, Kembali ke Detail
           </Link>
         </div>
       </fieldset>
@@ -214,13 +218,13 @@ function BagianData({ versi, onTersimpan }: { versi: Versi; onTersimpan: () => v
 
   return (
     <Card>
-      <h2 className="text-base font-bold">1. Data dokumen</h2>
+      <h2 className="flex items-center gap-2 text-sm font-semibold"><FilePen aria-hidden className="size-4 text-slate-500" />Data Dokumen</h2>
       <p className="mt-1 text-sm text-slate-600">
-        Lengkapi data wajib dan satu file utama sebelum diajukan. Kategori boleh dikosongkan.
+        Perbarui data draf. Deskripsi dan kategori boleh dikosongkan.
       </p>
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4">
         <Field
-          className="sm:col-span-2"
+          className="col-span-2"
           label="Judul"
           id="ubah-judul"
           placeholder="Isi dengan Judul Dokumen"
@@ -228,18 +232,19 @@ function BagianData({ versi, onTersimpan }: { versi: Versi; onTersimpan: () => v
           value={form.judul}
           onChange={(e) => ubah('judul', e.target.value)}
         />
-        <div className="grid gap-1 sm:col-span-2">
+        <div className="col-span-2 grid gap-1">
           <TextAreaField
-            label="Deskripsi singkat"
+            label="Deskripsi Singkat (opsional)"
             id="ubah-deskripsi"
             maxLength={1000}
-            rows={3}
+            rows={2}
+            className="[&_textarea]:min-h-[4.25rem]"
             placeholder="Deskripsi singkat tentang dokumen"
             value={form.deskripsi}
             onChange={(e) => ubah('deskripsi', e.target.value)}
           />
           <p className="text-xs text-slate-500">
-            Satu sampai tiga kalimat tentang isi dokumen. Tampil di bawah judul pada halaman publik.
+            Boleh dikosongkan. Jika diisi, ringkasan tampil di bawah judul pada halaman publik.
             {form.deskripsi.length > 0 && ` ${String(form.deskripsi.length)}/1000`}
           </p>
         </div>
@@ -270,20 +275,20 @@ function BagianData({ versi, onTersimpan }: { versi: Versi; onTersimpan: () => v
           value={form.tanggalPenetapan}
           onChange={(e) => ubah('tanggalPenetapan', e.target.value)}
         />
-        <PemilihKategoriDokumen
+        <div className="col-span-2 sm:col-span-1"><PemilihKategoriDokumen
           id="ubah-kategori"
           value={category}
           onValueChange={setCategory}
           categories={categories}
         />
-        {galatKategori && <p role="alert" className="text-sm text-red-700">{galatKategori}</p>}
-        <PemilihTingkatAkses
+        {galatKategori && <p role="alert" className="text-sm text-red-700">{galatKategori}</p>}</div>
+        <div className="col-span-2 sm:col-span-1"><PemilihTingkatAkses
           id="ubah-akses"
           value={form.tingkatAkses === 'internal' ? 'internal' : 'publik'}
           onValueChange={(value) => ubah('tingkatAkses', value)}
-        />
+        /></div>
       </div>
-      <div className="mt-5">
+      <div className="mt-4 flex justify-end [&>div]:w-full sm:[&>div]:w-auto">
         <ConfirmAction
           label="Simpan data" icon={Save}
           title="Simpan perubahan data dokumen?"
@@ -297,15 +302,16 @@ function BagianData({ versi, onTersimpan }: { versi: Versi; onTersimpan: () => v
 }
 
 /** 2. Satu file utama; lampiran lama tetap terlihat untuk koreksi draf. */
-function BagianBerkas({ versionId, bolehUnggah }: { versionId: string; bolehUnggah: boolean }) {
+function BagianBerkas({ versionId, nomorVersi, bolehUnggah, bolehPakaiAsli }: { versionId: string; nomorVersi: number; bolehUnggah: boolean; bolehPakaiAsli: boolean }) {
   const { csrfToken } = useSession();
   const [berkas, setBerkas] = useState<Berkas[]>();
   const [utama, setUtama] = useState<File>();
+  const [galat, setGalat] = useState('');
 
   const muat = useCallback(() => {
     ambilApi<Berkas[]>(`/admin/documents/versions/${versionId}/files`)
-      .then(setBerkas)
-      .catch(() => setBerkas([]));
+      .then((rows) => { setBerkas(rows); setGalat(''); })
+      .catch((e: unknown) => setGalat(e instanceof Error ? e.message : 'Berkas belum dapat dimuat.'));
   }, [versionId]);
   useEffect(muat, [muat]);
 
@@ -345,7 +351,7 @@ function BagianBerkas({ versionId, bolehUnggah }: { versionId: string; bolehUngg
       key={b.id}
       className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-3"
     >
-      <span className="flex min-w-0 items-center gap-3">
+      <span className="flex min-w-0 flex-1 items-center gap-3 text-sm">
         <Ikon aria-hidden className="size-5 shrink-0 text-slate-500" />
         <span className="min-w-0">
           <span className="block font-medium [overflow-wrap:anywhere]">
@@ -357,48 +363,47 @@ function BagianBerkas({ versionId, bolehUnggah }: { versionId: string; bolehUngg
           </span>
         </span>
       </span>
-      {bolehUnggah && b.bolehHapus ? (
+      <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+        <PratinjauFormat nama={b.namaAsli} canPreview={b.mimeType === 'application/pdf'} fallbackLabel="Unduh"
+          previewUrl={`/api/v1/admin/documents/versions/${versionId}/files/${b.id}?mode=inline`}
+          downloadUrl={`/api/v1/admin/documents/versions/${versionId}/files/${b.id}`} />
+      {bolehUnggah && Number(b.bolehHapus) === 1 ? (
         <ConfirmAction
           label="Hapus" icon={Trash2}
+          ukuran="kecil"
           tone="danger"
           title="Hapus berkas ini?"
-          description={`${b.namaAsli} dihapus dari draf. Anda bisa mengunggah berkas lain setelahnya.`}
+          description={`${b.namaAsli} dilepas dari draf ini agar dapat diganti. Berkas versi sebelumnya tetap tersimpan.`}
           confirmLabel="Ya, hapus"
           onConfirm={() => hapus(b.id)}
         />
-      ) : bolehUnggah && berkas?.length === 0 ? (
-        <Button
-          type="button"
-          tone="secondary"
-          ukuran="kecil"
-          disabled
-          title="Hanya pengunggah berkas atau Superadmin yang dapat menggantinya."
-        >
-          Hapus
-        </Button>
       ) : null}
+      </div>
     </li>
   );
 
+  if (galat) return <Card><StateMessage title="Berkas Belum Dapat Dimuat" kind="error">{galat}<Button tone="secondary" ukuran="kecil" onClick={() => { setGalat(''); muat(); }}>Coba Lagi</Button></StateMessage></Card>;
+
   return (
     <Card>
-      <h2 className="text-base font-bold">2. Berkas</h2>
-      <p className="mt-1 text-sm text-slate-600">
-        Format {LABEL_JENIS_BERKAS}. Hanya PDF yang dapat dipratinjau di halaman publik; jenis
-        lain tampil sebagai unduhan.
+      <h2 className="flex items-center gap-2 text-sm font-semibold"><FileText aria-hidden className="size-4 text-slate-500" />Berkas</h2>
+      <p className="mt-1 text-xs leading-5 text-slate-500">
+        Format {LABEL_JENIS_BERKAS}. PDF mendukung pratinjau.
       </p>
 
-      <h3 className="mt-5 font-semibold">Dokumen utama (wajib)</h3>
-      <p className="text-sm text-slate-600">
-        Berkas pokok produk hukum, misalnya PDF surat keputusan yang sudah ditandatangani. Hanya
-        satu; untuk mengganti, hapus dulu yang lama.
+      <h3 className="mt-4 text-sm font-medium">Dokumen Utama</h3>
+      <p className="mt-1 text-xs leading-5 text-slate-500">
+        {fileUtama ? 'Dokumen asli sudah terisi dan tetap digunakan jika hanya datanya yang direvisi. Jika ingin mengganti dokumen, hapus berkas draf ini lalu unggah penggantinya. Versi terbit tetap utuh.' : 'Unggah satu berkas utama sebelum mengajukan verifikasi. Revisi baru otomatis menyertakan berkas versi sebelumnya jika tersedia.'}
       </p>
       {berkas === undefined ? (
         <p className="mt-3 text-sm text-slate-500">Memuat…</p>
       ) : fileUtama ? (
         <ul className="mt-3">{baris(fileUtama, FileText)}</ul>
       ) : bolehUnggah ? (
-        <div className="mt-3 grid gap-3 sm:flex sm:items-start">
+        <div className="mt-3 grid gap-3">
+          {nomorVersi > 1 && bolehPakaiAsli && <ConfirmAction label="Gunakan Dokumen Asli" icon={Copy} tone="secondary" ukuran="kecil"
+            title="Gunakan dokumen asli untuk revisi ini?" description="Berkas versi terbit sebelumnya disalin ke draf revisi. Versi terbit tetap utuh."
+            onConfirm={async () => { await ambilApi(`/admin/documents/versions/${versionId}/reuse-main`, { method: 'POST', headers: csrfHeaders(csrfToken), muatan: {} }); muat(); }} />}
           <input
             id="unggah-utama"
             type="file"
@@ -518,11 +523,17 @@ function BagianHubungan({
   }
 
   return (
-    <Card>
-      <h2 className="text-base font-bold">3. Hubungan dengan dokumen lain (opsional)</h2>
-      <p className="mt-1 text-sm text-slate-600">
-        Isi bila dokumen ini mencabut, mengubah, atau berdasarkan dokumen lain. Contoh: SK baru yang
-        mencabut SK lama. Sebelum terbit, Anda akan diminta memastikan akibatnya.
+    <Card className="p-0! sm:p-0!">
+      <details className="group" open={relasi.length > 0 || undefined}>
+        <summary className="flex min-h-14 cursor-pointer list-none items-center gap-2 px-5 py-4 [&::-webkit-details-marker]:hidden sm:px-6">
+          <Link2 aria-hidden className="size-4 shrink-0 text-slate-500" />
+          <h2 className="text-sm font-semibold">Hubungan dengan Dokumen Lain</h2>
+          <span className="text-xs text-slate-400">Opsional</span>
+          <ChevronDown aria-hidden className="ml-auto size-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180 motion-reduce:transition-none" />
+        </summary>
+      <div className="border-t border-sekat px-5 pt-4 pb-5 sm:px-6">
+      <p className="text-xs leading-5 text-slate-500">
+        Tambahkan jika dokumen mengubah, mencabut, atau mengacu pada dokumen lain. Dampaknya dikonfirmasi sebelum terbit.
       </p>
 
       {relasi.length > 0 && (
@@ -562,7 +573,7 @@ function BagianHubungan({
           <label htmlFor="cari-dokumen-lain" className="text-sm font-medium text-slate-800">
             Cari dokumen lain berdasarkan judul atau nomor
           </label>
-          <div className="flex items-center gap-2 rounded-md border border-slate-300 px-3 focus-within:outline-2 focus-within:outline-institusi-600">
+          <div className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 focus-within:border-sky-400 focus-within:ring-3 focus-within:ring-sky-100">
             <Search aria-hidden className="size-4 text-slate-400" />
             <input
               id="cari-dokumen-lain"
@@ -669,6 +680,8 @@ function BagianHubungan({
           </div>
         )}
       </div>
+      </div>
+      </details>
     </Card>
   );
 }

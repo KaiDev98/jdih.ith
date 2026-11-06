@@ -49,6 +49,12 @@ export class AdminDocumentFilesController {
     streamFileResponse(file, res, disposition, range);
   }
 
+  @Post(':versionId/reuse-main')
+  @Izin('documents.upload')
+  reuseMain(@Param('versionId') versionId: string, @Req() req: PermintaanBerpengguna, @Aktor() actor: PenggunaAktif) {
+    return this.files.reusePreviousMain(actor, versionId, req.body);
+  }
+
   @Delete(':versionId/files/:fileId')
   @Izin('documents.upload')
   remove(

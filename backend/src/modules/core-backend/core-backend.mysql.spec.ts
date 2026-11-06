@@ -281,11 +281,106 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     return { id: String((result as any).insertId) };
   }
 
+  it.each([null, 'PERMOHONAN_SK'])('copies the main file into an owned revision and publishes without reupload for collection %s', async (peruntukan) => {
+    const owner = await addAdmin('ADMIN');
+    const [types] = await pool.query<RowDataPacket[]>("SELECT id FROM jenis_dokumen WHERE kode='SOP' AND aktif=1 LIMIT 1");
+    const marker = uid();
+    const d = await service.createDocument(owner, { kodeDokumen: marker, slug: `carry-${marker}`, jenisDokumenId: String(types[0]!.id), peruntukan,
+      versi: { ...ready('Berkas tetap saat data direvisi'), deskripsi: null, kategoriId: [] } });
+    await files.upload(owner, d.versionId, await incomingFile('utama.pdf', Buffer.from('%PDF-1.7\noriginal document\n%%EOF\n')), { jenisBerkas: 'UTAMA' });
+    await service.transition(owner, d.versionId, 'SUBMIT'); await approve(d.versionId); await publish(d.versionId);
+    const other = await addAdmin('ADMIN');
+    await expect(service.newVersion(other, d.id, { ...ready('Tidak berhak'), kategoriId: [] })).rejects.toMatchObject({ status: 404 });
+    const revision = await service.newVersion(owner, d.id, { ...ready('Judul diperbarui'), deskripsi: null, kategoriId: [] });
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT CAST(dokumen_versi_id AS CHAR) versionId,CAST(uploaded_by AS CHAR) uploadedBy,storage_key,checksum,nama_asli FROM dokumen_berkas WHERE dokumen_versi_id IN (?,?) ORDER BY id', [d.versionId, revision.id]);
+    expect(rows).toHaveLength(2);
+    expect(rows[1]!.storage_key).not.toBe(rows[0]!.storage_key);
+    expect(rows[1]!.checksum).toEqual(rows[0]!.checksum);
+    expect(rows[1]).toMatchObject({ versionId: revision.id, uploadedBy: owner.id, nama_asli: 'utama.pdf' });
+    expect((await service.document(owner, d.id)).document.currentPublishedVersionId).toBe(d.versionId);
+    const slug = await documentSlug(d.id);
+    expect((await service.publicDetail(slug)).judul).toBe('Berkas tetap saat data direvisi');
+    await service.transition(owner, revision.id, 'SUBMIT');
+    expect((await service.publicDetail(slug)).judul).toBe('Berkas tetap saat data direvisi');
+    await approve(revision.id);
+    expect((await service.publicDetail(slug)).judul).toBe('Berkas tetap saat data direvisi');
+    await publish(revision.id);
+    expect((await service.document(owner, d.id)).document.currentPublishedVersionId).toBe(revision.id);
+    expect((await service.publicDetail(slug)).judul).toBe('Judul diperbarui');
+    expect(await storage.exists(String(rows[0]!.storage_key))).toBe(true);
+    const next = await service.newVersion(owner, d.id, { ...ready('Berkas akan diganti'), kategoriId: [] });
+    const inherited = await files.listForVersion(owner, next.id);
+    await files.removeFromDraft(owner, next.id, inherited[0]!.id);
+    expect(await storage.exists(String(rows[1]!.storage_key))).toBe(true);
+    expect((await files.listForVersion(owner, revision.id))).toHaveLength(1);
+    await expect(service.transition(owner, next.id, 'SUBMIT')).rejects.toThrow('satu file');
+    await expect(files.reusePreviousMain(other, next.id, {})).rejects.toMatchObject({ status: 404 });
+    await files.reusePreviousMain(owner, next.id, {});
+    await expect(files.reusePreviousMain(owner, next.id, {})).rejects.toMatchObject({ status: 409 });
+    const restored = await files.listForVersion(owner, next.id);
+    expect(restored).toHaveLength(1);
+    await files.removeFromDraft(owner, next.id, restored[0]!.id);
+    await files.upload(owner, next.id, await incomingFile('pengganti.pdf', Buffer.from('%PDF-1.7\nreplacement document\n%%EOF\n')), { jenisBerkas: 'UTAMA' });
+    expect((await service.document(owner, d.id)).document.currentPublishedVersionId).toBe(revision.id);
+    await service.transition(owner, next.id, 'SUBMIT'); await approve(next.id); await publish(next.id);
+    expect((await service.document(owner, d.id)).document.currentPublishedVersionId).toBe(next.id);
+    await expect(files.reusePreviousMain(owner, next.id, {})).rejects.toMatchObject({ status: 409 });
+  });
+
+  it.each(['COPY_MAIN_FILE', 'CREATE_VERSION'])('rolls back copied revision files and metadata when %s audit fails', async (action) => {
+    const d = await publishedDoc();
+    const discard = vi.spyOn(storage, 'discard');
+    const record = audit.recordDomain.bind(audit);
+    const failure = vi.spyOn(audit, 'recordDomain').mockImplementation((event, db) => {
+      if (event.action === action) throw new Error('copy rollback probe');
+      return record(event, db);
+    });
+    try { await expect(service.newVersion(actor, d.id, ready('Rollback revision'))).rejects.toThrow('copy rollback probe'); }
+    finally { failure.mockRestore(); }
+    const copied = discard.mock.calls[0]?.[0];
+    discard.mockRestore();
+    expect(copied).toBeTruthy();
+    expect(await storage.exists(copied!.storageKey)).toBe(false);
+    expect((await service.document(actor, d.id)).versions).toHaveLength(0);
+    expect((await service.document(actor, d.id)).document.currentPublishedVersionId).toBe(d.versionId);
+    await expect(service.publicDetail(await documentSlug(d.id))).resolves.toBeTruthy();
+  });
+
+  it('refuses corrupted inherited bytes without creating a revision or damaging the original file', async () => {
+    const d = await publishedDoc();
+    const [source] = await pool.query<RowDataPacket[]>('SELECT storage_key,size_bytes FROM dokumen_berkas WHERE dokumen_versi_id=?', [d.versionId]);
+    const size = Number(source[0]!.size_bytes);
+    const original = vi.spyOn(storage, 'open').mockResolvedValueOnce({ stream: Readable.from([Buffer.alloc(size, 88)]), size });
+    try { await expect(service.newVersion(actor, d.id, ready('Corrupted revision'))).rejects.toThrow('Checksum'); }
+    finally { original.mockRestore(); }
+    expect((await service.document(actor, d.id)).versions).toHaveLength(0);
+    expect(await storage.exists(String(source[0]!.storage_key))).toBe(true);
+  });
+  it('reuses the latest withdrawn main file without restoring its publication', async () => {
+    const d = await publishedDoc();
+    await service.withdraw(second, d.id, { alasan: 'Penarikan lama untuk diperbaiki' });
+    const revision = await service.newVersion(actor, d.id, ready('Revisi setelah penarikan'));
+    expect(await files.listForVersion(actor, revision.id)).toHaveLength(1);
+    expect((await service.document(actor, d.id)).document.currentPublishedVersionId).toBeNull();
+    await expect(service.publicDetail(await documentSlug(d.id))).rejects.toMatchObject({ status: 404 });
+  });
+  it('removes staged revision bytes and rolls back the version if storage finalization fails', async () => {
+    const d = await publishedDoc();
+    const discard = vi.spyOn(storage, 'discard');
+    const failure = vi.spyOn(storage, 'finalize').mockRejectedValueOnce(new Error('copy finalize failure'));
+    try { await expect(service.newVersion(actor, d.id, ready('Storage rollback'))).rejects.toThrow('copy finalize failure'); }
+    finally { failure.mockRestore(); }
+    const copied = discard.mock.calls[0]?.[0]; discard.mockRestore();
+    expect(copied).toBeTruthy();
+    expect(await storage.exists(copied!.storageKey)).toBe(false);
+    expect((await service.document(actor, d.id)).versions).toHaveLength(0);
+    expect((await service.document(actor, d.id)).document.currentPublishedVersionId).toBe(d.versionId);
+  });
+
   it('deletes only an owned draft revision, preserving the published file, pointer and access', async () => {
     const { documents } = removalServices();
     const d = await publishedDoc();
     const revision = await service.newVersion(actor, d.id, ready('Draf revisi yang dibatalkan'));
-    await addFileMetadata(revision.id, 'UTAMA');
     await expect(documents.hapusDraf({ ...second, peran: ['ADMIN'] }, d.id, revision.id)).rejects.toMatchObject({ status: 404 });
     await expect(documents.hapusDraf(adminOwner(), d.id, d.versionId)).rejects.toMatchObject({ status: 409 });
     await documents.hapusDraf(adminOwner(), d.id, revision.id);
@@ -484,7 +579,7 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     const d = await publishedDoc();
     const request = await requests.create(adminOwner(), 'DOCUMENT', d.id, { jenis: 'REVOKE', alasan: 'Cabut versi lama' });
     const newer = await service.newVersion(actor, d.id, ready('Versi baru setelah permintaan'));
-    await addFileMetadata(newer.id, 'UTAMA'); await approve(newer.id); await publish(newer.id);
+    await approve(newer.id); await publish(newer.id);
     await expect(requests.decide(second, request.id, { keputusan: 'APPROVE', catatan: 'Versi berubah' })).rejects.toMatchObject({ status: 409 });
     expect((await service.document(actor, d.id)).document.currentPublishedVersionId).toBe(newer.id);
     await requests.decide(second, request.id, { keputusan: 'DECLINE', catatan: 'Ajukan ulang untuk versi baru' });
@@ -659,7 +754,6 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
       targetDocumentId: repealTarget.id,
       jenisRelasi: 'MENCABUT',
     });
-    await addFileMetadata(revision.id, 'UTAMA');
     await approve(revision.id);
     const impact = await service.impact(actor, revision.id);
     expect(impact.dampak).toEqual(
@@ -789,7 +883,6 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     expect(revisions.map((revision) => revision.nomorVersi).sort()).toEqual([2, 3]);
 
     const next = revisions[0];
-    await addFileMetadata(next.id, 'UTAMA');
     await approve(next.id);
     const impact = await service.impact(second, next.id);
     const command = {
@@ -1015,11 +1108,11 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
       'SELECT status FROM template_surat_versi WHERE template_surat_id=? ORDER BY nomor_versi', [first.id],
     );
     expect(versions.map((row) => String(row.status))).toEqual(['ARCHIVED', 'ACTIVE']);
-    expect((await templates.list({ halaman: 1, perHalaman: 20 })).data).not.toEqual(
+    expect((await templates.list({ q: suffix, halaman: 1, perHalaman: 20 })).data).not.toEqual(
       expect.arrayContaining([expect.objectContaining({ id: first.id })]),
     );
     const staff = await addStaff();
-    expect((await templates.list({ halaman: 1, perHalaman: 20 }, staff)).data).toEqual(
+    expect((await templates.list({ q: suffix, halaman: 1, perHalaman: 20 }, staff)).data).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: first.id, tingkatAkses: 'INTERNAL' })]),
     );
     await expect(templates.open(`format-${suffix}`)).rejects.toThrow();
@@ -1323,7 +1416,6 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
 
     const revision = await service.newVersion(actor, publicDoc.id, ready(`Search V2 revised ${marker}`));
     expect((await search.search({ q: `public ${marker}` })).data).toHaveLength(1);
-    await addFileMetadata(revision.id, 'UTAMA');
     await approve(revision.id);
     await publish(revision.id);
     expect((await search.search({ q: `public ${marker}` })).data).toHaveLength(0);
@@ -1405,7 +1497,6 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     expect((await queue()).meta.totalButir).toBe(0);
     expect((await all()).data[0]?.versionId).toBe(document.versionId);
     const revision = await service.newVersion(owner, document.id, metadata);
-    await addFileMetadata(revision.id, 'UTAMA');
     await service.transition(owner, revision.id, 'SUBMIT');
     await approve(revision.id);
     expect((await queue()).data[0]?.versionId).toBe(revision.id);
@@ -1419,12 +1510,12 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     expect((await all()).data.map(row => String(row.versionId))).toEqual([revision.id, document.versionId]);
   });
 
-  it.each([null, 'PERMOHONAN_SK'])('Admin dapat mengajukan tanpa kategori untuk koleksi %s, unit dan batas kategori tetap diperiksa', async (peruntukan) => {
+  it.each([null, 'PERMOHONAN_SK'])('Admin dapat mengajukan, menyetujui dan menerbitkan tanpa kategori/deskripsi untuk koleksi %s', async (peruntukan) => {
     const owner = await addAdmin('ADMIN');
     const [types] = await pool.query<RowDataPacket[]>("SELECT id FROM jenis_dokumen WHERE kode='SOP' AND aktif=1 LIMIT 1");
     const marker = uid();
     const payload = { kodeDokumen: marker, slug: `tanpa-kategori-${marker}`, jenisDokumenId: String(types[0]!.id), peruntukan,
-      versi: { ...ready(`Dokumen tanpa kategori ${marker}`), kategoriId: [] } };
+      versi: { ...ready(`Dokumen tanpa kategori ${marker}`), deskripsi: null, kategoriId: [] } };
     const d = await service.createDocument(owner, payload);
     await expect(service.updateVersion(owner, d.versionId, { kategoriId: [defaultCategoryId] })).rejects.toThrow();
     const before = await service.document(owner, d.id);
@@ -1530,7 +1621,6 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     expect(await home.categories(String(types[0]!.id))).toEqual(kategoriSebelum);
     expect(await home.years()).toEqual(tahunSebelum);
     const revision = await service.newVersion(actor, d.id, ready(`SOP SK ${marker} revisi`, level));
-    await addFileMetadata(revision.id, 'UTAMA');
     const [before] = await pool.query<RowDataPacket[]>('SELECT current_published_version_id FROM dokumen WHERE id=?', [d.id]);
     expect(String(before[0]!.current_published_version_id)).toBe(d.versionId);
     await approve(revision.id);

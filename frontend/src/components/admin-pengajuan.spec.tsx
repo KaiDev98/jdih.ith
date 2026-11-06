@@ -52,7 +52,7 @@ afterEach(() => {
 });
 
 describe('pengajuan dokumen pada panel', () => {
-  async function siapkanUnggahan(mode: 'umum' | 'permohonan-sk' = 'umum', berkasGagal = false, drafGagal = false) {
+  async function siapkanUnggahan(mode: 'umum' | 'permohonan-sk' = 'umum', berkasGagal = false, drafGagal = false, deskripsi = 'Prosedur yang akan diverifikasi') {
     state.api.mockImplementation((url: string, options?: { method?: string }) => {
       if (url.endsWith('/jenis_dokumen')) return Promise.resolve([{ id: '1', kode: 'SOP', nama: 'SOP', aktif: true }]);
       if (url.endsWith('/kategori')) return Promise.resolve([]);
@@ -66,13 +66,20 @@ describe('pengajuan dokumen pada panel', () => {
       fireEvent.keyDown(screen.getByLabelText('Jenis dokumen'), { key: 'ArrowDown' });
       fireEvent.click(await screen.findByRole('menuitemradio', { name: 'SOP' }));
     }
-    for (const [id, value] of [['doc-title', 'Draf Pengujian Popup'], ['doc-description', 'Prosedur yang akan diverifikasi'], ['doc-number', '12'], ['doc-year', '2026'], ['doc-pic', 'Unit TIK'], ['doc-date', '2026-11-06']] as const)
+    for (const [id, value] of [['doc-title', 'Draf Pengujian Popup'], ['doc-description', deskripsi], ['doc-number', '12'], ['doc-year', '2026'], ['doc-pic', 'Unit TIK'], ['doc-date', '2026-11-06']] as const)
       fireEvent.change(document.getElementById(id)!, { target: { value } });
     fireEvent.change(document.getElementById('doc-file')!, { target: { files: [new File(['%PDF'], 'dokumen.pdf', { type: 'application/pdf' })] } });
     fireEvent.click(screen.getByRole('radio', { name: 'Dosen/Staf' }));
     fireEvent.click(screen.getByRole('button', { name: 'Buat draf' }));
     fireEvent.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
   }
+  it.each(['umum', 'permohonan-sk'] as const)('unggah %s dapat selesai tanpa Deskripsi Singkat', async (mode) => {
+    await siapkanUnggahan(mode, false, false, '');
+    await screen.findByRole('dialog', { name: 'Draf Berhasil Disimpan' });
+    expect(document.getElementById('doc-description')).not.toHaveAttribute('required');
+    const create = state.api.mock.calls.find(([url, options]) => url === '/admin/documents' && options?.method);
+    expect(create?.[1]?.muatan.versi.deskripsi).toBeUndefined();
+  });
   it.each([
     ['ADMIN', 'umum'], ['SUPERADMIN', 'umum'], ['ADMIN', 'permohonan-sk'], ['SUPERADMIN', 'permohonan-sk'],
   ] as const)('%s mendapat popup hasil pada %s, formulir tetap terlihat, dan dapat unggah dokumen lain tanpa duplikasi', async (role, mode) => {
@@ -468,7 +475,7 @@ describe('pengajuan dokumen pada panel', () => {
     await waitFor(() => expect(state.api).toHaveBeenCalledWith('/admin/document-options/jenis_dokumen'));
     fireEvent.click(screen.getByRole('button', { name: 'Buat draf' }));
     expect(screen.getByRole('alert')).toHaveTextContent('File dokumen utama');
-    expect(screen.getByRole('alert')).toHaveTextContent('Deskripsi singkat');
+    expect(screen.getByRole('alert')).not.toHaveTextContent(/Deskripsi/i);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(state.api.mock.calls.every(([, options]) => !options?.method)).toBe(true);
     const input = document.getElementById('doc-file');

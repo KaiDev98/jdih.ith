@@ -1,5 +1,32 @@
 # CODEX IMPLEMENTATION PLAN — JDIH ITH V2
 
+Draf revisi lama: Gunakan Dokumen Asli memanggil reuse-main, tanpa unggahan manual.
+Uji konfirmasi/CSRF/izin, lintas pemilik, versi terbit, file sudah ada dan sumber
+yang hanya boleh ditentukan server. Salinan tetap terpisah dari versi lama.
+
+Klarifikasi 2026-11-06: desktop Data di kiri; Berkas lalu Hubungan di kanan,
+dibatasi tinggi Data dan bergulir internal; ponsel bertumpuk. Verifikasi berkas
+asli otomatis terisi, keterangan penggantian dan portal masih versi lama saat
+draf/diajukan/disetujui; publish baru mengganti judul/file/pointer publik atomik.
+Perbandingan ID notifikasi besar memakai DECIMAL(20,0), diuji terhadap MySQL
+prepared statement; fixture digit boundary tidak menaikkan AUTO_INCREMENT tanpa batas.
+
+Revisi edit/file 2026-11-06: sembunyikan panel/fetch permintaan di DRAF/REVISI,
+susun Data -> Berkas -> Hubungan di Ubah Dokumen. Hubungan opsional dilipat,
+pratinjau/unduh terotorisasi dan retry galat daftar tanpa menganggapnya kosong.
+Salin UTAMA current published atau versi TERBIT/DITARIK terakhir ke revisi dengan
+ID/key baru dan pembuat revisi sebagai pengunggah. Uji tanpa unggah ulang sampai
+publish, pemilik/lintas pemilik, peruntukan, mengganti/menghapus draf tidak merusak
+versi lama, sumber checksum salah, rollback audit/finalize dan revisi serentak.
+Pertahankan pointer lama, audit dan persetujuan/penerbitan terpisah. Tanpa migrasi.
+
+Revisi deskripsi/bantuan SK 2026-11-06: hapus kewajiban deskripsi dari kesiapan
+shared dan formulir, pertahankan normalisasi NULL/batas 1000. Uji kosong/null/tidak
+dikirim hingga SUBMIT/APPROVE/PUBLISH, wajib metadata lain dan berkas tidak berubah.
+Ringkas panel bantuan, tampilkan satu telepon/surel nyata dan tautan kontak lengkap;
+periksa 320/390/768/1440px, kontak kosong/panjang, overflow dan target sentuh.
+Tidak mengubah workflow, data kontak atau database. Runtime API perlu restart.
+
 Revisi hasil unggah dokumen 2026-11-06: dialog hasil ringkas di atas formulir,
 tanpa halaman sukses pengganti/angka langkah. Uji Admin/Superadmin, Produk Hukum
 dan SOP Permohonan SK, unggah parsial, kegagalan draf, tautan konteks+versi,

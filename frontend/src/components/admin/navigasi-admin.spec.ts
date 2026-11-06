@@ -60,7 +60,7 @@ describe('navigasi admin', () => {
       { label: 'Dasbor', href: '/admin' },
       { label: 'Dokumen', href: '/admin/dokumen' },
       { label: 'Detail Dokumen', href: '/admin/dokumen/923' },
-      { label: 'Ubah Draf', href: '/admin/dokumen/923/ubah' },
+      { label: 'Ubah Dokumen', href: '/admin/dokumen/923/ubah' },
     ]);
     expect(jejakHalaman('/admin/profil').at(-1)?.label).toBe('Pengaturan Profil');
     expect(jejakHalaman('/admin/sop-permohonan-sk/baru').map((j) => j.label)).toEqual([
