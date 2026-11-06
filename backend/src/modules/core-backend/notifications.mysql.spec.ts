@@ -340,7 +340,7 @@ describe.skipIf(!process.env.NOTIFICATIONS_MYSQL_ENV)('notifikasi MySQL dengan r
     await service.withdraw(superadmin, d.id, { alasan: 'Koreksi isi' });
     expect((await service.notifications(owner)).find((r) => r.resourceId === d.id && r.action === 'WITHDRAW')?.catatan).toBe('Koreksi isi');
     const documents = new DokumenAdminService(newRepository(), audit, { delete: vi.fn() } as never);
-    await documents.hapusPermanen(superadmin, d.id);
+    await documents.hapusPermanen(superadmin, d.id, d.vid);
     expect((await service.notifications(owner)).find((r) => r.resourceId === d.id && r.action === 'DOCUMENT_DELETE')).toMatchObject({ dokumenId: null, versionId: null, judul: 'Fixture notifikasi' });
     const draftId = await version(owner);
     const [rows] = await db.query<RowDataPacket[]>('SELECT CAST(dokumen_id AS CHAR) id FROM dokumen_versi WHERE id=?', [draftId]);

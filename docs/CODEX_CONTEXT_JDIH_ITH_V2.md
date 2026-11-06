@@ -1,5 +1,20 @@
 # CODEX CONTEXT — JDIH ITH PAREPARE V2
 
+Perbaikan penghapusan TERBARU 2026-11-06: detail versi lama tidak menyediakan
+Hapus Seluruh Dokumen maupun pengajuan permintaan hapus; tautan menuju versi
+terbaru tersedia. Riwayat terbit dipertahankan, bukan dihapus terpisah.
+DELETE /admin/documents/:id wajib body strict {versionId}; tanpa versi ditolak.
+Sesudah mengunci induk dan seluruh versi, hapus permanen hanya boleh jika
+versionId sama dengan versi bernomor tertinggi. Halaman/permintaan lama ditolak
+409 bila sudah ada revisi baru (termasuk DRAF/DIAJUKAN/DISETUJUI), sebelum menghapus
+baris atau file. Keputusan DELETE juga memakai version_id permintaan di dalam
+transaksi yang sama; penolakan me-rollback keputusan sehingga tetap PENDING.
+Konfirmasi terbaru menyatakan seluruh induk/versi/file, bukan hapus satu versi.
+Pembatalan draf tetap version-scoped, izin Superadmin/CSRF/audit tetap berlaku.
+Tanpa migrasi. Build dan restart API wajib agar guard server aktif; frontend
+saja tidak melindungi endpoint backend lama. Data yang sudah hard-delete tidak
+dipulihkan otomatis oleh perbaikan ini.
+
 Polesan panel TERBARU 2026-11-06: Ubah Dokumen desktop memenuhi sisa viewport;
 Data Dokumen dan sisi Berkas/Hubungan bergulir sendiri, tanpa gulir halaman.
 Hubungan dengan Dokumen Lain selalu terbuka; Selesai, Kembali ke Detail tepat

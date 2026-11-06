@@ -1,4 +1,4 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import { DokumenAdminService } from './dokumen-admin.service.js';
 
@@ -39,13 +39,20 @@ function siapkan(
   const audit = { recordDomain: vi.fn(() => Promise.resolve()) };
   const storage = { delete: vi.fn(() => Promise.resolve()) };
   const service = new DokumenAdminService(repo as never, audit as never, storage as never);
-  return { service, sql, audit, storage };
+  return { service, sql, audit, storage, repo };
 }
 
 describe('DokumenAdminService.hapusPermanen', () => {
+  it.each(['51', '', '999'])('rejects old, missing and foreign version %s before any mutation or physical deletion', async (versionId) => {
+    const { service, sql, audit, storage } = siapkan();
+    await expect(service.hapusPermanen(admin as never, '5', versionId)).rejects.toBeInstanceOf(ConflictException);
+    expect(sql).toEqual([]);
+    expect(storage.delete).not.toHaveBeenCalled();
+    expect(audit.recordDomain).not.toHaveBeenCalled();
+  });
   it('deletes every dependent row, then the files, and audits it', async () => {
     const { service, sql, audit, storage } = siapkan();
-    await expect(service.hapusPermanen(admin as never, '5')).resolves.toEqual({
+    await expect(service.hapusPermanen(admin as never, '5', '50')).resolves.toEqual({
       id: '5',
       dihapus: true,
     });
@@ -75,7 +82,7 @@ describe('DokumenAdminService.hapusPermanen', () => {
     { ...admin, status: 'NONAKTIF' },
   ])('rejects non-Superadmin, missing permission and inactive principals before reading or deleting', async (actor) => {
     const { service, sql, storage, audit } = siapkan();
-    await expect(service.hapusPermanen(actor as never, '5')).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.hapusPermanen(actor as never, '5', '50')).rejects.toBeInstanceOf(ForbiddenException);
     expect(sql).toEqual([]);
     expect(storage.delete).not.toHaveBeenCalled();
     expect(audit.recordDomain).not.toHaveBeenCalled();
@@ -83,10 +90,10 @@ describe('DokumenAdminService.hapusPermanen', () => {
 
   it('is denied without permission and 404 for unknown documents', async () => {
     const { service, sql } = siapkan();
-    await expect(service.hapusPermanen(staf as never, '5')).rejects.toBeInstanceOf(
+    await expect(service.hapusPermanen(staf as never, '5', '50')).rejects.toBeInstanceOf(
       ForbiddenException,
     );
-    await expect(siapkan(null).service.hapusPermanen(admin as never, '6')).rejects.toBeInstanceOf(
+    await expect(siapkan(null).service.hapusPermanen(admin as never, '6', '50')).rejects.toBeInstanceOf(
       NotFoundException,
     );
     expect(sql).toEqual([]);

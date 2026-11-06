@@ -327,6 +327,37 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     await expect(files.reusePreviousMain(owner, next.id, {})).rejects.toMatchObject({ status: 409 });
   });
 
+  it.each([null, 'PERMOHONAN_SK'])('rejects deleting an old version or stale deletion request without damaging its revision: %s', async (peruntukan) => {
+    const { documents, requests } = removalServices();
+    const owner = await addAdmin('ADMIN');
+    const [types] = await pool.query<RowDataPacket[]>("SELECT id FROM jenis_dokumen WHERE kode='SOP' AND aktif=1 LIMIT 1");
+    const marker = uid();
+    const d = await service.createDocument(owner, { kodeDokumen: marker, slug: `safe-delete-${marker}`, jenisDokumenId: String(types[0]!.id), peruntukan,
+      versi: { ...ready('Versi awal tetap aman'), kategoriId: [] } });
+    await files.upload(owner, d.versionId, await incomingFile('asli.pdf', Buffer.from('%PDF-1.7\nprotected revision\n%%EOF\n')), { jenisBerkas: 'UTAMA' });
+    await service.transition(owner, d.versionId, 'SUBMIT'); await approve(d.versionId); await publish(d.versionId);
+    const request = await requests.create(owner, 'DOCUMENT', d.id, { jenis: 'DELETE', alasan: 'Permintaan sebelum ada revisi' });
+    const revision = await service.newVersion(owner, d.id, { ...ready('Revisi harus tetap tersedia'), kategoriId: [] });
+    const [stored] = await pool.query<RowDataPacket[]>('SELECT storage_key FROM dokumen_berkas WHERE dokumen_versi_id IN (?,?)', [d.versionId, revision.id]);
+    const publicSlug = await documentSlug(d.id);
+    for (const stage of ['DRAF', 'DIAJUKAN', 'DISETUJUI', 'TERBIT']) {
+      if (stage === 'DIAJUKAN') await service.transition(owner, revision.id, 'SUBMIT');
+      if (stage === 'DISETUJUI') await approve(revision.id);
+      if (stage === 'TERBIT') await publish(revision.id);
+      await expect(documents.hapusPermanen(second, d.id, d.versionId)).rejects.toMatchObject({ status: 409 });
+      await expect(requests.decide(second, request.id, { keputusan: 'APPROVE' })).rejects.toMatchObject({ status: 409 });
+      const detail = await service.document(owner, d.id, revision.id);
+      expect(detail.document.statusWorkflow).toBe(stage);
+      expect(detail.document.currentPublishedVersionId).toBe(stage === 'TERBIT' ? revision.id : d.versionId);
+      expect(await files.listForVersion(owner, revision.id)).toHaveLength(1);
+      for (const file of stored) expect(await storage.exists(String(file.storage_key))).toBe(true);
+      expect((await service.publicDetail(publicSlug)).judul).toBe(stage === 'TERBIT' ? 'Revisi harus tetap tersedia' : 'Versi awal tetap aman');
+      expect((await requests.list(owner, { requestId: request.id, status: 'ALL' })).data[0]!.status).toBe('PENDING');
+    }
+    const [deleted] = await pool.query<RowDataPacket[]>("SELECT id FROM audit_log WHERE module='documents' AND action='DELETE_PERMANENT' AND entity_id=?", [d.id]);
+    expect(deleted).toHaveLength(0);
+  });
+
   it.each(['COPY_MAIN_FILE', 'CREATE_VERSION'])('rolls back copied revision files and metadata when %s audit fails', async (action) => {
     const d = await publishedDoc();
     const discard = vi.spyOn(storage, 'discard');
@@ -697,7 +728,7 @@ describe.skipIf(!enabled)('MySQL 8.4 Core Backend integration', () => {
     const { requests, documents } = removalServices();
     const d = await publishedDoc();
     const request = await requests.create(adminOwner(), 'DOCUMENT', d.id, { jenis: 'DELETE', alasan: 'Tidak diperlukan' });
-    await documents.hapusPermanen(second, d.id);
+    await documents.hapusPermanen(second, d.id, d.versionId);
     await expect(requests.decide(second, request.id, { keputusan: 'APPROVE', catatan: 'Klik terlambat' })).rejects.toMatchObject({ status: 409 });
     expect((await requests.list(adminOwner(), { sumber: 'DOCUMENT', resourceId: d.id, status: 'ALL' })).data[0]).toMatchObject({ status: 'OBSOLETE' });
   });

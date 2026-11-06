@@ -9,6 +9,7 @@ const state = vi.hoisted(() => ({
   own: false,
   current: null as string | null,
   hukum: 'BERLAKU',
+  versions: [] as { versionId: string; nomorVersi: number; statusWorkflow: string }[],
   api: vi.fn(),
   daftar: vi.fn(),
 }));
@@ -45,6 +46,7 @@ afterEach(() => {
   state.peran = ['ADMIN'];
   state.current = null;
   state.hukum = 'BERLAKU';
+  state.versions = [];
   state.daftar.mockClear();
 });
 
@@ -84,7 +86,7 @@ function setupDetail(deskripsi: string | null = 'Deskripsi lengkap') {
             },
             kategoriId: ['1'],
             riwayatVerifikasi: [],
-            versions: [],
+            versions: state.versions,
             statusPeraturan: [],
             keteranganStatus: null,
             keteranganPublik: null,
@@ -94,6 +96,17 @@ function setupDetail(deskripsi: string | null = 'Deskripsi lengkap') {
 }
 
 describe('Admin membaca dokumen tanpa tindakan Superadmin; SOP khusus Superadmin', () => {
+  it.each([['ADMIN', 'DRAF'], ['SUPERADMIN', 'DRAF'], ['ADMIN', 'TERBIT'], ['SUPERADMIN', 'TERBIT']])('%s tidak dapat menghapus induk dari versi lama saat revisi %s', async (role, stage) => {
+    state.peran = [role!]; state.status = 'TERBIT'; state.current = stage === 'TERBIT' ? '51' : '50'; state.own = true;
+    state.versions = [{ versionId: '51', nomorVersi: 2, statusWorkflow: stage! }];
+    setupDetail();
+    render(<AdminDocumentDetail id="5" />);
+    await screen.findByRole('link', { name: 'Buka Versi Terbaru' });
+    expect(screen.queryByRole('button', { name: 'Hapus permanen' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Hapus Seluruh Dokumen' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Minta Penghapusan|Minta Pencabutan dan Penghapusan/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Buka Versi Terbaru' })).toHaveAttribute('href', `/${role === 'SUPERADMIN' ? 'superadmin' : 'admin'}/dokumen/5?versionId=51`);
+  });
   it.each([['ADMIN', 'DRAF'], ['ADMIN', 'REVISI'], ['SUPERADMIN', 'DRAF'], ['SUPERADMIN', 'REVISI']])('%s %s tidak menampilkan atau memuat permintaan pencabutan/penghapusan', async (role, status) => {
     state.peran = [role!]; state.status = status!; state.own = true;
     setupDetail();
@@ -143,13 +156,14 @@ describe('Admin membaca dokumen tanpa tindakan Superadmin; SOP khusus Superadmin
   it('Superadmin menempatkan Status hukum di samping Hapus permanen, lalu permintaan di bawah keduanya', async () => {
     state.peran = ['SUPERADMIN'];
     state.status = 'TERBIT';
+    state.current = '50';
     state.own = true;
     setupDetail();
     render(<AdminDocumentDetail id="5" />);
     await screen.findByRole('heading', { name: 'Dokumen tinjauan' });
     const pair = screen.getByLabelText('Status hukum dan penghapusan permanen');
     const status = screen.getByRole('heading', { name: 'Status hukum' });
-    const remove = screen.getByRole('heading', { name: 'Hapus permanen' });
+    const remove = screen.getByRole('heading', { name: 'Hapus Seluruh Dokumen' });
     const requests = screen.getByRole('heading', { name: /Permintaan Pencabutan & Penghapusan/ });
     expect(pair.children[0]).toContainElement(status);
     expect(pair.children[1]).toContainElement(remove);

@@ -120,7 +120,7 @@ export class RemovalRequestsService {
             await this.core.revokeInTransaction(db, actor, request.resourceId, request.versionId!, data.catatan || request.alasan, id);
           else if (request.jenis === 'WITHDRAW')
             await this.core.withdrawInTransaction(db, actor, request.resourceId, data.catatan || request.alasan, id);
-          else files = await this.documents.hapusDalamTransaksi(db, actor, request.resourceId, id);
+          else files = await this.documents.hapusDalamTransaksi(db, actor, request.resourceId, request.versionId!, id);
         } else if (request.jenis === 'REVOKE')
           await this.templates.revokeInTransaction(db, actor, request.resourceId, request.versionId!, data.catatan || request.alasan, id);
         else if (request.jenis === 'WITHDRAW')

@@ -11,14 +11,14 @@ import { Card, ConfirmAction } from '@/components/ui';
  * Status hukum tidak diubah dari sini; pencabutan mempertahankan dokumen,
  * sedangkan tindakan ini menghapus dokumen beserta berkasnya.
  */
-export function AdminHapusDokumen({ id, judul }: { id: string; judul: string }) {
+export function AdminHapusDokumen({ id, judul, versionId }: { id: string; judul: string; versionId: string }) {
   const { pengguna, csrfToken } = useSession();
   const router = useRouter();
   const bolehHapus =
     pengguna?.peran.includes('SUPERADMIN') && pengguna.izin.includes('documents.delete');
 
   async function hapus() {
-    await ambilApi(`/admin/documents/${id}`, { method: 'DELETE', headers: csrfHeaders(csrfToken) });
+    await ambilApi(`/admin/documents/${id}`, { method: 'DELETE', headers: csrfHeaders(csrfToken), muatan: { versionId } });
     window.dispatchEvent(new Event('jdih:workflow'));
     router.replace('/admin/dokumen');
   }
@@ -26,7 +26,7 @@ export function AdminHapusDokumen({ id, judul }: { id: string; judul: string }) 
   return (
     <Card className="border-rose-200 bg-rose-50/30">
       <h2 className="flex items-center gap-2 text-sm font-bold text-rose-900">
-        <Trash2 aria-hidden className="size-4" /> Hapus permanen
+        <Trash2 aria-hidden className="size-4" /> Hapus Seluruh Dokumen
       </h2>
       <p className="mt-1 text-sm text-slate-600">
         Dokumen, seluruh versi, dan berkasnya dihapus dan tidak lagi tampil di web. Tindakan ini
@@ -36,7 +36,7 @@ export function AdminHapusDokumen({ id, judul }: { id: string; judul: string }) 
         <ConfirmAction
           label="Hapus permanen" icon={Trash2}
           tone="danger"
-          title="Hapus dokumen ini secara permanen?"
+          title="Hapus seluruh dokumen dan semua versinya?"
           description={`"${judul}" beserta seluruh versi dan berkasnya akan dihapus selamanya.`}
           confirmLabel="Ya, hapus permanen"
           disabled={!bolehHapus}

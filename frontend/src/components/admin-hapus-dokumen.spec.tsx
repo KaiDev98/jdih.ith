@@ -30,11 +30,11 @@ afterEach(() => {
 describe('hapus dokumen tanpa mengetik judul', () => {
   it('menampilkan tombol langsung dan hanya menghapus setelah konfirmasi', async () => {
     state.api.mockResolvedValue({ dihapus: true });
-    render(<AdminHapusDokumen id="5" judul="Dokumen pengujian" />);
+    render(<AdminHapusDokumen id="5" judul="Dokumen pengujian" versionId="50" />);
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Hapus permanen' }));
     expect(
-      screen.getByRole('dialog', { name: 'Hapus dokumen ini secara permanen?' }),
+      screen.getByRole('dialog', { name: 'Hapus seluruh dokumen dan semua versinya?' }),
     ).toHaveTextContent('Dokumen pengujian');
     expect(state.api).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Batal' }));
@@ -47,6 +47,7 @@ describe('hapus dokumen tanpa mengetik judul', () => {
     expect(state.api).toHaveBeenCalledExactlyOnceWith('/admin/documents/5', {
       method: 'DELETE',
       headers: { 'x-csrf-token': 'csrf' },
+      muatan: { versionId: '50' },
     });
   });
 
@@ -58,7 +59,7 @@ describe('hapus dokumen tanpa mengetik judul', () => {
     it(`menonaktifkan tindakan untuk ${role}, izin ${String(permission)}`, () => {
       state.role = role;
       state.permission = permission;
-      render(<AdminHapusDokumen id="5" judul="Dokumen" />);
+      render(<AdminHapusDokumen id="5" judul="Dokumen" versionId="50" />);
       expect(screen.getByRole('button', { name: 'Hapus permanen' })).toBeDisabled();
       expect(state.api).not.toHaveBeenCalled();
     });
@@ -72,7 +73,7 @@ describe('hapus dokumen tanpa mengetik judul', () => {
           selesai = resolve;
         }),
     );
-    render(<AdminHapusDokumen id="5" judul="Dokumen" />);
+    render(<AdminHapusDokumen id="5" judul="Dokumen" versionId="50" />);
     fireEvent.click(screen.getByRole('button', { name: 'Hapus permanen' }));
     const confirm = screen.getByRole('button', { name: 'Ya, hapus permanen' });
     fireEvent.click(confirm);
@@ -85,7 +86,7 @@ describe('hapus dokumen tanpa mengetik judul', () => {
 
   it('menampilkan kegagalan dan tetap berada di dokumen', async () => {
     state.api.mockRejectedValue(new Error('Berkas gagal dihapus'));
-    render(<AdminHapusDokumen id="5" judul="Dokumen" />);
+    render(<AdminHapusDokumen id="5" judul="Dokumen" versionId="50" />);
     fireEvent.click(screen.getByRole('button', { name: 'Hapus permanen' }));
     fireEvent.click(screen.getByRole('button', { name: 'Ya, hapus permanen' }));
     await waitFor(() =>

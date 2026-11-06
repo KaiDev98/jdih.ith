@@ -1,6 +1,6 @@
-import { Controller, Delete, Param } from '@nestjs/common';
+import { Body, Controller, Delete, Param } from '@nestjs/common';
 import type { PenggunaAktif } from '@jdih/shared';
-import { skemaParamId } from '@jdih/shared';
+import { skemaHapusDokumenPermanen, skemaParamId } from '@jdih/shared';
 import { Aktor, Izin } from '../../../common/decorators/otorisasi.decorator.js';
 import { DokumenAdminService } from './dokumen-admin.service.js';
 
@@ -15,7 +15,8 @@ export class DokumenAdminController {
   @Delete(':id') @Izin('documents.delete') hapus(
     @Param() param: unknown,
     @Aktor() actor: PenggunaAktif,
+    @Body() raw: unknown,
   ) {
-    return this.dokumen.hapusPermanen(actor, skemaParamId.parse(param).id);
+    return this.dokumen.hapusPermanen(actor, skemaParamId.parse(param).id, skemaHapusDokumenPermanen.parse(raw).versionId);
   }
 }

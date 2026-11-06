@@ -54,18 +54,18 @@ export class DokumenAdminService {
    * dihapus; riwayat status dokumen lain yang bersumber dari versinya tetap ada
    * tanpa tautan sumber. Jejak penghapusan tersimpan di audit_log.
    */
-  async hapusPermanen(actor: PenggunaAktif, id: string) {
+  async hapusPermanen(actor: PenggunaAktif, id: string, versionId: string) {
     cekSuperadmin(actor);
     cekIzin(actor, ['documents.delete']);
     const kunciBerkas = await this.repo.transaction((db) =>
-      this.hapusDalamTransaksi(db, actor, id),
+      this.hapusDalamTransaksi(db, actor, id, versionId),
     );
     await this.bersihkanBerkas(kunciBerkas);
     return { id, dihapus: true };
   }
 
   /** Dipakai keputusan permintaan dalam transaksi yang sama dengan audit keputusan. */
-  async hapusDalamTransaksi(db: PoolConnection, actor: PenggunaAktif, id: string, requestId?: string) {
+  async hapusDalamTransaksi(db: PoolConnection, actor: PenggunaAktif, id: string, versionId: string, requestId?: string) {
     cekSuperadmin(actor);
     cekIzin(actor, ['documents.delete']);
     const d = await this.kunci(db, id);
@@ -75,6 +75,12 @@ export class DokumenAdminService {
       [id],
     );
     const ids = versi.map((v) => v.id);
+    // Parent is already locked, serializing this check with revision creation and publication.
+    // A stale page/request must never remove revisions created after its target version.
+    if (!versionId || String(versi[0]?.id) !== versionId)
+      throw new ConflictException(
+        'Penghapusan dibatalkan karena dokumen memiliki versi yang lebih baru. Buka versi terbaru untuk meninjau seluruh dokumen. Riwayat versi lama tidak dihapus terpisah.',
+      );
     const di = tempat(ids);
     const berkas = (
       await this.repo.rows<RowDataPacket & { storage_key: string }>(
@@ -122,6 +128,7 @@ export class DokumenAdminService {
           slug: d.slug,
           judul: versi[0]?.judul ?? null,
           jumlahVersi: ids.length,
+          versionId,
           jumlahBerkas: berkas.length,
           relasiMasukDihapus: relasiMasuk.affectedRows,
         },

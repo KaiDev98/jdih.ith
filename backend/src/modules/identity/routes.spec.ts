@@ -53,7 +53,7 @@ describe('AppModule HTTP security wiring (no database/network provider)', () => 
   } as never);
   const listService = new RemovalRequestsService({} as never, listRepository, {} as never, {} as never, {} as never, {} as never);
   const removals = { create: vi.fn().mockResolvedValue({ id: '8', status: 'PENDING' }), list: listService.list.bind(listService) };
-  const drafts = { hapusDraf: vi.fn().mockResolvedValue({ id: '5', versionId: '50', dihapus: true }) };
+  const drafts = { hapusDraf: vi.fn().mockResolvedValue({ id: '5', versionId: '50', dihapus: true }), hapusPermanen: vi.fn().mockResolvedValue({ id: '5', dihapus: true }) };
   const documentFiles = { reusePreviousMain: vi.fn().mockResolvedValue({ versionId: '50', disalin: true }) };
   beforeAll(async () => {
     Object.assign(process.env, {
@@ -258,6 +258,20 @@ describe('AppModule HTTP security wiring (no database/network provider)', () => 
     expect(documentFiles.reusePreviousMain).not.toHaveBeenCalled();
     expect((await fetch(path, { method: 'POST', headers, body })).status).toBe(201);
     expect(documentFiles.reusePreviousMain).toHaveBeenCalledWith(actor, '50', {});
+  });
+  it('permanent deletion requires a strict version-bound body, permission and CSRF', async () => {
+    const path = base + '/api/v1/admin/documents/5';
+    const actor = { ...user, peran: ['SUPERADMIN'], izin: ['documents.delete'] };
+    const headers = { cookie: 'jdih_session=' + token, origin: 'http://localhost:3000', 'content-type': 'application/json', 'x-csrf-token': csrfToken(token, key) };
+    auth();
+    expect((await fetch(path, { method: 'DELETE', headers, body: JSON.stringify({ versionId: '50' }) })).status).toBe(403);
+    identity.authenticate.mockResolvedValue({ user: actor });
+    for (const body of [{}, { versionId: '50', force: true }, { versionId: 'x' }])
+      expect((await fetch(path, { method: 'DELETE', headers, body: JSON.stringify(body) })).status).toBe(422);
+    expect((await fetch(path, { method: 'DELETE', headers: { ...headers, 'x-csrf-token': 'invalid' }, body: JSON.stringify({ versionId: '50' }) })).status).toBe(403);
+    expect(drafts.hapusPermanen).not.toHaveBeenCalled();
+    expect((await fetch(path, { method: 'DELETE', headers, body: JSON.stringify({ versionId: '50' }) })).status).toBe(200);
+    expect(drafts.hapusPermanen).toHaveBeenCalledWith(actor, '5', '50');
   });
   it('draft cancellation and removal requests are default-closed, permission-checked and CSRF-protected', async () => {
     const actor = { ...user, peran: ['ADMIN'], izin: ['documents.read_admin', 'documents.edit'] };

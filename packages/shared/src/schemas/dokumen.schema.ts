@@ -24,6 +24,9 @@ export const skemaKemampuanDokumenAdmin = z.strictObject({
 });
 export type KemampuanDokumenAdmin = z.infer<typeof skemaKemampuanDokumenAdmin>;
 
+/** Penghapusan seluruh induk wajib mengikat versi terbaru yang sedang ditinjau. */
+export const skemaHapusDokumenPermanen = z.strictObject({ versionId: skemaId });
+
 /** Teks bebas opsional: kosong disimpan sebagai NULL. */
 function teksBebasOpsional(maksimum: number, label: string) {
   return z

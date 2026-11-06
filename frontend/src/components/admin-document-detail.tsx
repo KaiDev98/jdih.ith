@@ -337,9 +337,12 @@ function DetailDokumen({
   const superadmin = pengguna?.peran.includes('SUPERADMIN') ?? false;
   const label = tahapDari(diganti ? 'DIGANTI' : tahap);
   const bisaDiubah = TAHAP_BISA_DIUBAH.includes(tahap);
-  const tampilPermintaan = !bisaDiubah && (superadmin || document.bolehRevisi);
+  const versiTerbaru = [document, ...detail.versions].reduce((latest, version) =>
+    version.nomorVersi > latest.nomorVersi ? version : latest, document);
+  const versiLama = versiTerbaru.versionId !== document.versionId || diganti;
+  const tampilPermintaan = !bisaDiubah && !versiLama && (superadmin || document.bolehRevisi);
   const tampilHapusPermanen = superadmin && konteks !== 'pengajuan' &&
-    !['DRAF', 'REVISI', 'DIAJUKAN'].includes(tahap);
+    !versiLama && !['DRAF', 'REVISI', 'DIAJUKAN'].includes(tahap);
   const jalurLangsung = superadmin && document.bolehSetujuiLangsung === true;
   const setujuiLangsung = jalurLangsung && bisaDiubah;
   const versiPublik = [document, ...detail.versions].find(
@@ -560,9 +563,15 @@ function DetailDokumen({
               </ConfirmAction>
             )}
           </div>
-          {!superadmin && document.bolehRevisi && !bisaDiubah && izin.includes('documents.edit') && (
+          {!superadmin && document.bolehRevisi && !bisaDiubah && !versiLama && izin.includes('documents.edit') && (
             <div className="mt-4 border-t border-sekat pt-4"><p className="mb-2 text-xs text-slate-500">Penarikan atau penghapusan memerlukan keputusan Superadmin.</p>
               <FormPermintaanPenghapusan key={document.currentPublishedVersionId} sumber="DOCUMENT" resourceId={id} judul={document.judul} bisaTarik={!!document.currentPublishedVersionId && document.statusHukum !== 'DICABUT'} /></div>
+          )}
+          {versiLama && (
+            <p className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              Anda sedang membuka versi lama. Penghapusan seluruh dokumen tidak tersedia dari riwayat ini agar revisi tetap aman.{' '}
+              <Link href={tautanDetailDokumen(id, versiTerbaru.versionId, konteks)} className="font-semibold text-institusi-700 underline underline-offset-4">Buka Versi Terbaru</Link>
+            </p>
           )}
           {bisaDiubah && kekurangan.length > 0 && (
             <div role="status" className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
@@ -791,7 +800,7 @@ function DetailDokumen({
               izin.includes('legal.manage_relations')
             }
           />
-          {tampilHapusPermanen && <AdminHapusDokumen id={id} judul={document.judul} />}
+          {tampilHapusPermanen && <AdminHapusDokumen id={id} judul={document.judul} versionId={document.versionId} />}
           {tampilPermintaan && (
             <div className={cn('detail-permintaan min-w-0', tampilHapusPermanen && 'lg:col-span-2')}>
               <AntreanPermintaanPenghapusan
